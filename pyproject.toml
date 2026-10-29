@@ -1,0 +1,35 @@
+[project]
+name = "cotorreando"
+version = "0.1.0"
+description = "Dictado por voz para todo Windows con NVIDIA Parakeet."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "Alfiq" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "onnxruntime",
+    "PySide6-Essentials",
+    "PyAudioWPatch",
+    "livekit",
+]
+
+[project.optional-dependencies]
+build = ["nuitka"]
+
+[project.urls]
+Homepage = "https://github.com/alfiq/cotorreando"
+
+[project.gui-scripts]
+cotorreando = "cotorreando.app:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cotorreando*"]
+
+[tool.setuptools.package-data]
+cotorreando = ["lora/datasets/*.txt"]
