@@ -65,7 +65,9 @@ La primera vez descarga el modelo (~670 MB) a `%LOCALAPPDATA%\Cotorreando\models
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-Genera `dist\cotorreando.dist\Cotorreando.exe` con Nuitka.
+Genera `dist\cotorreando.dist\Cotorreando.exe` con Nuitka y el instalador
+`dist\Cotorreando-<versión>-setup.exe` con [Inno Setup](https://jrsoftware.org/isinfo.php)
+(`winget install JRSoftware.InnoSetup`). El instalador no pide permisos de administrador.
 
 ### GPU
 

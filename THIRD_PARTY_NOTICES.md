@@ -24,6 +24,7 @@ under permissive, commercially usable licenses.
 | [aiofiles](https://github.com/Tinche/aiofiles) | Dependency of the LiveKit SDK | [Apache-2.0](https://github.com/Tinche/aiofiles/blob/main/LICENSE) | © Tin Tvrtković |
 | [Python](https://www.python.org) | Runtime | [PSF-2.0](https://docs.python.org/3/license.html) | © Python Software Foundation |
 | [Nuitka](https://nuitka.net) | Executable build | [Apache-2.0](https://github.com/Nuitka/Nuitka/blob/develop/LICENSE.txt) | © Kay Hayen |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | Installer | [Inno Setup License (free, commercial use allowed)](https://jrsoftware.org/files/is/license.txt) | © Jordan Russell, Martijn Laan |
 | [Handy](https://github.com/cjpais/handy) | Inspiration for the overall idea | [MIT](https://github.com/cjpais/handy/blob/main/LICENSE) | © CJ Pais. No code was copied. |
 
 ## Solo para entrenar (se instalan bajo demanda)

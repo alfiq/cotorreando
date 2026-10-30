@@ -49,6 +49,9 @@ CREDITS = [
      "https://docs.python.org/3/license.html", "© Python Software Foundation"),
     ("Nuitka", "Executable build", "Apache-2.0", "https://nuitka.net",
      "https://github.com/Nuitka/Nuitka/blob/develop/LICENSE.txt", "© Kay Hayen"),
+    ("Inno Setup", "Installer", "Inno Setup License (free, commercial use allowed)",
+     "https://jrsoftware.org/isinfo.php", "https://jrsoftware.org/files/is/license.txt",
+     "© Jordan Russell, Martijn Laan"),
     ("Handy", "Inspiration for the overall idea", "MIT", "https://github.com/cjpais/handy",
      "https://github.com/cjpais/handy/blob/main/LICENSE", "© CJ Pais. No code was copied."),
 ]
