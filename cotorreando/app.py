@@ -64,6 +64,7 @@ class Cotorreando(QObject):
     loaded = Signal()
     toggle_requested = Signal()
     warning = Signal(str)
+    loading = Signal(float)   # -1 = busy, 0..1 = download progress
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -84,6 +85,7 @@ class Cotorreando(QObject):
         self.level.connect(self.blob.set_level)
         self.writing.connect(self.blob.set_writing)
         self.loaded.connect(self.start_audio)
+        self.loading.connect(lambda v: self.blob.set_loading(None if v < -1 else v))
         self.toggle_requested.connect(self.toggle_enabled)
 
         self.tray = QSystemTrayIcon(self._tray_icon(), self)
@@ -114,9 +116,11 @@ class Cotorreando(QObject):
 
     def _load_model(self) -> None:
         self.status.emit(tr("loading"))
+        self.loading.emit(-1)
         try:
             if not asr.is_downloaded():
-                asr.download(lambda d, t: self.status.emit(tr("downloading", pct=d * 100 // max(t, 1))))
+                asr.download(self._download_progress)
+                self.loading.emit(-1)
             try:
                 self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu)
             except Exception:
@@ -128,9 +132,17 @@ class Cotorreando(QObject):
             log.exception("Model load failed")
             self.status.emit(tr("load_failed", error=err))
             self.warning.emit(tr("load_failed", error=err))
+            self.loading.emit(-2)
             return
+        log.info("Model loaded (%s)", "GPU" if self.model.on_gpu else "CPU")
         self.status.emit(tr("ready"))
+        self.loading.emit(-2)
         self.loaded.emit()
+
+    def _download_progress(self, done: int, total: int) -> None:
+        self.status.emit(tr("downloading", pct=done * 100 // max(total, 1)))
+        if total:
+            self.loading.emit(done / total)
 
     def start_audio(self) -> None:
         self.stop_audio()
@@ -141,6 +153,7 @@ class Cotorreando(QObject):
         self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
                                 self.s.echo_cancellation, self.s.auto_gain)
         self._silent_frames = 0
+        log.info("Listening on %s (mode %s)", self.s.microphone or "default microphone", self.s.mode)
         self.audio.start()
         self.blob.set_enabled(True)
 

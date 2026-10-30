@@ -46,6 +46,7 @@ class Blob(QWidget):
         self.set_size(size)
         self.enabled = True
         self.writing = False
+        self.loading: float | None = None   # None, -1 = busy, 0..1 = progress
         self.level = 0.0          # smoothed 0..1
         self._target_level = 0.0
         self.ripples: list[float] = []   # birth times
@@ -75,6 +76,11 @@ class Blob(QWidget):
         self.enabled = on
         self.level = self._target_level = 0.0
         self.ripples.clear()
+        self._wake()
+
+    def set_loading(self, progress: float | None) -> None:
+        """Show a spinning ring while the model loads; ``progress`` 0..1 fills it."""
+        self.loading = progress
         self._wake()
 
     def set_writing(self, on: bool) -> None:
@@ -110,7 +116,7 @@ class Blob(QWidget):
         self._last_tick = now
 
         moving = self._step_spring(dt)
-        if not self.enabled and not moving and not self.writing:
+        if not self.enabled and not moving and not self.writing and self.loading is None:
             self._timer.stop()     # disabled and still: no CPU spent at all
             self.update()
             return
@@ -155,6 +161,8 @@ class Blob(QWidget):
             p.setPen(QPen(GREY.darker(130), 1.5))
             p.setBrush(GREY)
             p.drawPath(self._shape(c, self.radius, t, 0.0))
+            if self.loading is not None:
+                self._paint_loading(p, c, t)
             return
 
         for birth in self.ripples:
@@ -167,6 +175,23 @@ class Blob(QWidget):
 
         path = self._shape(c, self.radius, t, 1.0)
         self._paint_orb(p, c, path, t)
+
+    def _paint_loading(self, p: QPainter, c: QPointF, t: float) -> None:
+        """A ring around the bubble: spinning while busy, filling while downloading."""
+        r = self.radius + 5
+        rect = QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r)
+        track = QColor(GREY)
+        track.setAlphaF(0.35)
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(track, 3))
+        p.drawEllipse(rect)
+        pen = QPen(QColor.fromHsv(int(t * 60) % 360, 200, 255), 3)
+        pen.setCapStyle(Qt.RoundCap)
+        p.setPen(pen)
+        if self.loading >= 0:
+            p.drawArc(rect, 90 * 16, -int(360 * 16 * self.loading))
+        else:
+            p.drawArc(rect, -int(t * 300 * 16) % (360 * 16), 90 * 16)
 
     def _paint_orb(self, p: QPainter, c: QPointF, path: QPainterPath, t: float) -> None:
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
