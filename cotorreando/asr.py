@@ -109,38 +109,108 @@ class Parakeet:
         raise FileNotFoundError(stem)
 
     def transcribe(self, audio: np.ndarray) -> str:
-        """Transcribe mono float32 audio sampled at 16 kHz."""
+        """Transcribe a whole utterance (mono float32, 16 kHz) at once."""
         if audio.size < SAMPLE_RATE // 10:
             return ""
+        encoded = self.encode(audio)
+        state = DecoderState(self)
+        return self.decode(encoded, 0, encoded.shape[1], state).strip()
+
+    def encode(self, audio: np.ndarray) -> np.ndarray:
+        """Encoder output for ``audio``: (1024, frames), one frame per 80 ms."""
         wave = audio.astype(np.float32)[None, :]
         features, lengths = self.preprocessor.run(
             None, {"waveforms": wave, "waveforms_lens": np.array([wave.shape[1]], np.int64)})
-        encoded, enc_len = self.encoder.run(
-            None, {"audio_signal": features, "length": lengths})
-        return self._decode(encoded[0], int(enc_len[0]))
+        encoded, enc_len = self.encoder.run(None, {"audio_signal": features, "length": lengths})
+        return encoded[0, :, :int(enc_len[0])]
 
-    def _decode(self, encoded: np.ndarray, length: int) -> str:
-        state1 = np.zeros(self.state_shape, np.float32)
-        state2 = np.zeros(self.state_shape, np.float32)
+    def decode(self, encoded: np.ndarray, start: int, end: int, state: "DecoderState") -> str:
+        """Greedy TDT over frames ``start..end``, continuing from ``state``.
+
+        Returns the new text. A duration that jumps past ``end`` is remembered
+        in ``state.carry`` so the next chunk starts at the right frame.
+        """
         tokens: list[int] = []
-        last = self.blank
-        t = emitted = 0
-        while t < length:
+        t, emitted = start + state.carry, 0
+        while t < end:
             logits, _, new1, new2 = self.decoder.run(None, {
                 "encoder_outputs": encoded[None, :, t:t + 1],
-                "targets": np.array([[last]], np.int32),
+                "targets": np.array([[state.last]], np.int32),
                 "target_length": np.array([1], np.int32),
-                "input_states_1": state1,
-                "input_states_2": state2,
+                "input_states_1": state.h,
+                "input_states_2": state.c,
             })
             logits = logits.reshape(-1)
             token = int(np.argmax(logits[:self.blank + 1]))
             skip = int(np.argmax(logits[self.blank + 1:]))
             if token != self.blank:
                 tokens.append(token)
-                last, state1, state2 = token, new1, new2
+                state.last, state.h, state.c = token, new1, new2
                 emitted += 1
             if skip or token == self.blank or emitted >= MAX_TOKENS_PER_FRAME:
                 t += max(skip, 1)
                 emitted = 0
-        return "".join(self.vocab[i] for i in tokens).strip()
+        state.carry = t - end
+        return "".join(self.vocab[i] for i in tokens)
+
+
+class DecoderState:
+    """Prediction-network state carried from one chunk to the next."""
+
+    def __init__(self, model: Parakeet):
+        self.h = np.zeros(model.state_shape, np.float32)
+        self.c = np.zeros(model.state_shape, np.float32)
+        self.last = model.blank
+        self.carry = 0
+
+
+class Stream:
+    """True streaming over an offline model: chunked encoding, stateful decoding.
+
+    Audio is encoded in a sliding window of left context + new chunk + a short
+    look-ahead. Only the frames of the new chunk are decoded, and the decoder
+    keeps its state, so every token is produced exactly once and never revised.
+    The cost per step is constant, so utterances can be arbitrarily long.
+    """
+
+    FRAME = 1280                   # samples per encoder frame (80 ms)
+    LEFT = 32 * FRAME              # 2.6 s of context already decoded
+    CHUNK = 12 * FRAME             # 0.96 s of new audio per step
+    RIGHT = 6 * FRAME              # 0.48 s of look-ahead
+
+    def __init__(self, model: Parakeet):
+        self.model = model
+        self.state = DecoderState(model)
+        self.audio = np.zeros(0, np.float32)
+        self.offset = 0            # absolute sample index of self.audio[0]
+        self.done = 0              # absolute sample index decoded so far
+        self.started = False
+
+    def feed(self, audio: np.ndarray) -> str:
+        """Add audio; return any text that became final."""
+        self.audio = np.concatenate([self.audio, audio.astype(np.float32)])
+        text = ""
+        while self.offset + self.audio.size >= self.done + self.CHUNK + self.RIGHT:
+            text += self._step(self.done + self.CHUNK, self.done + self.CHUNK + self.RIGHT)
+        return text
+
+    def finish(self) -> str:
+        """Decode whatever is left; the stream ends here."""
+        end = self.offset + self.audio.size
+        return self._step(end, end) if end > self.done else ""
+
+    def _step(self, chunk_end: int, window_end: int) -> str:
+        start = max(self.offset, self.done - self.LEFT)
+        window = self.audio[start - self.offset:window_end - self.offset]
+        encoded = self.model.encode(window)
+        first = (self.done - start) // self.FRAME
+        last = min(encoded.shape[1], (chunk_end - start + self.FRAME - 1) // self.FRAME)
+        text = self.model.decode(encoded, first, last, self.state)
+        self.done = chunk_end
+        # Keep only the left context needed for the next window.
+        drop = max(0, self.done - self.LEFT - self.offset)
+        self.audio, self.offset = self.audio[drop:], self.offset + drop
+        if not self.started:
+            text = text.lstrip()
+            self.started = bool(text)
+        return text

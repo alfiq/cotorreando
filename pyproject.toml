@@ -9,7 +9,7 @@ authors = [{ name = "Alfiq" }]
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
-    "onnxruntime",
+    "onnxruntime-directml",
     "PySide6-Essentials",
     "PyAudioWPatch",
     "livekit",

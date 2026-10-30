@@ -1,4 +1,4 @@
-"""Turns a stream of audio frames into utterances, according to the listening mode.
+"""Splits the microphone stream into utterances, according to the listening mode.
 
 Modes
 -----
@@ -23,7 +23,6 @@ from .vad import CHUNK, SileroVAD
 PREROLL_S = 0.3
 CALIBRATION_FRAMES = 300   # ~10 s of 32 ms chunks used for the noise floor
 AUTO_MARGIN_DB = 12.0
-PARTIAL_S = 0.8           # how often the words so far are re-transcribed
 
 
 def dbfs(x: np.ndarray) -> float:
@@ -33,28 +32,26 @@ def dbfs(x: np.ndarray) -> float:
 class Listener:
     """Feed it frames with :meth:`feed`.
 
-    It calls ``on_utterance(audio, final, uid)``: while you speak, every
-    ``PARTIAL_S`` with the audio so far (``final=False``), and once more with
-    the whole utterance when it ends. ``uid`` identifies the utterance.
+    Utterances are reported as they happen through ``on_audio(uid, audio)``
+    (called repeatedly while you speak) and ``on_end(uid)``. ``uid`` grows by
+    one per utterance; one that never gets ``on_end`` was cancelled.
     """
 
-    def __init__(self, settings, on_utterance, on_level):
+    def __init__(self, settings, on_audio, on_end, on_level):
         self.s = settings
-        self.on_utterance = on_utterance
-        self.on_level = on_level
+        self.on_audio, self.on_end, self.on_level = on_audio, on_end, on_level
         self.vad = SileroVAD()
         self.pending = np.zeros(0, np.float32)
         self.preroll: collections.deque[np.ndarray] = collections.deque(
             maxlen=int(PREROLL_S * RATE / CHUNK) + 1)
         self.noise_floor: collections.deque[float] = collections.deque(maxlen=CALIBRATION_FRAMES)
-        self.segment: list[np.ndarray] = []
+        self.active = False
+        self.uid = 0
         self.silence = 0.0
         self.ptt_held = False
         self.awake_until = 0.0
         self.paused_until = 0.0
         self.speaking = False
-        self.uid = 0
-        self.next_partial = 0.0
         self.last_level = -90.0
 
     # -- public ---------------------------------------------------------------
@@ -69,14 +66,14 @@ class Listener:
         self.noise_floor.clear()
 
     def pause_for_typing(self, seconds: float) -> None:
-        """The user is typing: drop the current utterance and wait."""
+        """The user is typing: cancel the current utterance and wait."""
         self.paused_until = time.monotonic() + seconds
-        self.segment.clear()
+        self.active = False
 
     def push_to_talk(self, held: bool) -> None:
         self.ptt_held = held
-        if not held and self.segment:
-            self._flush()
+        if not held and self.active:
+            self._end()
 
     def wake(self) -> None:
         self.awake_until = time.monotonic() + self.s.session_timeout_s
@@ -104,47 +101,30 @@ class Listener:
         self.speaking, self.last_level = voiced, level
         self.on_level(float(level), float(self.threshold_db), bool(voiced))
 
-        now = time.monotonic()
-        if now < self.paused_until:
+        if time.monotonic() < self.paused_until:
             return
         if self.s.mode == "ptt":
             if self.ptt_held:
-                if not self.segment:
-                    self._begin(now)
-                self.segment.append(chunk)
-                self._partial(now)
+                self._begin() if not self.active else None
+                self.on_audio(self.uid, chunk)
             return
 
-        if not self.segment:
+        if not self.active:
             self.preroll.append(chunk)
-        if voiced:
-            if not self.segment:
-                self._begin(now)
-                self.segment = list(self.preroll)
+            if voiced:
+                self._begin()
+                self.on_audio(self.uid, np.concatenate(self.preroll))
                 self.preroll.clear()
-            else:
-                self.segment.append(chunk)
-            self.silence = 0.0
-        elif self.segment:
-            self.segment.append(chunk)
-            self.silence += CHUNK / RATE
-            if self.silence * 1000 >= self.s.silence_ms:
-                self._flush()
-        if self.segment and len(self.segment) * CHUNK / RATE >= self.s.max_segment_s:
-            self._flush()
-        self._partial(now)
+            return
+        self.on_audio(self.uid, chunk)
+        self.silence = 0.0 if voiced else self.silence + CHUNK / RATE
+        if self.silence * 1000 >= self.s.silence_ms:
+            self._end()
 
-    def _begin(self, now: float) -> None:
+    def _begin(self) -> None:
         self.uid += 1
-        self.next_partial = now + PARTIAL_S
+        self.active, self.silence = True, 0.0
 
-    def _partial(self, now: float) -> None:
-        if self.s.streaming and self.segment and now >= self.next_partial:
-            self.next_partial = now + PARTIAL_S
-            self.on_utterance(np.concatenate(self.segment), False, self.uid)
-
-    def _flush(self) -> None:
-        audio = np.concatenate(self.segment) if self.segment else np.zeros(0, np.float32)
-        self.segment, self.silence = [], 0.0
-        if audio.size >= RATE // 4:
-            self.on_utterance(audio, True, self.uid)
+    def _end(self) -> None:
+        self.active = False
+        self.on_end(self.uid)

@@ -20,6 +20,8 @@ import time
 import unicodedata
 import winreg
 
+import numpy as np
+
 from PySide6.QtCore import QObject, QPoint, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
@@ -30,7 +32,7 @@ from .blob import Blob
 from .config import Settings
 from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
-from .keyboard import KeyboardMonitor, backspace, type_text
+from .keyboard import KeyboardMonitor, type_text
 from .listener import Listener
 from .paths import MODELS_DIR
 
@@ -72,9 +74,8 @@ class Cotorreando(QObject):
         self.audio: AudioInput | None = None
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
-        self.typed, self.typed_uid = "", 0   # text written so far for the current utterance
 
-        self.blob = Blob()
+        self.blob = Blob(self.s.blob_size)
         self.blob.place(self.s.blob_x, self.s.blob_y)
         self.blob.moved.connect(self._remember_position)
         self.blob.menu_requested.connect(self._show_menu)
@@ -119,7 +120,8 @@ class Cotorreando(QObject):
         self.stop_audio()
         if not self.enabled or self.model is None:
             return
-        self.listener = Listener(self.s, lambda *job: self.jobs.put(job), self.level.emit)
+        self.listener = Listener(self.s, lambda uid, audio: self.jobs.put(("audio", uid, audio)),
+                                 lambda uid: self.jobs.put(("end", uid, None)), self.level.emit)
         self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
                                 self.s.echo_cancellation, self.s.auto_gain)
         self.audio.start()
@@ -140,42 +142,46 @@ class Cotorreando(QObject):
         listener.feed(frame)
 
     def _recognizer(self) -> None:
+        """Consume listener events; stream text out as soon as it is final."""
+        uid, stream, buffered, cancelled = 0, None, [], False
         while True:
-            audio, final, uid = self.jobs.get()
+            kind, job_uid, audio = self.jobs.get()
             if self.model is None or not self.enabled:
                 continue
-            if not final and not self.jobs.empty():
-                continue        # a newer job is waiting; this partial is already stale
+            if job_uid != uid:                  # a new utterance (an unfinished one was cancelled)
+                uid, buffered, cancelled = job_uid, [], False
+                stream = asr.Stream(self.model) if self._should_stream() else None
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
-                continue        # you are typing; never write over it
+                cancelled = True                # you are typing; never write over it
+            if cancelled:
+                continue
             try:
-                text = self.model.transcribe(audio)
+                if kind == "audio":
+                    if stream:
+                        self._type(stream.feed(audio))
+                    else:
+                        buffered.append(audio)
+                elif stream:
+                    self._type(stream.finish(), end=True)
+                elif buffered:
+                    text = self.model.transcribe(np.concatenate(buffered))
+                    self._type(self._apply_activation(text), end=True)
             except Exception:
                 log.exception("Transcription failed")
-                continue
-            self._write(self._apply_activation(text), final, uid)
 
-    def _write(self, text: str, final: bool, uid: int) -> None:
-        """Bring what is on screen for utterance ``uid`` in line with ``text``.
+    def _should_stream(self) -> bool:
+        keyword = self.s.mode == "activation" and self.s.activation == "keyword"
+        return self.s.streaming and (not keyword or bool(self.listener and self.listener.awake))
 
-        Partial results hold back their last word, which tends to change, and
-        any earlier word that changed is fixed with backspaces.
-        """
-        if uid != self.typed_uid:
-            self.typed, self.typed_uid = "", uid
-        if final:
-            text += " " if text and self.s.trailing_space else ""
-        else:
-            text = text.rsplit(" ", 1)[0] + " " if " " in text else ""
-        keep = 0
-        while keep < min(len(text), len(self.typed)) and text[keep] == self.typed[keep]:
-            keep += 1
-        if keep == len(text) == len(self.typed):
+    def _type(self, text: str, end: bool = False) -> None:
+        if text and self.listener and self.listener.awake:
+            self.listener.wake()                # keyword mode: keep the session alive
+        if end and text.strip() and self.s.trailing_space:
+            text = text.rstrip() + " "
+        if not text:
             return
         self.writing.emit(True)
-        backspace(len(self.typed) - keep)
-        type_text(text[keep:])
-        self.typed = text
+        type_text(text)
         self.writing.emit(False)
 
     def _apply_activation(self, text: str) -> str:
@@ -224,6 +230,7 @@ class Cotorreando(QObject):
             return
         set_language(self.s.ui_language)
         self.keyboard.set_hotkey(self.s.hotkey)
+        self.blob.set_size(self.s.blob_size)
         set_autostart(self.s.autostart)
         self.s.save()
         if (self.s.use_gpu, self.s.lora_adapter) != old:

@@ -19,9 +19,9 @@ bocinas ────────┘ (loopback, referencia para el eco)
 |---|---|
 | `app.py` | Conecta todo; menú, bandeja, hilos. |
 | `audio.py` | Captura WASAPI a la frecuencia nativa, remuestrea a 16 kHz, aplica WebRTC APM. |
-| `listener.py` | Corta el audio en frases según el modo y el VAD; umbral automático. |
+| `listener.py` | Detecta inicio y fin de cada frase según el modo y el VAD; umbral automático. |
 | `vad.py` | Silero VAD v5 en ONNX (2 MB). |
-| `asr.py` | Parakeet TDT: preprocesador, codificador y decodificador TDT voraz. |
+| `asr.py` | Parakeet TDT: preprocesador, codificador, decodificador TDT voraz y `Stream` (streaming por bloques). |
 | `keyboard.py` | Hook de teclado de bajo nivel (atajo y detección de tecleo) y escritura Unicode. |
 | `blob.py` | La ventana flotante y su animación. |
 | `dialogs.py` | Opciones, Acerca de y estilos. |
@@ -34,6 +34,15 @@ bocinas ────────┘ (loopback, referencia para el eco)
 **ONNX en vez de NeMo/PyTorch.** NeMo + PyTorch pesan varios GB; ONNX Runtime ~15 MB.
 El modelo cuantizado a int8 ocupa ~670 MB y en CPU transcribe ~8× más rápido que el
 tiempo real (6 s de audio en 0,7 s). NeMo solo aparece si el usuario entrena.
+
+**Streaming real.** Parakeet TDT v3 es un modelo *offline* (atención completa), así que
+no tiene caché de streaming nativa. Se usa streaming por bloques: cada 0,96 s se codifica
+una ventana de 2,6 s de contexto ya decodificado + el bloque nuevo + 0,48 s de anticipación,
+y solo se decodifican los cuadros del bloque nuevo. El decodificador TDT conserva su estado
+(LSTM, último token y el salto pendiente) entre bloques, así que cada token se emite una
+única vez: el texto nunca se borra ni se reescribe. El costo por paso es constante, sin
+límite de duración. Latencia ≈ 1,4 s; en CPU corre a 0,66× tiempo real y con DirectML a
+0,46×. En las pruebas, el resultado es idéntico al de transcribir la frase completa.
 
 **Decodificación TDT.** El decodificador fusionado devuelve, por cada paso, logits de
 token (8193 + blank) y de duración (0–4 cuadros). Se elige el token, y si la duración

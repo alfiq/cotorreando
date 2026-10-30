@@ -21,8 +21,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QConicalGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
-SIZE = 96
-RADIUS = 20
+# Window size and orb radius in pixels for each size the user can pick.
+SIZES = {"small": (64, 13), "medium": (96, 20), "large": (140, 30)}
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
@@ -35,12 +35,12 @@ class Blob(QWidget):
     moved = Signal(int, int)
     menu_requested = Signal(object)
 
-    def __init__(self):
+    def __init__(self, size: str = "medium"):
         super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
                          | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
-        self.setFixedSize(SIZE, SIZE)
+        self.set_size(size)
         self.enabled = True
         self.writing = False
         self.level = 0.0          # smoothed 0..1
@@ -60,6 +60,11 @@ class Blob(QWidget):
         self._timer.start()
 
     # -- state ----------------------------------------------------------------
+
+    def set_size(self, name: str) -> None:
+        self.side, self.radius = SIZES.get(name, SIZES["medium"])
+        self.setFixedSize(self.side, self.side)
+        self.update()
 
     def set_enabled(self, on: bool) -> None:
         self.enabled = on
@@ -82,7 +87,7 @@ class Blob(QWidget):
     def place(self, x: int, y: int) -> None:
         screen = QApplication.primaryScreen().availableGeometry()
         if x < 0 or y < 0:
-            x, y = screen.right() - SIZE - 40, screen.bottom() - SIZE - 40
+            x, y = screen.right() - self.side - 40, screen.bottom() - self.side - 40
         self._pos = self._target = QPointF(x, y)
         self.move(x, y)
 
@@ -128,13 +133,13 @@ class Blob(QWidget):
     def paintEvent(self, _):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        c = QPointF(SIZE / 2, SIZE / 2)
+        c = QPointF(self.side / 2, self.side / 2)
         t = time.monotonic() - self._t0
 
         if not self.enabled and not self.writing:
             p.setPen(QPen(GREY.darker(130), 1.5))
             p.setBrush(GREY)
-            p.drawEllipse(c, RADIUS, RADIUS)
+            p.drawEllipse(c, self.radius, self.radius)
             return
 
         for birth in self.ripples:
@@ -143,16 +148,16 @@ class Blob(QWidget):
             color.setAlphaF(0.55 * (1 - age))
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
-            p.drawPath(self._shape(c, RADIUS + age * (SIZE / 2 - RADIUS - 4), t, 0.4))
+            p.drawPath(self._shape(c, self.radius + age * (self.side / 2 - self.radius - 4), t, 0.4))
 
-        path = self._shape(c, RADIUS, t, 1.0)
+        path = self._shape(c, self.radius, t, 1.0)
         self._paint_orb(p, c, path, t)
 
     def _paint_orb(self, p: QPainter, c: QPointF, path: QPainterPath, t: float) -> None:
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
         p.setPen(Qt.NoPen)
-        body = QRadialGradient(c, RADIUS * 1.1)
+        body = QRadialGradient(c, self.radius * 1.1)
         body.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 200, 120, 60))
         body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 170))
         p.fillPath(path, body)
@@ -161,15 +166,15 @@ class Blob(QWidget):
         glow = 0.75 + 0.25 * self.level
         for i, (hue, orbit, size) in enumerate(CLOUDS):
             a = self._drift * (0.6 + 0.17 * i) + i * 2.1
-            pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * RADIUS * orbit
+            pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * self.radius * orbit
             color = QColor.fromHsv(int(hue + shift) % 360, 255, 255)
-            g = QRadialGradient(pos, RADIUS * size)
+            g = QRadialGradient(pos, self.radius * size)
             color.setAlphaF(glow)
             g.setColorAt(0, color)
             color.setAlphaF(0)
             g.setColorAt(1, color)
             p.setBrush(g)
-            p.drawEllipse(pos, RADIUS * size, RADIUS * size)
+            p.drawEllipse(pos, self.radius * size, self.radius * size)
         p.setCompositionMode(QPainter.CompositionMode_SourceOver)
         p.setClipping(False)
         # The rim is drawn along the deformed outline so it bends with the voice.
@@ -180,7 +185,7 @@ class Blob(QWidget):
         p.setPen(QPen(rim, 1.5))
         p.drawPath(path)
         p.setPen(Qt.NoPen)
-        gloss = QRadialGradient(c + QPointF(-RADIUS * 0.4, -RADIUS * 0.45), RADIUS * 0.55)
+        gloss = QRadialGradient(c + QPointF(-self.radius * 0.4, -self.radius * 0.45), self.radius * 0.55)
         gloss.setColorAt(0, QColor(255, 255, 255, 90))
         gloss.setColorAt(1, QColor(255, 255, 255, 0))
         p.setBrush(gloss)

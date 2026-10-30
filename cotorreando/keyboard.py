@@ -21,7 +21,7 @@ WM_QUIT = 0x12
 LLKHF_INJECTED = 0x10
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x2, 0x4
-VK_BACK, VK_RETURN, VK_UNASSIGNED = 0x08, 0x0D, 0xE8
+VK_RETURN, VK_UNASSIGNED = 0x0D, 0xE8
 
 MODIFIERS = {
     "ctrl": {0x11, 0xA2, 0xA3},
@@ -158,8 +158,3 @@ def type_text(text: str, delay: float = 0.004) -> None:
             send([_key(0, u, KEYEVENTF_UNICODE | f) for f in (0, KEYEVENTF_KEYUP) for u in units])
         time.sleep(delay)
 
-
-def backspace(count: int, delay: float = 0.004) -> None:
-    for _ in range(count):
-        _tap(VK_BACK)
-        time.sleep(delay)

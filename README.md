@@ -17,7 +17,8 @@ Un círculo flotante, siempre encima de todo, que muestra lo que está pasando:
 | Hablando | Se deforma con tu voz y suelta ondas a su alrededor. |
 | Escribiendo | Colores tornasol que giran. |
 
-Hablar y escribir se combinan: puedes seguir hablando mientras se escribe lo anterior.
+Hablar y escribir se combinan: el texto aparece mientras hablas (≈1,4 s de retraso), sin
+borrar ni reescribir, y sin límite de duración. El tamaño se elige en Opciones.
 
 - **Arrástralo** a donde quieras; lo sigue con un resorte elástico y recuerda la posición.
 - **Clic derecho**: activar/desactivar, ocultar, opciones, entrenar mi voz, acerca de, salir.
@@ -67,8 +68,8 @@ Genera `dist\cotorreando.dist\Cotorreando.exe` con Nuitka.
 
 ### GPU
 
-En CPU ya transcribe unas 8 veces más rápido que el tiempo real. Para usar la GPU,
-cambia `onnxruntime` por `onnxruntime-directml` (cualquier GPU) u `onnxruntime-gpu` (NVIDIA + CUDA).
+Usa `onnxruntime-directml`, que funciona en CPU y aprovecha cualquier GPU de DirectX 12
+si está activado «Usar GPU» en Opciones.
 
 ## Entrenar tu voz (LoRA)
 

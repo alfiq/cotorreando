@@ -32,7 +32,6 @@ class Settings:
     vad_threshold: float = 0.5
     silence_ms: int = 700
     session_timeout_s: float = 6.0     # activation mode: stay awake this long
-    max_segment_s: float = 25.0
 
     # Typing
     typing_holdoff_ms: int = 1200      # pause dictation after you touch the keyboard
@@ -44,6 +43,7 @@ class Settings:
     lora_dataset: str = "es_60"
 
     # Blob
+    blob_size: str = "medium"          # "small" | "medium" | "large"
     blob_x: int = -1
     blob_y: int = -1
     hidden: bool = False

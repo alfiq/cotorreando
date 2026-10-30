@@ -88,6 +88,7 @@ class SettingsDialog(QDialog):
                                       self.s.activation)
         self.keyword = QLineEdit(self.s.keyword)
         self.hotkey = QLineEdit(self.s.hotkey)
+        self.blob_size = self._combo([(k, tr(k)) for k in ("small", "medium", "large")], self.s.blob_size)
         self.use_gpu = QCheckBox(tr("use_gpu"), checked=self.s.use_gpu)
         self.autostart = QCheckBox(tr("autostart"), checked=self.s.autostart)
         f.addRow(tr("language"), self.language)
@@ -95,6 +96,7 @@ class SettingsDialog(QDialog):
         f.addRow(tr("activation"), self.activation)
         f.addRow(tr("keyword"), self.keyword)
         f.addRow(tr("hotkey"), self.hotkey)
+        f.addRow(tr("blob_size"), self.blob_size)
         f.addRow(self.use_gpu)
         f.addRow(self.autostart)
         return w
@@ -164,6 +166,7 @@ class SettingsDialog(QDialog):
                                                self.activation.currentData())
         s.keyword, s.hotkey = self.keyword.text().strip().lower(), self.hotkey.text().strip().lower()
         s.use_gpu, s.autostart = self.use_gpu.isChecked(), self.autostart.isChecked()
+        s.blob_size = self.blob_size.currentData()
         s.microphone = self.mic.currentData()
         s.noise_suppression, s.echo_cancellation, s.auto_gain = (
             self.noise.isChecked(), self.echo.isChecked(), self.agc.isChecked())

@@ -26,6 +26,12 @@ Registro de lo que se preguntó durante el diseño y lo que se eligió.
 - **SoundCard → PyAudioWPatch.** SoundCard falló con la webcam Logitech C270
   (exige formato `WAVE_FORMAT_EXTENSIBLE`). PyAudioWPatch (Apache-2.0) cubre micrófono
   y loopback con una sola dependencia.
+- **Streaming.** Primero se simuló re-transcribiendo la frase cada 0,8 s y corrigiendo con
+  retroceso; borraba demasiado y se atascaba en frases largas. Se cambió por streaming real
+  por bloques con estado del decodificador: nunca reescribe y no tiene límite de duración.
+- **ONNX Runtime → onnxruntime-directml.** Incluye CPU y usa cualquier GPU vía DirectML
+  (~30 % más rápido en la RTX 4060 Ti).
+- **Tamaño del blob** configurable: pequeño, mediano o grande.
 - **sounddevice descartado.** Su PortAudio no expone dispositivos de loopback WASAPI.
 
 ## Pendientes de confirmar
