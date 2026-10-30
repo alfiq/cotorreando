@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 # window is much larger than the orb to leave room for ripples and the drag
 # trail; its transparent pixels let clicks through.
 SIZES = {"small": (110, 13), "medium": (170, 20), "large": (250, 30)}
-TRAIL_S = 0.35   # how long the trail behind a moving orb lasts
+GOO_STIFFNESS, GOO_DAMPING = 60.0, 7.0   # the sticky tail: softer than the drag spring
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
@@ -59,7 +59,8 @@ class Blob(QWidget):
         self._pos = QPointF()
         self._vel = QPointF()
         self._target = QPointF()
-        self._trail: list[tuple[float, QPointF]] = []   # (time, window position)
+        self._tail = QPointF()      # where the gooey tail lags behind, relative to the centre
+        self._tail_vel = QPointF()
         self._timer = QTimer(self, interval=16, timeout=self._tick)
         self._timer.start()
 
@@ -109,10 +110,7 @@ class Blob(QWidget):
         self._last_tick = now
 
         moving = self._step_spring(dt)
-        if moving:
-            self._trail.append((now, QPointF(self._pos)))
-        self._trail = [(b, pos) for b, pos in self._trail if now - b < TRAIL_S]
-        if not self.enabled and not moving and not self.writing and not self._trail:
+        if not self.enabled and not moving and not self.writing:
             self._timer.stop()     # disabled and still: no CPU spent at all
             self.update()
             return
@@ -125,14 +123,24 @@ class Blob(QWidget):
         self.update()
 
     def _step_spring(self, dt: float) -> bool:
+        """Move the window towards the target; returns False once all is at rest."""
         delta = self._target - self._pos
-        if self._drag_offset is None and abs(delta.x()) + abs(delta.y()) < 0.5 \
-                and abs(self._vel.x()) + abs(self._vel.y()) < 5:
+        tail_moving = _norm(self._tail) > 0.3 or _norm(self._tail_vel) > 3
+        if self._drag_offset is None and _norm(delta) < 0.5 and _norm(self._vel) < 5 \
+                and not tail_moving:
             return False
         accel = delta * STIFFNESS - self._vel * DAMPING
         self._vel += accel * dt
-        self._pos += self._vel * dt
+        step = self._vel * dt
+        self._pos += step
         self.move(round(self._pos.x()), round(self._pos.y()))
+        # The tail stays where it was in the world, then is pulled back like goo.
+        self._tail -= step
+        self._tail_vel += (-self._tail * GOO_STIFFNESS - self._tail_vel * GOO_DAMPING) * dt
+        self._tail += self._tail_vel * dt
+        limit = self.side / 2 - self.radius - 4
+        if _norm(self._tail) > limit:
+            self._tail *= limit / _norm(self._tail)
         return True
 
     # -- painting -------------------------------------------------------------
@@ -144,14 +152,10 @@ class Blob(QWidget):
         t = time.monotonic() - self._t0
 
         if not self.enabled and not self.writing:
-            self._paint_trail(p, c, lambda i: QColor(GREY))
             p.setPen(QPen(GREY.darker(130), 1.5))
             p.setBrush(GREY)
             p.drawPath(self._shape(c, self.radius, t, 0.0))
             return
-
-        self._paint_trail(p, c, lambda i: QColor.fromHsv(
-            int(CLOUDS[i % len(CLOUDS)][0] + (self._hue if self.writing else 0)) % 360, 255, 255))
 
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
@@ -174,6 +178,14 @@ class Blob(QWidget):
         body.setColorAt(0.6, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 90))
         body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 0))
         p.fillPath(path, body)
+        # The same substance fills the sticky tail while it is stretched out.
+        if _norm(self._tail) > 1:
+            tip = c + self._tail * 0.55
+            reach = self.radius * 0.5 + _norm(self._tail) * 0.6
+            goo = QRadialGradient(tip, reach)
+            goo.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 220, 210, 140))
+            goo.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 0))
+            p.fillPath(path, goo)
         p.setClipPath(path)
         p.setCompositionMode(QPainter.CompositionMode_Plus)
         glow = 0.75 + 0.25 * self.level
@@ -200,32 +212,12 @@ class Blob(QWidget):
         p.setBrush(gloss)
         p.drawPath(path)
 
-    def _paint_trail(self, p: QPainter, c: QPointF, color_of) -> None:
-        """A comet tail: fading, shrinking echoes where the orb just was."""
-        now = time.monotonic()
-        p.save()
-        p.setPen(Qt.NoPen)
-        p.setCompositionMode(QPainter.CompositionMode_Plus)
-        for i, (birth, pos) in enumerate(self._trail):
-            fresh = 1 - (now - birth) / TRAIL_S
-            centre = c + (pos - self._pos)
-            radius = self.radius * (0.3 + 0.6 * fresh)
-            color = color_of(i // 2)
-            color.setAlphaF(0.35 * fresh)
-            g = QRadialGradient(centre, radius)
-            g.setColorAt(0, color)
-            color.setAlphaF(0)
-            g.setColorAt(1, color)
-            p.setBrush(g)
-            p.drawEllipse(centre, radius, radius)
-        p.restore()
-
     def _shape(self, c: QPointF, radius: float, t: float, gain: float) -> QPainterPath:
         """A closed wobbly curve; amplitude grows with voice level."""
         amp = (0.03 + 0.28 * self.level) * gain
-        stretch = self._vel * 0.0012
-        if abs(stretch.x()) + abs(stretch.y()) > 0.6:   # keep extreme flings readable
-            stretch *= 0.6 / (abs(stretch.x()) + abs(stretch.y()))
+        tail = self._tail * (radius / self.radius)
+        length = _norm(tail)
+        direction = tail / length if length > 0.5 else QPointF()
         path = QPainterPath()
         for i in range(POINTS + 1):
             a = 2 * math.pi * i / POINTS
@@ -233,9 +225,12 @@ class Blob(QWidget):
                       + math.sin(7 * a + t * 5.0) * 0.2)
             r = radius * (1 + amp * wobble)
             dx, dy = math.cos(a), math.sin(a)
-            # Squash and stretch along the drag velocity.
-            along = dx * stretch.x() + dy * stretch.y()
-            pt = QPointF(c.x() + dx * r + stretch.x() * along * r, c.y() + dy * r + stretch.y() * along * r)
+            # The side facing the tail is pulled out into a sticky, tapering drop;
+            # the leading side flattens slightly as if pushing through syrup.
+            facing = dx * direction.x() + dy * direction.y()
+            pull = max(facing, 0.0) ** 3
+            r *= 1 - 0.12 * max(-facing, 0.0) * min(length / radius, 1.0)
+            pt = QPointF(c.x() + dx * r + tail.x() * pull, c.y() + dy * r + tail.y() * pull)
             path.moveTo(pt) if i == 0 else path.lineTo(pt)
         return path
 
@@ -309,3 +304,7 @@ def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QCol
     p.setPen(QPen(fill, max(0.8, length * 0.025)))
     p.drawPath(spine)
     p.restore()
+
+
+def _norm(v: QPointF) -> float:
+    return math.hypot(v.x(), v.y())
