@@ -3,7 +3,7 @@
 Threads
 -------
 mic / loopback   capture and WebRTC processing (audio.py)
-keyboard         low-level hook (keyboard.py)
+keyboard         hotkey and typing detection (keyboard.py)
 recognizer       Parakeet inference and typing (this file)
 Qt main thread   blob, tray, menus and dialogs; other threads talk to it via signals.
 """

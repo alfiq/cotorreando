@@ -14,6 +14,11 @@
 - Datos cifrados por cuenta de Windows y PC, con contraseña opcional y opciones de privacidad.
 - Paneles de lectura escritos con Qwen3 0.6B (4 bits) que contienen tus palabras difíciles.
 - Entrenamiento opcional al apagar o reiniciar, a pantalla completa, que se puede cancelar y retomar.
+- Instalador propio: con las plumas de fondo, primero platica qué es Cotorreando y luego instala.
+- Ventanas con barra de título propia, del color de la ventana y solo con cerrar.
+- La burbuja se desvanece hasta ser transparente justo en su contorno, tenga la forma que tenga.
+- Sin gancho de teclado: la app ya no recibe lo que tecleas; solo consulta las teclas del atajo y
+  la hora de la última actividad. Mover el ratón mientras tecleas puede ocultar alguna pulsación.
 
 ## 0.0.1 — 2026-10-29
 

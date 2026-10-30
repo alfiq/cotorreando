@@ -1,8 +1,10 @@
 """Windows keyboard plumbing: a global hotkey, typing detection and text injection.
 
-A single low-level keyboard hook (WH_KEYBOARD_LL) tells us when the hotkey is
-held and when the user is typing. Keys we inject ourselves carry the
-LLKHF_INJECTED flag and are ignored, so our own typing never pauses dictation.
+No keyboard hook, on purpose: this process never receives what is being typed.
+The hotkey is found by asking only about its own keys. Typing is inferred from the
+time of the last input (which says nothing about the key): input that neither the
+mouse hook nor our own injection explains came from the keyboard. Moving the mouse
+while typing can hide keystrokes, a price accepted to stay out of the key stream.
 """
 
 from __future__ import annotations
@@ -15,11 +17,13 @@ from ctypes import wintypes
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
-WH_KEYBOARD_LL, WH_MOUSE_LL = 13, 14
+WH_MOUSE_LL = 14
 MOUSE_DOWN = {0x201, 0x204, 0x207}   # left, right and middle button
-WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x100, 0x101, 0x104, 0x105
 WM_QUIT = 0x12
-LLKHF_INJECTED = 0x10
+POLL_S = 0.01
+SETTLE_MS = 20        # the mouse hook may report an event just after it shows up as input
+SAME_EVENT_MS = 30    # input this close to a mouse event or our own typing is explained by it
+HOTKEY_GRACE_S = 0.1  # releasing the hotkey is input too, and it is not typing
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x2, 0x4
 VK_BACK, VK_RETURN, VK_UNASSIGNED = 0x08, 0x0D, 0xE8
@@ -49,10 +53,13 @@ def parse_hotkey(text: str) -> list[set[int]]:
     return groups
 
 
-class KBDLLHOOKSTRUCT(ctypes.Structure):
-    _fields_ = [("vkCode", wintypes.DWORD), ("scanCode", wintypes.DWORD),
-                ("flags", wintypes.DWORD), ("time", wintypes.DWORD),
-                ("dwExtraInfo", ctypes.c_size_t)]
+class MSLLHOOKSTRUCT(ctypes.Structure):
+    _fields_ = [("pt", wintypes.POINT), ("mouseData", wintypes.DWORD), ("flags", wintypes.DWORD),
+                ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+
+
+class LASTINPUTINFO(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.UINT), ("dwTime", wintypes.DWORD)]
 
 
 class KEYBDINPUT(ctypes.Structure):
@@ -75,61 +82,83 @@ user32.CallNextHookEx.argtypes = (wintypes.HHOOK, ctypes.c_int, wintypes.WPARAM,
 user32.CallNextHookEx.restype = ctypes.c_ssize_t
 user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
 user32.PostThreadMessageW.argtypes = (wintypes.DWORD, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+user32.GetAsyncKeyState.argtypes = (ctypes.c_int,)
+user32.GetAsyncKeyState.restype = ctypes.c_short
+user32.GetLastInputInfo.argtypes = (ctypes.POINTER(LASTINPUTINFO),)
+kernel32.GetTickCount.restype = wintypes.DWORD
+
+_injected_at = 0      # GetTickCount of our last SendInput
+
+
+def _is_down(vk: int) -> bool:
+    return user32.GetAsyncKeyState(vk) < 0
+
+
+def _last_input() -> int:
+    info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+    user32.GetLastInputInfo(ctypes.byref(info))
+    return info.dwTime
+
+
+def _ms_apart(a: int, b: int) -> int:
+    """Distance between two GetTickCount values, which wrap around every 49 days."""
+    delta = (a - b) & 0xFFFFFFFF
+    return min(delta, 0x100000000 - delta)
 
 
 class KeyboardMonitor:
-    """Runs the hook on its own thread and reports hotkey and typing events."""
+    """Watches the hotkey and input activity on its own threads and reports events."""
 
     def __init__(self, hotkey: str, on_hotkey_down, on_hotkey_up):
         self.groups = parse_hotkey(hotkey)
         self.on_down, self.on_up = on_hotkey_down, on_hotkey_up
         self.last_typed = 0.0
         self.last_click = 0.0
-        self._pressed: set[int] = set()
         self._active = False
         self._thread_id = 0
-        self._proc = HOOKPROC(self._hook)  # keep a reference alive
-        self._mouse_proc = HOOKPROC(self._mouse_hook)
+        self._stopped = threading.Event()
+        self._hotkey_seen = 0.0
+        self._input_seen = _last_input()
+        self._mouse_at = 0
+        self._mouse_proc = HOOKPROC(self._mouse_hook)  # keep a reference alive
 
     def set_hotkey(self, hotkey: str) -> None:
         self.groups = parse_hotkey(hotkey)
 
     def start(self) -> None:
-        threading.Thread(target=self._run, daemon=True, name="keyboard").start()
+        threading.Thread(target=self._run, daemon=True, name="mouse").start()
+        threading.Thread(target=self._poll, daemon=True, name="keyboard").start()
 
     def stop(self) -> None:
+        self._stopped.set()
         if self._thread_id:
             user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
 
     def _run(self) -> None:
         self._thread_id = kernel32.GetCurrentThreadId()
-        hook = user32.SetWindowsHookExW(WH_KEYBOARD_LL, self._proc, None, 0)
         mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, self._mouse_proc, None, 0)
         msg = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             pass
-        user32.UnhookWindowsHookEx(hook)
         user32.UnhookWindowsHookEx(mouse_hook)
 
     def _mouse_hook(self, code, wparam, lparam):
-        if code >= 0 and wparam in MOUSE_DOWN:   # the caret may have moved
-            self.last_click = time.monotonic()
-        return user32.CallNextHookEx(None, code, wparam, lparam)
-
-    def _hook(self, code, wparam, lparam):
         if code >= 0:
-            info = ctypes.cast(lparam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
-            if not info.flags & LLKHF_INJECTED:
-                self._handle(info.vkCode, wparam in (WM_KEYDOWN, WM_SYSKEYDOWN))
+            self._mouse_at = ctypes.cast(lparam, ctypes.POINTER(MSLLHOOKSTRUCT)).contents.time
+            if wparam in MOUSE_DOWN:   # the caret may have moved
+                self.last_click = time.monotonic()
         return user32.CallNextHookEx(None, code, wparam, lparam)
 
-    def _handle(self, vk: int, down: bool) -> None:
-        if down:
-            self._pressed.add(vk)
-        else:
-            self._pressed.discard(vk)
-        combo = all(self._pressed & g for g in self.groups)
-        in_hotkey = any(vk in g for g in self.groups)
+    def _poll(self) -> None:
+        while not self._stopped.wait(POLL_S):
+            self._check_hotkey()
+            self._check_typing()
+
+    def _check_hotkey(self) -> None:
+        states = [[_is_down(vk) for vk in group] for group in self.groups]
+        if any(map(any, states)):
+            self._hotkey_seen = time.monotonic()
+        combo = all(map(any, states))
         if combo and not self._active:
             self._active = True
             # Stops a lone Win release from opening the Start menu.
@@ -138,7 +167,15 @@ class KeyboardMonitor:
         elif not combo and self._active:
             self._active = False
             self.on_up()
-        elif down and not in_hotkey and not self._active:
+
+    def _check_typing(self) -> None:
+        tick = _last_input()
+        if tick == self._input_seen or _ms_apart(kernel32.GetTickCount(), tick) < SETTLE_MS:
+            return
+        self._input_seen = tick
+        if time.monotonic() - self._hotkey_seen < HOTKEY_GRACE_S:
+            return
+        if _ms_apart(tick, self._mouse_at) > SAME_EVENT_MS and _ms_apart(tick, _injected_at) > SAME_EVENT_MS:
             self.last_typed = time.monotonic()
 
 
@@ -153,8 +190,10 @@ def _key(vk: int, scan: int, flags: int) -> INPUT:
 
 
 def send(inputs: list[INPUT]) -> None:
+    global _injected_at
     array = (INPUT * len(inputs))(*inputs)
     user32.SendInput(len(inputs), array, ctypes.sizeof(INPUT))
+    _injected_at = kernel32.GetTickCount()
 
 
 def foreground() -> int:
