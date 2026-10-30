@@ -21,8 +21,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QConicalGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
-SIZE = 190
-RADIUS = 40
+SIZE = 96
+RADIUS = 20
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
@@ -141,7 +141,7 @@ class Blob(QWidget):
             age = (time.monotonic() - birth) / 1.4
             color = QColor.fromHsv(int(200 + self._hue + age * 120) % 360, 220, 255)
             color.setAlphaF(0.55 * (1 - age))
-            p.setPen(QPen(color, 2.5))
+            p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
             p.drawPath(self._shape(c, RADIUS + age * (SIZE / 2 - RADIUS - 4), t, 0.4))
 
@@ -177,7 +177,7 @@ class Blob(QWidget):
         for i in range(7):
             rim.setColorAt(i / 6, QColor.fromHsv(int(shift + i * 60) % 360, 230, 255, 220))
         p.setBrush(Qt.NoBrush)
-        p.setPen(QPen(rim, 2.2))
+        p.setPen(QPen(rim, 1.5))
         p.drawPath(path)
         p.setPen(Qt.NoPen)
         gloss = QRadialGradient(c + QPointF(-RADIUS * 0.4, -RADIUS * 0.45), RADIUS * 0.55)
