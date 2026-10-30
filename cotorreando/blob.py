@@ -21,8 +21,11 @@ from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
-# Window size and orb radius in pixels for each size the user can pick.
-SIZES = {"small": (64, 13), "medium": (96, 20), "large": (140, 30)}
+# Window size and orb radius in pixels for each size the user can pick. The
+# window is much larger than the orb to leave room for ripples and the drag
+# trail; its transparent pixels let clicks through.
+SIZES = {"small": (110, 13), "medium": (170, 20), "large": (250, 30)}
+TRAIL_S = 0.35   # how long the trail behind a moving orb lasts
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
@@ -56,6 +59,7 @@ class Blob(QWidget):
         self._pos = QPointF()
         self._vel = QPointF()
         self._target = QPointF()
+        self._trail: list[tuple[float, QPointF]] = []   # (time, window position)
         self._timer = QTimer(self, interval=16, timeout=self._tick)
         self._timer.start()
 
@@ -105,7 +109,10 @@ class Blob(QWidget):
         self._last_tick = now
 
         moving = self._step_spring(dt)
-        if not self.enabled and not moving and not self.writing:
+        if moving:
+            self._trail.append((now, QPointF(self._pos)))
+        self._trail = [(b, pos) for b, pos in self._trail if now - b < TRAIL_S]
+        if not self.enabled and not moving and not self.writing and not self._trail:
             self._timer.stop()     # disabled and still: no CPU spent at all
             self.update()
             return
@@ -137,10 +144,14 @@ class Blob(QWidget):
         t = time.monotonic() - self._t0
 
         if not self.enabled and not self.writing:
+            self._paint_trail(p, c, lambda i: QColor(GREY))
             p.setPen(QPen(GREY.darker(130), 1.5))
             p.setBrush(GREY)
-            p.drawEllipse(c, self.radius, self.radius)
+            p.drawPath(self._shape(c, self.radius, t, 0.0))
             return
+
+        self._paint_trail(p, c, lambda i: QColor.fromHsv(
+            int(CLOUDS[i % len(CLOUDS)][0] + (self._hue if self.writing else 0)) % 360, 255, 255))
 
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
@@ -148,7 +159,7 @@ class Blob(QWidget):
             color.setAlphaF(0.55 * (1 - age))
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
-            p.drawPath(self._shape(c, self.radius + age * (self.side / 2 - self.radius - 4), t, 0.4))
+            p.drawPath(self._shape(c, self.radius * (1 + age * 1.4), t, 0.4))
 
         path = self._shape(c, self.radius, t, 1.0)
         self._paint_orb(p, c, path, t)
@@ -189,10 +200,32 @@ class Blob(QWidget):
         p.setBrush(gloss)
         p.drawPath(path)
 
+    def _paint_trail(self, p: QPainter, c: QPointF, color_of) -> None:
+        """A comet tail: fading, shrinking echoes where the orb just was."""
+        now = time.monotonic()
+        p.save()
+        p.setPen(Qt.NoPen)
+        p.setCompositionMode(QPainter.CompositionMode_Plus)
+        for i, (birth, pos) in enumerate(self._trail):
+            fresh = 1 - (now - birth) / TRAIL_S
+            centre = c + (pos - self._pos)
+            radius = self.radius * (0.3 + 0.6 * fresh)
+            color = color_of(i // 2)
+            color.setAlphaF(0.35 * fresh)
+            g = QRadialGradient(centre, radius)
+            g.setColorAt(0, color)
+            color.setAlphaF(0)
+            g.setColorAt(1, color)
+            p.setBrush(g)
+            p.drawEllipse(centre, radius, radius)
+        p.restore()
+
     def _shape(self, c: QPointF, radius: float, t: float, gain: float) -> QPainterPath:
         """A closed wobbly curve; amplitude grows with voice level."""
         amp = (0.03 + 0.28 * self.level) * gain
-        stretch = self._vel * 0.0006
+        stretch = self._vel * 0.0012
+        if abs(stretch.x()) + abs(stretch.y()) > 0.6:   # keep extreme flings readable
+            stretch *= 0.6 / (abs(stretch.x()) + abs(stretch.y()))
         path = QPainterPath()
         for i in range(POINTS + 1):
             a = 2 * math.pi * i / POINTS
