@@ -18,7 +18,7 @@ import math
 import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRadialGradient
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
 # Window size and orb radius in pixels for each size the user can pick.
@@ -26,7 +26,7 @@ SIZES = {"small": (64, 13), "medium": (96, 20), "large": (140, 30)}
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
-# (hue, orbit radius, cloud size) relative to RADIUS, drifting inside the orb.
+# (hue, orbit radius, feather size) relative to the radius, drifting inside the orb.
 CLOUDS = ((320, 0.45, 0.75), (200, 0.35, 0.85), (140, 0.5, 0.7), (265, 0.3, 0.6), (45, 0.55, 0.45))
 GREY = QColor(128, 128, 134)
 
@@ -171,12 +171,16 @@ class Blob(QWidget):
             pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * self.radius * orbit
             color = QColor.fromHsv(int(hue + shift) % 360, 255, 255)
             g = QRadialGradient(pos, self.radius * size)
-            color.setAlphaF(glow)
+            color.setAlphaF(glow * 0.45)   # a faint halo behind each feather
             g.setColorAt(0, color)
             color.setAlphaF(0)
             g.setColorAt(1, color)
             p.setBrush(g)
             p.drawEllipse(pos, self.radius * size, self.radius * size)
+            # Each feather drifts along its orbit, turning and swaying gently.
+            angle = math.degrees(a) * 0.5 + 25 * math.sin(self._drift * 1.7 + i)
+            color.setAlphaF(glow)
+            _feather(p, pos, angle, self.radius * size * 1.5, color)
         p.setCompositionMode(QPainter.CompositionMode_SourceOver)
         p.setClipping(False)
         gloss = QRadialGradient(c + QPointF(-self.radius * 0.4, -self.radius * 0.45), self.radius * 0.55)
@@ -219,3 +223,56 @@ class Blob(QWidget):
         if e.button() == Qt.LeftButton and self._drag_offset is not None:
             self._drag_offset = None
             self.moved.emit(round(self._target.x()), round(self._target.y()))
+
+
+def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QColor) -> None:
+    """A bird feather drawn from scratch: curved shaft, tapered vane and barbs.
+
+    It glows in ``color`` at the quill end and fades out towards the tip.
+    """
+    p.save()
+    p.translate(pos)
+    p.rotate(angle)
+    p.translate(0, length / 2)   # the feather is centred on ``pos``, tip pointing up
+
+    def shaft(u: float) -> QPointF:
+        return QPointF(length * 0.08 * math.sin(math.pi * u), -length * u)
+
+    def width(u: float) -> float:
+        # The vane starts above the bare quill and is rounded at both ends.
+        v = (u - 0.18) / 0.82
+        return length * 0.11 * math.sin(math.pi * v) ** 0.5 if 0 < v < 1 else 0.0
+
+    steps = 24
+    # Feathers are asymmetric: one side of the vane is narrower than the other.
+    left = [shaft(k / steps) + QPointF(-0.75 * width(k / steps), 0) for k in range(steps + 1)]
+    right = [shaft(k / steps) + QPointF(width(k / steps), 0) for k in range(steps + 1)]
+    vane = QPainterPath(left[0])
+    for pt in left[1:] + right[::-1]:
+        vane.lineTo(pt)
+    vane.closeSubpath()
+
+    fill = QLinearGradient(QPointF(0, 0), QPointF(0, -length))
+    solid, clear = QColor(color), QColor(color)
+    solid.setAlphaF(color.alphaF() * 0.8)
+    clear.setAlphaF(0)
+    fill.setColorAt(0.1, solid)
+    fill.setColorAt(1, clear)
+    p.setPen(Qt.NoPen)
+    p.setBrush(fill)
+    p.drawPath(vane)
+
+    # Barbs angle up towards the tip, and the shaft runs down the middle.
+    p.setBrush(Qt.NoBrush)
+    p.setPen(QPen(fill, max(0.6, length * 0.012)))
+    for k in range(5, steps, 2):
+        u = k / steps
+        base, w = shaft(u), width(u)
+        for side, scale in ((-1, 0.75), (1, 1.0)):
+            p.drawLine(base, base + QPointF(side * w * scale, -w * 0.7))
+    spine = QPainterPath(shaft(0))
+    for k in range(1, steps + 1):
+        spine.lineTo(shaft(k / steps))
+    p.setPen(QPen(fill, max(0.8, length * 0.025)))
+    p.drawPath(spine)
+    p.restore()
