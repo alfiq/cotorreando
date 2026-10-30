@@ -14,15 +14,17 @@ import ctypes
 import difflib
 import logging
 import queue
+import subprocess
 import sys
 import threading
 import time
 import unicodedata
 import winreg
+from ctypes import wintypes
 
 import numpy as np
 
-from PySide6.QtCore import QObject, QPoint, Qt, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
@@ -33,12 +35,15 @@ from .config import Settings
 from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, foreground, replace_text, type_text
+from .learning import Learner, fit_start
 from .listener import Listener
 from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
 
 log = logging.getLogger(__name__)
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+WM_QUERYENDSESSION = 0x0011
+ENDSESSION_CRITICAL = 0x40000000
 
 
 def normalize(text: str) -> str:
@@ -56,6 +61,29 @@ def after_keyword(text: str, keyword: str) -> str | None:
         if difflib.SequenceMatcher(None, window, key).ratio() >= 0.75:
             return " ".join(words[i + n:]).lstrip(",.;: ")
     return None
+
+
+class SessionFilter(QAbstractNativeEventFilter):
+    """Lets ``handler`` hold back a shutdown or restart while Windows is asking for permission."""
+
+    def __init__(self, handler):
+        super().__init__()
+        self.handler = handler
+
+    def nativeEventFilter(self, _kind, message):
+        msg = wintypes.MSG.from_address(int(message))
+        if msg.message == WM_QUERYENDSESSION and not msg.lParam & ENDSESSION_CRITICAL and self.handler():
+            return True, 0
+        return False, 0
+
+
+def on_battery() -> bool:
+    class Power(ctypes.Structure):
+        _fields_ = [("ac", ctypes.c_ubyte), ("flag", ctypes.c_ubyte), ("percent", ctypes.c_ubyte),
+                    ("saver", ctypes.c_ubyte), ("life", wintypes.DWORD), ("full", wintypes.DWORD)]
+
+    power = Power()
+    return bool(ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(power))) and power.ac == 0
 
 
 class Cotorreando(QObject):
@@ -79,6 +107,12 @@ class Cotorreando(QObject):
         self.jobs: queue.Queue = queue.Queue()
         self._silent_frames = -1
         self.calibration = None
+        self.learner = Learner(self.s)
+        self._leaving = False
+        self._asking = False
+        self.screen = None
+        self._session_filter = SessionFilter(self._on_end_session)
+        app.installNativeEventFilter(self._session_filter)
 
         self.blob = Blob(self.s.blob_size)
         self.blob.place(self.s.blob_x, self.s.blob_y)
@@ -189,32 +223,60 @@ class Cotorreando(QObject):
 
     def _recognizer(self) -> None:
         """Consume listener events; stream text out as soon as it is final."""
-        uid, stream, buffered, cancelled = 0, None, [], False
+        uid, stream, buffered, cancelled, heard, field = 0, None, [], False, [], None
         while True:
             kind, job_uid, audio = self.jobs.get()
             if self.model is None or not self.enabled:
                 continue
             if job_uid != uid:                  # a new utterance (an unfinished one was cancelled)
-                uid, buffered, cancelled = job_uid, [], False
+                uid, buffered, cancelled, heard = job_uid, [], False, []
                 stream = asr.Stream(self.model) if self._should_stream() else None
                 self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
+                self._typed, self._started, self._moved = "", False, False
+                field = self.learner.begin(self._tail_window)
+                self._before = field.before if field and not field.password else None
+                self.model.bias = (asr.Bias(self.learner.bias_words(field))
+                                   if self.s.vocabulary_on else None)
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
                 cancelled = True                # you are typing; never write over it
             if cancelled:
                 continue
             try:
                 if kind == "audio":
+                    heard.append(audio)
                     if stream:
                         self._rewrite(stream.feed(audio), stream.tail)
                     else:
                         buffered.append(audio)
                 elif stream:
                     self._rewrite(stream.finish(), "", end=True)
+                    self._finish_utterance(heard, stream.trace, field)
                 elif buffered:
-                    text = self.model.transcribe(np.concatenate(buffered))
+                    whole = asr.Stream(self.model)
+                    text = (whole.feed(np.concatenate(buffered)) + whole.finish()).strip()
                     self._type(self._apply_activation(text), end=True)
+                    self._finish_utterance(heard, whole.trace, field)
             except Exception:
                 log.exception("Transcription failed")
+
+    def _finish_utterance(self, heard: list, trace: list, field) -> None:
+        typed = self._typed
+        if typed and not self._moved and time.monotonic() - self.keyboard.last_typed > 0.2:
+            fixed = self.learner.apply_rules(typed)
+            if fixed != typed:          # repeated corrections become replacements
+                replace_text(typed, fixed)
+                typed = self._typed = fixed
+        if heard:
+            self.learner.finish(typed, np.concatenate(heard), trace, field)
+
+    def _fit(self, text: str, tail: str) -> tuple[str, str]:
+        """Until something is final, the first text on screen is fitted to what precedes it."""
+        if self._started:
+            return text, tail
+        if text.strip():
+            self._started = True
+            return fit_start(text, self._before), tail
+        return text, fit_start(tail, self._before)
 
     def _should_stream(self) -> bool:
         keyword = self.s.mode == "activation" and self.s.activation == "keyword"
@@ -226,10 +288,13 @@ class Cotorreando(QObject):
         if self.keyboard.last_click > self._tail_since or window != self._tail_window:
             # The caret moved: what is before it is no longer ours to delete.
             self._tail, self._tail_since, self._tail_window = "", time.monotonic(), window
+            self._moved = True
         if (text or tail) and self.listener and self.listener.awake:
             self.listener.wake()                # keyword mode: keep the session alive
+        text, tail = self._fit(text, tail)
         if end and text.strip() and self.s.trailing_space:
             text = text.rstrip() + " "
+        self._typed += text
         old, self._tail = self._tail, tail
         if text + tail == old:                  # what was tentative may just have become final
             return
@@ -240,10 +305,12 @@ class Cotorreando(QObject):
     def _type(self, text: str, end: bool = False) -> None:
         if text and self.listener and self.listener.awake:
             self.listener.wake()                # keyword mode: keep the session alive
+        text = self.learner.apply_rules(self._fit(text, "")[0])
         if end and text.strip() and self.s.trailing_space:
             text = text.rstrip() + " "
         if not text:
             return
+        self._typed += text
         self.writing.emit(True)
         type_text(text)
         self.writing.emit(False)
@@ -291,7 +358,7 @@ class Cotorreando(QObject):
 
     def open_settings(self) -> None:
         old = (self.s.use_gpu, self.s.lora_adapter)
-        dialog = SettingsDialog(self.s, self.listener)
+        dialog = SettingsDialog(self.s, self.listener, self.learner)
         accepted = dialog.exec()
         if dialog.calibrate_requested:
             self.open_training()
@@ -321,7 +388,7 @@ class Cotorreando(QObject):
             self.calibration.show()
             self.calibration.raise_()
             return
-        dialog = self.calibration = CalibrationDialog(self.s, self.model)
+        dialog = self.calibration = CalibrationDialog(self.s, self.model, self.learner)
         dialog.skipped.connect(self._calibration_skipped)
         dialog.reading_started.connect(self.stop_audio)         # free the microphone
         dialog.reading_finished.connect(self.start_audio)
@@ -340,6 +407,9 @@ class Cotorreando(QObject):
             self.s.lora_adapter = adapter
             self.tray.showMessage("Cotorreando", tr("cal_applied"))
             self._reload_model()
+        if not self.s.training_notice_shown:
+            self.s.training_notice_shown = True
+            self.tray.showMessage("Cotorreando", tr("train_notice"))
         self.s.save()
         if not self.calibration.isVisible():
             self._calibration_closed()
@@ -352,6 +422,58 @@ class Cotorreando(QObject):
         self.s.save()
         if not self.audio:
             self.start_audio()
+
+    # -- training at shutdown -------------------------------------------------
+
+    def _on_end_session(self) -> bool:
+        """True holds the shutdown back. Windows then cancels it and we run it again later."""
+        if self._leaving:
+            return False
+        if self._asking:
+            return True
+        from .lora import job
+        if not self.s.learning or on_battery() or self.calibration or not job.is_pending(self.learner):
+            return False
+        self._asking = True
+        QTimer.singleShot(0, self._ask_at_shutdown)
+        return True
+
+    def _ask_at_shutdown(self) -> None:
+        from .lora.screen import ShutdownPrompt
+        prompt = ShutdownPrompt()
+        prompt.exec()
+        self._asking = False
+        if prompt.choice is None:
+            return
+        train, action = prompt.choice
+        if train:
+            self._train_then(action)
+        else:
+            self._power(action)
+
+    def _train_then(self, action: str | None) -> None:
+        from .lora.screen import TrainingScreen
+        self.stop_audio()
+        self.model = None               # free the GPU for training
+        self.screen = TrainingScreen(self.learner, self.s)
+        self.screen.ended.connect(lambda result: self._training_over(result, action))
+        self.screen.begin()
+
+    def _training_over(self, result, action: str | None) -> None:
+        if result and result.adapter:
+            self.s.lora_adapter = result.adapter
+        self.s.save()
+        self.learner.vault.lock()
+        self.screen = None
+        if action:
+            self._power(action)
+        else:
+            self._reload_model()
+
+    def _power(self, action: str) -> None:
+        self._leaving = True
+        self.s.save()
+        subprocess.run(["shutdown", action, "/t", "0"], creationflags=subprocess.CREATE_NO_WINDOW)
 
     def open_about(self) -> None:
         AboutDialog().exec()

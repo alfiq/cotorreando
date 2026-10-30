@@ -43,6 +43,13 @@ class Settings:
     lora_language: str = "es"          # "es" | "en" | "both"
     calibrated: bool = False           # finished or skipped the first calibration
 
+    # Learning
+    learning: bool = True              # learn from corrections and hesitations
+    excluded_apps: str = ""            # comma-separated executable names
+    retention_days: int = 180
+    vocabulary_on: bool = False        # only ever enabled by a measured improvement
+    training_notice_shown: bool = False
+
     # Blob
     blob_size: str = "medium"          # "small" | "medium" | "large"
     blob_x: int = -1

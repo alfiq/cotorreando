@@ -13,10 +13,12 @@ python -m nuitka `
     --output-filename=Cotorreando.exe `
     --include-package-data=cotorreando `
     --include-data-files=cotorreando/lora/train.py=cotorreando/lora/train.py `
+    --include-data-files=cotorreando/lora/panels.py=cotorreando/lora/panels.py `
+    --include-package=comtypes `
     --include-data-files=LICENSE=LICENSE `
     --include-data-files=THIRD_PARTY_NOTICES.md=THIRD_PARTY_NOTICES.md `
     --nofollow-import-to=torch,nemo `
-    --company-name=Alfiq --product-name=Cotorreando --product-version=0.0.1 --file-version=0.0.1 `
+    --company-name=Alfiq --product-name=Cotorreando --product-version=0.0.2 --file-version=0.0.2 `
     --windows-icon-from-ico=cotorreando/icon.ico `
     --assume-yes-for-downloads `
     cotorreando

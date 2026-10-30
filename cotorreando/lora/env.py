@@ -24,8 +24,10 @@ ENV_DIR = DATA_DIR / "train-env"
 PYTHON = ENV_DIR / "Scripts" / "python.exe"
 TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 TORCH_INDEX_CPU = "https://download.pytorch.org/whl/cpu"
-PACKAGES = ["nemo_toolkit[asr]", "onnx", "onnxruntime"]
+EXTRAS = ["cryptography", "bitsandbytes", "accelerate"]
+PACKAGES = ["nemo_toolkit[asr]", "onnx", "onnxruntime", *EXTRAS]
 TRAIN_SCRIPT = PACKAGE_DIR / "lora" / "train.py"
+PANELS_SCRIPT = PACKAGE_DIR / "lora" / "panels.py"
 NO_WINDOW = subprocess.CREATE_NO_WINDOW
 _process: subprocess.Popen | None = None
 _install_lock = threading.Lock()
@@ -53,12 +55,25 @@ def _uv() -> Path:
     return uv
 
 
-def _stream(cmd: list[str], log) -> None:
+def _stream(cmd: list[str], log, payload: bytes | None = None) -> None:
+    """Run ``cmd``, passing each output line to ``log``. ``payload`` goes in through stdin,
+    which then stays open so that ``pause`` can talk to the process."""
     global _process
-    proc = _process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                       encoding="utf-8", errors="replace", creationflags=NO_WINDOW,
-                                       env={**os.environ, "PYTHONUTF8": "1"})
-    for line in proc.stdout:
+    proc = _process = subprocess.Popen(cmd, stdin=subprocess.PIPE if payload is not None else None,
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                       creationflags=NO_WINDOW, env={**os.environ, "PYTHONUTF8": "1"})
+
+    def feed():
+        try:
+            proc.stdin.write(payload)
+            proc.stdin.flush()
+        except OSError:            # the process ended first; its exit code tells why
+            pass
+
+    if payload is not None:
+        threading.Thread(target=feed, daemon=True).start()
+    for raw in proc.stdout:
+        line = raw.decode("utf-8", "replace")
         log(line.rstrip())
     if proc.wait():
         raise RuntimeError(f"{cmd[0]} exited with {proc.returncode}")
@@ -72,14 +87,35 @@ def install(log=print) -> None:
     _stream([uv, "pip", "install", "--python", str(PYTHON), *PACKAGES], log)
 
 
+def _has_extras() -> bool:
+    code = "import cryptography, bitsandbytes, accelerate"
+    return subprocess.run([str(PYTHON), "-c", code], capture_output=True,
+                          creationflags=NO_WINDOW).returncode == 0
+
+
 def ensure_installed(log=print) -> None:
     with _install_lock:
         if not installed():
             install(log)
+        elif not _has_extras():    # an environment from before these were needed
+            _stream([str(_uv()), "pip", "install", "--python", str(PYTHON), *EXTRAS], log)
 
 
-def run_train(args: list[str], log=print) -> None:
-    _stream([str(PYTHON), "-u", str(TRAIN_SCRIPT), *args], log)
+def run_train(args: list[str], log=print, payload: bytes | None = None) -> None:
+    _stream([str(PYTHON), "-u", str(TRAIN_SCRIPT), *args], log, payload)
+
+
+def run_panels(payload: bytes, log=print) -> None:
+    _stream([str(PYTHON), "-u", str(PANELS_SCRIPT)], log, payload)
+
+
+def pause() -> None:
+    """Ask the running script to save its state and stop; kill it if it cannot be asked."""
+    try:
+        _process.stdin.write(b"STOP\n")
+        _process.stdin.flush()
+    except (AttributeError, OSError):
+        stop()
 
 
 def stop() -> None:

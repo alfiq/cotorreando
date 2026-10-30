@@ -1,6 +1,6 @@
 # Cambios
 
-## Sin publicar
+## 0.0.2 — 2026-10-30
 
 - Calibración inicial: paneles breves en español e inglés, palabras que se iluminan al leer,
   fin automático de panel y entrenamiento LoRA en segundo plano.
@@ -9,6 +9,11 @@
 - Logo azulejado de la cotorra, que se va armando con el progreso.
 - Dictado sin frases perdidas: el modelo ve 0,96 s por delante en lugar de 0,48 s.
 - Texto provisional inmediato que se corrige en una sola acción, sin tocar el texto previo.
+- Aprendizaje continuo: detecta correcciones en el campo, las comprueba contra el audio y, si se
+  repiten, las aplica sola. Lleva una lista de palabras dudosas.
+- Datos cifrados por cuenta de Windows y PC, con contraseña opcional y opciones de privacidad.
+- Paneles de lectura escritos con Qwen3 0.6B (4 bits) que contienen tus palabras difíciles.
+- Entrenamiento opcional al apagar o reiniciar, a pantalla completa, que se puede cancelar y retomar.
 
 ## 0.0.1 — 2026-10-29
 

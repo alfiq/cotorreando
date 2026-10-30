@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
-                               QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QMenu,
-                               QPushButton, QScrollArea, QSpinBox, QStackedWidget, QTextBrowser,
-                               QVBoxLayout, QWidget)
+                               QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
+                               QListWidgetItem, QMenu, QMessageBox, QPushButton, QScrollArea, QSpinBox,
+                               QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
 
 from . import AUTHOR_URL, REPO_URL, __author__, __version__
 from .audio import list_microphones
@@ -15,6 +15,7 @@ from .i18n import tr
 from .keyboard import parse_hotkey
 from .mosaic import logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
+from .vault import WrongPassword
 
 _ASSETS = (PACKAGE_DIR / "assets").as_posix()
 STYLE = """
@@ -84,9 +85,9 @@ def adapters() -> list[str]:
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, settings, listener=None, parent=None):
+    def __init__(self, settings, listener=None, learner=None, parent=None):
         super().__init__(parent)
-        self.s, self.listener = settings, listener
+        self.s, self.listener, self.learner = settings, listener, learner
         self.calibrate_requested = False
         self.setWindowTitle("Cotorreando · " + tr("settings").rstrip("…"))
         self.resize(780, 560)
@@ -94,7 +95,8 @@ class SettingsDialog(QDialog):
         self.pages = QStackedWidget()
         self.nav = QListWidget(objectName="sidebar")
         for title, page in ((tr("general"), self._general()), (tr("audio"), self._audio()),
-                            (tr("typing"), self._typing()), (tr("model"), self._model())):
+                            (tr("typing"), self._typing()), (tr("model"), self._model()),
+                            (tr("privacy"), self._privacy())):
             self.nav.addItem(title)
             self.pages.addWidget(self._page(title, page))
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -247,6 +249,64 @@ class SettingsDialog(QDialog):
         line.addWidget(calibrate)
         return self._groups((None, [(tr("adapter"), self.adapter), row]))
 
+    def _privacy(self):
+        self.learning = QCheckBox(tr("learning"), checked=self.s.learning)
+        self.excluded = QLineEdit(self.s.excluded_apps)
+        self.retention = QSpinBox(minimum=1, maximum=3650, value=self.s.retention_days)
+        note = QLabel(tr("privacy_note"), objectName="note", wordWrap=True)
+        self.password = QPushButton(objectName="ghost", clicked=self._change_password)
+        self.no_password = QPushButton(tr("password_remove"), objectName="ghost", clicked=self._remove_password)
+        view = QPushButton(tr("data_view"), objectName="ghost", clicked=self._view_data)
+        row = QWidget()
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.addWidget(self.password)
+        line.addWidget(self.no_password)
+        line.addWidget(view)
+        line.addStretch()
+        self._show_password_state()
+        return self._groups((None, [self.learning, (tr("excluded"), self.excluded),
+                                    (tr("retention"), self.retention), row, note]))
+
+    def _show_password_state(self):
+        has = self.learner.vault.has_password
+        self.password.setText(tr("password_change") if has else tr("password_set"))
+        self.no_password.setVisible(has)
+
+    def _unlock(self) -> bool:
+        vault = self.learner.vault
+        if not vault.locked:
+            return True
+        password, ok = QInputDialog.getText(self, "Cotorreando", tr("password_current"), QLineEdit.Password)
+        if not ok:
+            return False
+        try:
+            vault.unlock(password)
+            return True
+        except WrongPassword:
+            QMessageBox.warning(self, "Cotorreando", tr("password_wrong"))
+            return False
+
+    def _change_password(self):
+        if not self._unlock():
+            return
+        password, ok = QInputDialog.getText(self, "Cotorreando", tr("password_new"), QLineEdit.Password)
+        if ok and password:
+            self.learner.vault.set_password(password)
+            self.learner.vault.lock()
+            self._show_password_state()
+
+    def _remove_password(self):
+        if self._unlock():
+            self.learner.vault.set_password(None)
+            self._show_password_state()
+
+    def _view_data(self):
+        if self._unlock():
+            DataDialog(self.learner.vault, self).exec()
+            if self.learner.vault.has_password:
+                self.learner.vault.lock()
+
     def _calibrate(self):
         self.calibrate_requested = True
         self.reject()
@@ -277,7 +337,47 @@ class SettingsDialog(QDialog):
         s.typing_holdoff_ms, s.trailing_space = self.holdoff.value(), self.trailing.isChecked()
         s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
+        s.learning, s.excluded_apps = self.learning.isChecked(), self.excluded.text().strip()
+        s.retention_days = self.retention.value()
         self.accept()
+
+
+class DataDialog(QDialog):
+    """What has been kept, to read and delete. The vault must be unlocked."""
+
+    def __init__(self, vault, parent=None):
+        super().__init__(parent)
+        self.vault = vault
+        self.setWindowTitle(tr("data_title"))
+        self.resize(640, 460)
+        self.list = QListWidget()
+        for rid in vault.record_ids():
+            meta, _ = vault.read_record(rid)
+            label = f"{rid[:8]} · {tr('kind_' + meta['kind'])} · {meta['text']}"
+            item = QListWidgetItem(label)
+            item.setData(Qt.UserRole, rid)
+            self.list.addItem(item)
+        delete = QPushButton(tr("data_delete"), objectName="ghost", clicked=self._delete)
+        delete_all = QPushButton(tr("data_delete_all"), objectName="ghost", clicked=self._delete_all)
+        close = QPushButton(tr("cal_finish"), clicked=self.accept)
+        buttons = QHBoxLayout()
+        buttons.addWidget(delete)
+        buttons.addWidget(delete_all)
+        buttons.addStretch()
+        buttons.addWidget(close)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.list, 1)
+        layout.addLayout(buttons)
+
+    def _delete(self):
+        for item in self.list.selectedItems():
+            self.vault.delete_record(item.data(Qt.UserRole))
+            self.list.takeItem(self.list.row(item))
+
+    def _delete_all(self):
+        if QMessageBox.question(self, tr("data_title"), tr("data_confirm")) == QMessageBox.Yes:
+            self.vault.delete_all_records()
+            self.list.clear()
 
 
 class AboutDialog(QDialog):

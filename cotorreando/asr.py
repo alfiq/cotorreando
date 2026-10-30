@@ -28,6 +28,8 @@ FILES = ("config.json", "vocab.txt", "nemo128.onnx",
 
 SAMPLE_RATE = 16000
 MAX_TOKENS_PER_FRAME = 10
+BIAS_BONUS = 1.5               # logits added to tokens that continue a preferred word
+BIAS_CANDIDATES = 5            # only the best few tokens can receive it
 
 
 def model_dir() -> Path:
@@ -70,6 +72,24 @@ def export_from_nemo(target: Path) -> None:
     env.run_train(["--export-only", "--model", ORIGINAL_REPO, "--out", str(target)], log.info)
 
 
+class Bias:
+    """Nudges the decoder towards preferred words when it hesitates between similar options."""
+
+    def __init__(self, words):
+        self.prefixes = {word.lower()[:i] for word in words for i in range(1, len(word) + 1)}
+
+    def apply(self, scores: np.ndarray, word: str, model: "Parakeet") -> None:
+        for i in np.argpartition(scores, -BIAS_CANDIDATES)[-BIAS_CANDIDATES:]:
+            if i != model.blank and _extend(word, model.vocab[int(i)]) in self.prefixes:
+                scores[i] += BIAS_BONUS
+
+
+def _extend(word: str, piece: str) -> str:
+    """The word being spelled once ``piece`` is added; a leading space starts a new word."""
+    piece = piece.lower()
+    return piece.strip() if piece.startswith(" ") else word + piece
+
+
 class Parakeet:
     """Greedy TDT decoder over the three ONNX graphs."""
 
@@ -102,6 +122,7 @@ class Parakeet:
             token, index = line.rsplit(" ", 1)
             vocab[int(index)] = token.replace("▁", " ")
         self.vocab = vocab
+        self.bias: Bias | None = None
         self.blank = max(vocab)  # last entry is the blank symbol
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
@@ -133,11 +154,13 @@ class Parakeet:
         encoded, enc_len = self.encoder.run(None, {"audio_signal": features, "length": lengths})
         return encoded[0, :, :int(enc_len[0])]
 
-    def decode(self, encoded: np.ndarray, start: int, end: int, state: "DecoderState") -> str:
+    def decode(self, encoded: np.ndarray, start: int, end: int, state: "DecoderState",
+               trace: list | None = None) -> str:
         """Greedy TDT over frames ``start..end``, continuing from ``state``.
 
         Returns the new text. A duration that jumps past ``end`` is remembered
-        in ``state.carry`` so the next chunk starts at the right frame.
+        in ``state.carry`` so the next chunk starts at the right frame. Each emitted
+        token is added to ``trace`` as (piece, frame, probability, margin over the runner-up).
         """
         tokens: list[int] = []
         t, emitted = start + state.carry, 0
@@ -150,10 +173,17 @@ class Parakeet:
                 "input_states_2": state.c,
             })
             logits = logits.reshape(-1)
-            token = int(np.argmax(logits[:self.blank + 1]))
+            scores = logits[:self.blank + 1]
+            if self.bias:
+                self.bias.apply(scores, state.word, self)
+            token = int(np.argmax(scores))
             skip = int(np.argmax(logits[self.blank + 1:]))
             if token != self.blank:
                 tokens.append(token)
+                state.word = _extend(state.word, self.vocab[token])
+                if trace is not None:
+                    second, first = np.partition(_softmax(scores), -2)[-2:]
+                    trace.append((self.vocab[token], t, float(first), float(first - second)))
                 state.last, state.h, state.c = token, new1, new2
                 emitted += 1
             if skip or token == self.blank or emitted >= MAX_TOKENS_PER_FRAME:
@@ -171,6 +201,7 @@ class DecoderState:
         self.c = np.zeros(model.state_shape, np.float32)
         self.last = model.blank
         self.carry = 0
+        self.word = ""             # the word being spelled, for Bias
 
 
 class Stream:
@@ -197,6 +228,7 @@ class Stream:
         self.done = 0              # absolute sample index decoded so far
         self.started = False
         self.tail = ""             # tentative text of the look-ahead, replaced on every step
+        self.trace: list[tuple[str, float, float, float]] = []   # piece, seconds, probability, margin
 
     def feed(self, audio: np.ndarray) -> str:
         """Add audio; return any text that became final. ``tail`` holds what may still change."""
@@ -228,7 +260,10 @@ class Stream:
         encoded = self.model.encode(window)
         first = self.LEFT // self.FRAME
         last = first + (chunk_end - self.done + self.FRAME - 1) // self.FRAME
-        text = self.model.decode(encoded, first, min(last, encoded.shape[1]), self.state)
+        trace: list = []
+        text = self.model.decode(encoded, first, min(last, encoded.shape[1]), self.state, trace)
+        origin = self.done - self.LEFT
+        self.trace += [(piece, (origin + t * self.FRAME) / SAMPLE_RATE, p, m) for piece, t, p, m in trace]
         self.done = chunk_end
         # After a full stop the prediction network can get stuck emitting only blanks,
         # silently losing the rest of the speech. Each sentence starts from a clean state.
@@ -247,6 +282,11 @@ class Stream:
             self.started = bool(text)
             self.tail = self.tail if text else self.tail.lstrip()
         return text
+
+
+def _softmax(x: np.ndarray) -> np.ndarray:
+    e = np.exp(x - x.max())
+    return e / e.sum()
 
 
 def _mirror(x: np.ndarray, n: int) -> np.ndarray:

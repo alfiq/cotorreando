@@ -2,80 +2,33 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import queue
-import shutil
 import threading
 import time
-import wave
 from html import escape
-from pathlib import Path
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLabel, QProgressBar,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
-from ..asr import Parakeet, Stream, model_dir
-from ..audio import RATE, AudioInput, list_microphones
+from ..asr import Stream
+from ..audio import AudioInput, list_microphones
 from ..i18n import tr
 from ..mosaic import Mosaic
-from ..paths import DATA_DIR, MODELS_DIR, PACKAGE_DIR, RECORDINGS_DIR
-from . import env
-from .align import Follower, split_words, word_errors
+from ..paths import DATA_DIR
+from ..vault import reading_path
+from . import env, job
+from .align import Follower, split_words
 
 log = logging.getLogger(__name__)
 
-DATASET_DIR = PACKAGE_DIR / "lora" / "datasets"
 QUIET_LEVEL = 0.01       # RMS below this counts as not speaking
 END_SILENCE_S = 1.2      # after the last words, this much quiet finishes the panel
 MIN_AUDIO_S = 1.0
-HOLDOUT_EVERY = 6        # must match train.py
 NEARLY_ALL = 2           # words that may go unrecognised at the end of a panel
 CHEERS = (0.0, 0.2, 0.45, 0.7, 0.9)
-
-
-def read_panels(language: str) -> list[str]:
-    lines = (DATASET_DIR / f"{language}.txt").read_text(encoding="utf-8").splitlines()
-    return [line.strip() for line in lines if line.strip() and not line.startswith("#")]
-
-
-def save_wav(path: Path, audio: np.ndarray) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with wave.open(str(path), "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        w.writeframes((np.clip(audio, -1, 1) * 32767).astype(np.int16).tobytes())
-
-
-def wav_path(language: str, index: int) -> Path:
-    return RECORDINGS_DIR / language / f"{index:03d}.wav"
-
-
-def dictation_error_rate(directory: Path, items: list[tuple[str, int, str]]) -> float:
-    """Error rate of an exported model the way the app really uses it: streaming ONNX."""
-    model = Parakeet(directory, use_gpu=False)
-    errors = words = 0
-    for language, index, text in items:
-        with wave.open(str(wav_path(language, index))) as w:
-            audio = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768
-        e, n = word_errors(text, model.transcribe(audio))
-        errors, words = errors + e, words + n
-    return errors / max(words, 1)
-
-
-def write_manifest(items: list[tuple[str, int, str]]) -> Path:
-    path = RECORDINGS_DIR / "manifest.jsonl"
-    with path.open("w", encoding="utf-8") as f:
-        for language, index, text in items:
-            wav = wav_path(language, index)
-            with wave.open(str(wav)) as w:
-                duration = w.getnframes() / RATE
-            f.write(json.dumps({"audio_filepath": str(wav), "duration": duration,
-                                "text": text}, ensure_ascii=False) + "\n")
-    return path
 
 
 class CalibrationDialog(QDialog):
@@ -90,9 +43,9 @@ class CalibrationDialog(QDialog):
     train_log = Signal(str)
     train_ended = Signal(bool, str)
 
-    def __init__(self, settings, model, parent=None):
+    def __init__(self, settings, model, learner, parent=None):
         super().__init__(parent)
-        self.s, self.model = settings, model
+        self.s, self.model, self.learner = settings, model, learner
         self.setWindowTitle(tr("train_title"))
         self.setObjectName("calibration")
         self.setFixedSize(760, 560)
@@ -233,8 +186,8 @@ class CalibrationDialog(QDialog):
         self.s.microphone = self.mic.currentData()
         languages = ("es", "en") if self.s.lora_language == "both" else (self.s.lora_language,)
         self.items = [(lang, i, text) for lang in languages
-                      for i, text in enumerate(read_panels(lang))]
-        missing = [n for n, (lang, i, _) in enumerate(self.items) if not wav_path(lang, i).exists()]
+                      for i, text in enumerate(job.read_panels(lang))]
+        missing = [n for n, (lang, i, _) in enumerate(self.items) if not reading_path(lang, i).exists()]
         self.index = missing[0] if missing else 0   # resume, or start a new calibration over
         # The heavy download runs while the user reads, so that training can start right after.
         self.deps_thread = threading.Thread(target=self._install_deps, daemon=True)
@@ -331,7 +284,7 @@ class CalibrationDialog(QDialog):
             return
         self.end_timer.stop()
         language, index, _ = self.items[self.index]
-        save_wav(wav_path(language, index), np.concatenate(self.frames))
+        self.learner.vault.save_reading(language, index, np.concatenate(self.frames))
         self.index += 1
         if self.index < len(self.items):
             self._show_panel()
@@ -360,25 +313,14 @@ class CalibrationDialog(QDialog):
         threading.Thread(target=self._train_worker, daemon=True).start()
 
     def _train_worker(self) -> None:
-        name = time.strftime("voz-%Y%m%d-%H%M")
         try:
             self.deps_thread.join()
             env.ensure_installed(log.info)
             self.train_log.emit("TRAINING")
-            manifest = write_manifest(self.items)
-            env.run_train(["--manifest", str(manifest), "--base-onnx", str(model_dir()),
-                           "--out", str(MODELS_DIR / "adapters" / name)], self.train_log.emit)
-            folder = MODELS_DIR / "adapters" / name
-            improved = folder.exists()
-            if improved:   # same recordings train.py held out: one in six
-                held = self.items[HOLDOUT_EVERY - 1::HOLDOUT_EVERY]
-                before = dictation_error_rate(model_dir(), held)
-                after = dictation_error_rate(folder, held)
-                self.train_log.emit(f"EVAL {before} {after}")
-                improved = after < before
-                if not improved:
-                    shutil.rmtree(folder)
-            self.train_ended.emit(True, name if improved else "")
+            result = job.run(self.learner, self.s, self.train_log.emit)
+            if result.before is not None:
+                self.train_log.emit(f"EVAL {result.before} {result.after}")
+            self.train_ended.emit(True, result.adapter)
         except Exception:
             log.exception("Calibration failed")
             self.train_ended.emit(False, "")

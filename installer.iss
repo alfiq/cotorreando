@@ -1,7 +1,7 @@
 ; Inno Setup script for Cotorreando. Built by build.ps1 after the Nuitka step.
 ; Installs per user (no administrator rights needed).
 
-#define AppVersion "0.0.1"
+#define AppVersion "0.0.2"
 
 [Setup]
 AppId={{6F2C3B1E-8A4D-4C55-9E21-C0770EA2D0F1}
