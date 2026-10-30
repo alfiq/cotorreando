@@ -23,6 +23,7 @@ from .vad import CHUNK, SileroVAD
 PREROLL_S = 0.3
 CALIBRATION_FRAMES = 300   # ~10 s of 32 ms chunks used for the noise floor
 AUTO_MARGIN_DB = 12.0
+PARTIAL_S = 0.8           # how often the words so far are re-transcribed
 
 
 def dbfs(x: np.ndarray) -> float:
@@ -30,7 +31,12 @@ def dbfs(x: np.ndarray) -> float:
 
 
 class Listener:
-    """Feed it frames with :meth:`feed`; it calls ``on_utterance(audio)``."""
+    """Feed it frames with :meth:`feed`.
+
+    It calls ``on_utterance(audio, final, uid)``: while you speak, every
+    ``PARTIAL_S`` with the audio so far (``final=False``), and once more with
+    the whole utterance when it ends. ``uid`` identifies the utterance.
+    """
 
     def __init__(self, settings, on_utterance, on_level):
         self.s = settings
@@ -47,6 +53,8 @@ class Listener:
         self.awake_until = 0.0
         self.paused_until = 0.0
         self.speaking = False
+        self.uid = 0
+        self.next_partial = 0.0
         self.last_level = -90.0
 
     # -- public ---------------------------------------------------------------
@@ -101,13 +109,17 @@ class Listener:
             return
         if self.s.mode == "ptt":
             if self.ptt_held:
+                if not self.segment:
+                    self._begin(now)
                 self.segment.append(chunk)
+                self._partial(now)
             return
 
         if not self.segment:
             self.preroll.append(chunk)
         if voiced:
             if not self.segment:
+                self._begin(now)
                 self.segment = list(self.preroll)
                 self.preroll.clear()
             else:
@@ -120,9 +132,19 @@ class Listener:
                 self._flush()
         if self.segment and len(self.segment) * CHUNK / RATE >= self.s.max_segment_s:
             self._flush()
+        self._partial(now)
+
+    def _begin(self, now: float) -> None:
+        self.uid += 1
+        self.next_partial = now + PARTIAL_S
+
+    def _partial(self, now: float) -> None:
+        if self.s.streaming and self.segment and now >= self.next_partial:
+            self.next_partial = now + PARTIAL_S
+            self.on_utterance(np.concatenate(self.segment), False, self.uid)
 
     def _flush(self) -> None:
         audio = np.concatenate(self.segment) if self.segment else np.zeros(0, np.float32)
         self.segment, self.silence = [], 0.0
         if audio.size >= RATE // 4:
-            self.on_utterance(audio)
+            self.on_utterance(audio, True, self.uid)

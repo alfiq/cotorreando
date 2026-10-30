@@ -37,6 +37,7 @@ class Settings:
     # Typing
     typing_holdoff_ms: int = 1200      # pause dictation after you touch the keyboard
     trailing_space: bool = True
+    streaming: bool = True             # type words while you are still speaking
 
     # Model
     lora_adapter: str = ""             # empty = stock model

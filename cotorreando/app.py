@@ -30,7 +30,7 @@ from .blob import Blob
 from .config import Settings
 from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
-from .keyboard import KeyboardMonitor, type_text
+from .keyboard import KeyboardMonitor, backspace, type_text
 from .listener import Listener
 from .paths import MODELS_DIR
 
@@ -72,6 +72,7 @@ class Cotorreando(QObject):
         self.audio: AudioInput | None = None
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
+        self.typed, self.typed_uid = "", 0   # text written so far for the current utterance
 
         self.blob = Blob()
         self.blob.place(self.s.blob_x, self.s.blob_y)
@@ -118,7 +119,7 @@ class Cotorreando(QObject):
         self.stop_audio()
         if not self.enabled or self.model is None:
             return
-        self.listener = Listener(self.s, self.jobs.put, self.level.emit)
+        self.listener = Listener(self.s, lambda *job: self.jobs.put(job), self.level.emit)
         self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
                                 self.s.echo_cancellation, self.s.auto_gain)
         self.audio.start()
@@ -140,20 +141,42 @@ class Cotorreando(QObject):
 
     def _recognizer(self) -> None:
         while True:
-            audio = self.jobs.get()
+            audio, final, uid = self.jobs.get()
             if self.model is None or not self.enabled:
                 continue
+            if not final and not self.jobs.empty():
+                continue        # a newer job is waiting; this partial is already stale
+            if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
+                continue        # you are typing; never write over it
             try:
                 text = self.model.transcribe(audio)
             except Exception:
                 log.exception("Transcription failed")
                 continue
-            text = self._apply_activation(text)
-            if not text:
-                continue
-            self.writing.emit(True)
-            type_text(text + (" " if self.s.trailing_space else ""))
-            self.writing.emit(False)
+            self._write(self._apply_activation(text), final, uid)
+
+    def _write(self, text: str, final: bool, uid: int) -> None:
+        """Bring what is on screen for utterance ``uid`` in line with ``text``.
+
+        Partial results hold back their last word, which tends to change, and
+        any earlier word that changed is fixed with backspaces.
+        """
+        if uid != self.typed_uid:
+            self.typed, self.typed_uid = "", uid
+        if final:
+            text += " " if text and self.s.trailing_space else ""
+        else:
+            text = text.rsplit(" ", 1)[0] + " " if " " in text else ""
+        keep = 0
+        while keep < min(len(text), len(self.typed)) and text[keep] == self.typed[keep]:
+            keep += 1
+        if keep == len(text) == len(self.typed):
+            return
+        self.writing.emit(True)
+        backspace(len(self.typed) - keep)
+        type_text(text[keep:])
+        self.typed = text
+        self.writing.emit(False)
 
     def _apply_activation(self, text: str) -> str:
         if self.s.mode != "activation" or self.s.activation != "keyword" or not text:

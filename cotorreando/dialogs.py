@@ -135,8 +135,10 @@ class SettingsDialog(QDialog):
         w.setLayout(f)
         self.holdoff = QSpinBox(minimum=0, maximum=10000, singleStep=100, value=self.s.typing_holdoff_ms)
         self.trailing = QCheckBox(tr("trailing"), checked=self.s.trailing_space)
+        self.streaming = QCheckBox(tr("streaming"), checked=self.s.streaming)
         f.addRow(tr("holdoff"), self.holdoff)
         f.addRow(self.trailing)
+        f.addRow(self.streaming)
         return w
 
     def _model(self):
@@ -169,6 +171,7 @@ class SettingsDialog(QDialog):
         s.vad_threshold, s.silence_ms, s.session_timeout_s = (
             self.vad.value(), self.silence.value(), self.session.value())
         s.typing_holdoff_ms, s.trailing_space = self.holdoff.value(), self.trailing.isChecked()
+        s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
         self.accept()
 

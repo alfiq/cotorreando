@@ -43,6 +43,7 @@ STRINGS = {
     "calibrate": ("Recalibrar ruido", "Recalibrate noise"),
     "level": ("Nivel actual: {lvl:.0f} dBFS · umbral {thr:.0f}", "Level: {lvl:.0f} dBFS · threshold {thr:.0f}"),
     "holdoff": ("Pausa al teclear (ms)", "Pause while typing (ms)"),
+    "streaming": ("Escribir mientras hablo", "Type while I speak"),
     "trailing": ("Espacio al final de cada frase", "Trailing space after each phrase"),
     "adapter": ("Adaptación de voz (LoRA)", "Voice adaptation (LoRA)"),
     "stock": ("Ninguna (modelo original)", "None (stock model)"),
