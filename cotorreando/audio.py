@@ -101,9 +101,13 @@ class AudioInput:
         self.use_aec = echo_cancellation and rtc is not None
         self.apm = None
         if rtc is not None and (noise_suppression or echo_cancellation or auto_gain):
-            self.apm = rtc.AudioProcessingModule(
-                echo_cancellation=echo_cancellation, noise_suppression=noise_suppression,
-                high_pass_filter=True, auto_gain_control=auto_gain)
+            try:
+                self.apm = rtc.AudioProcessingModule(
+                    echo_cancellation=echo_cancellation, noise_suppression=noise_suppression,
+                    high_pass_filter=True, auto_gain_control=auto_gain)
+            except Exception:
+                log.exception("Audio processing unavailable; capturing raw audio")
+                self.use_aec = False
         self._far_end: collections.deque[np.ndarray] = collections.deque(maxlen=50)
         self._running = False
         self._threads: list[threading.Thread] = []

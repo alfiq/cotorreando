@@ -147,6 +147,7 @@ class Cotorreando(QObject):
     def start_audio(self) -> None:
         self.stop_audio()
         if not self.enabled or self.model is None:
+            log.info("Not listening (enabled=%s, model=%s)", self.enabled, self.model is not None)
             return
         self.listener = Listener(self.s, lambda uid, audio: self.jobs.put(("audio", uid, audio)),
                                  lambda uid: self.jobs.put(("end", uid, None)), self.level.emit)
@@ -373,6 +374,9 @@ def main() -> int:
         handlers.append(logging.StreamHandler())
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s",
                         handlers=handlers)
+    # Without a console, exceptions raised in Qt slots would vanish.
+    sys.excepthook = lambda *exc: logging.getLogger("cotorreando").error(
+        "Unhandled exception", exc_info=exc)
     if already_running():
         return 0
     app = QApplication(sys.argv)

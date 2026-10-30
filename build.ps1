@@ -21,6 +21,11 @@ python -m nuitka `
     --assume-yes-for-downloads `
     cotorreando
 
+# Nuitka skips the native library livekit loads at runtime (noise suppression, AEC).
+$livekit = python -c "import livekit.rtc, os; print(os.path.dirname(livekit.rtc.__file__))"
+$resources = New-Item -ItemType Directory -Force dist\cotorreando.dist\livekit\rtc\resources
+Copy-Item "$livekit\resources\livekit_ffi.dll" $resources -Force
+
 # Self-signed code-signing certificate, created once in the user's store and reused.
 # Clients only trust it after importing dist\Cotorreando.cer (see README).
 $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
