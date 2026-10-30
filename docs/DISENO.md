@@ -36,13 +36,26 @@ El modelo cuantizado a int8 ocupa ~670 MB y en CPU transcribe ~8× más rápido 
 tiempo real (6 s de audio en 0,7 s). NeMo solo aparece si el usuario entrena.
 
 **Streaming real.** Parakeet TDT v3 es un modelo *offline* (atención completa), así que
-no tiene caché de streaming nativa. Se usa streaming por bloques: cada 0,96 s se codifica
+no tiene caché de streaming nativa. Se usa streaming por bloques: en cada paso se codifica
 una ventana de 2,6 s de contexto ya decodificado + el bloque nuevo + 0,48 s de anticipación,
 y solo se decodifican los cuadros del bloque nuevo. El decodificador TDT conserva su estado
 (LSTM, último token y el salto pendiente) entre bloques, así que cada token se emite una
 única vez: el texto nunca se borra ni se reescribe. El costo por paso es constante, sin
-límite de duración. Latencia ≈ 1,4 s; en CPU corre a 0,66× tiempo real y con DirectML a
-0,46×. En las pruebas, el resultado es idéntico al de transcribir la frase completa.
+límite de duración. Incluso la transcripción de frase completa pasa por las mismas ventanas.
+
+**GPU.** El codificador int8 corre en DirectML; preprocesador y decodificador en CPU (hacen
+muchas llamadas diminutas), el decodificador con un solo hilo que no gira en espera.
+DirectML solo es rápido con la primera forma de entrada que compila (~45 ms frente a
+~330 ms con cualquier otra), por eso la ventana tiene **siempre el mismo tamaño**: el audio
+que falta en los bordes se rellena con un reflejo del audio real (el silencio digital
+desviaría la normalización de las características). Se compila al cargar el modelo.
+
+| Equipo | Bloque | Latencia ≈ | Costo por paso |
+|---|---|---|---|
+| GPU (RTX 4060 Ti, DirectML) | 0,32 s | 0,8 s | ~55 ms |
+| Solo CPU | 0,64 s | 1,1 s | ~250 ms |
+
+Se descartó el codificador fp32 (2,4 GB): el int8 con forma fija ya es igual de rápido.
 
 **Decodificación TDT.** El decodificador fusionado devuelve, por cada paso, logits de
 token (8193 + blank) y de duración (0–4 cuadros). Se elige el token, y si la duración

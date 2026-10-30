@@ -73,23 +73,28 @@ class Parakeet:
     """Greedy TDT decoder over the three ONNX graphs."""
 
     def __init__(self, directory: Path | None = None, use_gpu: bool = True):
+        """The encoder does the heavy lifting and runs on the GPU (DirectML) when
+        there is one. The preprocessor and the decoder make many tiny calls,
+        which are faster on the CPU; the decoder gets one thread that does not
+        spin between calls."""
         directory = directory or model_dir()
-        providers = ["CPUExecutionProvider"]
-        if use_gpu:
-            available = ort.get_available_providers()
-            for p in ("CUDAExecutionProvider", "DmlExecutionProvider"):
-                if p in available:
-                    providers.insert(0, p)
-                    break
-        opts = ort.SessionOptions()
-        opts.log_severity_level = 3
+        cpu = ["CPUExecutionProvider"]
 
-        def load(name):
+        def load(name, providers=cpu, threads=0):
+            opts = ort.SessionOptions()
+            opts.log_severity_level = 3
+            if threads:
+                opts.intra_op_num_threads = threads
+                opts.add_session_config_entry("session.intra_op.allow_spinning", "0")
+            if providers is not cpu:
+                opts.enable_mem_pattern = False   # required by DirectML
             return ort.InferenceSession(str(directory / name), opts, providers=providers)
 
+        self.on_gpu = use_gpu and "DmlExecutionProvider" in ort.get_available_providers()
+        gpu = ["DmlExecutionProvider"] + cpu if self.on_gpu else cpu
         self.preprocessor = load("nemo128.onnx")
-        self.encoder = load(self._pick(directory, "encoder-model"))
-        self.decoder = load(self._pick(directory, "decoder_joint-model"))
+        self.encoder = load(self._pick(directory, "encoder-model"), gpu)
+        self.decoder = load(self._pick(directory, "decoder_joint-model"), threads=1)
 
         vocab = {}
         for line in (directory / "vocab.txt").read_text(encoding="utf-8").splitlines():
@@ -99,22 +104,25 @@ class Parakeet:
         self.blank = max(vocab)  # last entry is the blank symbol
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
+        self.transcribe(np.zeros(SAMPLE_RATE, np.float32))   # compile the window shape now
 
     @staticmethod
     def _pick(directory: Path, stem: str) -> str:
-        # A LoRA-merged export (fp32) takes priority over the stock int8 one.
-        for name in (f"{stem}.onnx", f"{stem}.int8.onnx"):
+        for name in (f"{stem}.int8.onnx", f"{stem}.onnx"):
             if (directory / name).exists():
                 return name
         raise FileNotFoundError(stem)
 
     def transcribe(self, audio: np.ndarray) -> str:
-        """Transcribe a whole utterance (mono float32, 16 kHz) at once."""
+        """Transcribe a whole utterance (mono float32, 16 kHz).
+
+        It goes through the same fixed-size windows as streaming, so the GPU
+        only ever sees one input shape.
+        """
         if audio.size < SAMPLE_RATE // 10:
             return ""
-        encoded = self.encode(audio)
-        state = DecoderState(self)
-        return self.decode(encoded, 0, encoded.shape[1], state).strip()
+        stream = Stream(self)
+        return (stream.feed(audio) + stream.finish()).strip()
 
     def encode(self, audio: np.ndarray) -> np.ndarray:
         """Encoder output for ``audio``: (1024, frames), one frame per 80 ms."""
@@ -167,19 +175,21 @@ class DecoderState:
 class Stream:
     """True streaming over an offline model: chunked encoding, stateful decoding.
 
-    Audio is encoded in a sliding window of left context + new chunk + a short
-    look-ahead. Only the frames of the new chunk are decoded, and the decoder
+    Audio is encoded in a fixed-size sliding window of left context + new
+    chunk + a short look-ahead. Only the frames of the new chunk are decoded, and the decoder
     keeps its state, so every token is produced exactly once and never revised.
     The cost per step is constant, so utterances can be arbitrarily long.
     """
 
     FRAME = 1280                   # samples per encoder frame (80 ms)
     LEFT = 32 * FRAME              # 2.6 s of context already decoded
-    CHUNK = 12 * FRAME             # 0.96 s of new audio per step
     RIGHT = 6 * FRAME              # 0.48 s of look-ahead
+    # New audio per step: 0.32 s on a GPU (~55 ms per step), 0.64 s on a CPU (~250 ms).
+    GPU_CHUNK, CPU_CHUNK = 4 * FRAME, 8 * FRAME
 
     def __init__(self, model: Parakeet):
         self.model = model
+        self.CHUNK = self.GPU_CHUNK if model.on_gpu else self.CPU_CHUNK
         self.state = DecoderState(model)
         self.audio = np.zeros(0, np.float32)
         self.offset = 0            # absolute sample index of self.audio[0]
@@ -191,21 +201,31 @@ class Stream:
         self.audio = np.concatenate([self.audio, audio.astype(np.float32)])
         text = ""
         while self.offset + self.audio.size >= self.done + self.CHUNK + self.RIGHT:
-            text += self._step(self.done + self.CHUNK, self.done + self.CHUNK + self.RIGHT)
+            text += self._step(self.done + self.CHUNK)
         return text
 
     def finish(self) -> str:
         """Decode whatever is left; the stream ends here."""
-        end = self.offset + self.audio.size
-        return self._step(end, end) if end > self.done else ""
+        end, text = self.offset + self.audio.size, ""
+        while self.done < end:
+            text += self._step(min(self.done + self.CHUNK, end))
+        return text
 
-    def _step(self, chunk_end: int, window_end: int) -> str:
-        start = max(self.offset, self.done - self.LEFT)
-        window = self.audio[start - self.offset:window_end - self.offset]
+    def _step(self, chunk_end: int) -> str:
+        # The window always has the same size: DirectML is only fast for the
+        # shape it compiled first. Missing audio at either end is filled with a
+        # mirror image of the real audio, because silence would skew the
+        # per-utterance feature normalisation.
+        start = self.done - self.LEFT
+        size = self.LEFT + self.CHUNK + self.RIGHT
+        lo = max(start, self.offset)
+        piece = self.audio[lo - self.offset:start + size - self.offset]
+        before, after = lo - start, size - (lo - start) - piece.size
+        window = np.concatenate([_mirror(piece[::-1], before)[::-1], piece, _mirror(piece, after)])
         encoded = self.model.encode(window)
-        first = (self.done - start) // self.FRAME
-        last = min(encoded.shape[1], (chunk_end - start + self.FRAME - 1) // self.FRAME)
-        text = self.model.decode(encoded, first, last, self.state)
+        first = self.LEFT // self.FRAME
+        last = first + (chunk_end - self.done + self.FRAME - 1) // self.FRAME
+        text = self.model.decode(encoded, first, min(last, encoded.shape[1]), self.state)
         self.done = chunk_end
         # Keep only the left context needed for the next window.
         drop = max(0, self.done - self.LEFT - self.offset)
@@ -214,3 +234,11 @@ class Stream:
             text = text.lstrip()
             self.started = bool(text)
         return text
+
+
+def _mirror(x: np.ndarray, n: int) -> np.ndarray:
+    """``n`` samples continuing ``x`` by reflecting it back and forth."""
+    if n <= 0 or x.size == 0:
+        return np.zeros(max(n, 0), np.float32)
+    bounce = np.concatenate([x[::-1], x])
+    return np.resize(bounce, n).astype(np.float32)

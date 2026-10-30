@@ -17,7 +17,8 @@ Un círculo flotante, siempre encima de todo, que muestra lo que está pasando:
 | Hablando | Se deforma con tu voz y suelta ondas a su alrededor. |
 | Escribiendo | Colores tornasol que giran. |
 
-Hablar y escribir se combinan: el texto aparece mientras hablas (≈1,4 s de retraso), sin
+Hablar y escribir se combinan: el texto aparece mientras hablas (≈0,8 s de retraso con GPU,
+≈1,1 s solo con CPU), sin
 borrar ni reescribir, y sin límite de duración. El tamaño se elige en Opciones.
 
 - **Arrástralo** a donde quieras; lo sigue con un resorte elástico y recuerda la posición.
