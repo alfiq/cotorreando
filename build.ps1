@@ -19,7 +19,7 @@ python -m nuitka `
     --include-data-files=LICENSE=LICENSE `
     --include-data-files=THIRD_PARTY_NOTICES.md=THIRD_PARTY_NOTICES.md `
     --nofollow-import-to=torch,nemo `
-    --company-name=Alfiq --product-name=Cotorreando --product-version=0.0.2 --file-version=0.0.2 `
+    --company-name=Alfiq --product-name=Cotorreando --product-version=0.0.4 --file-version=0.0.4 `
     --windows-icon-from-ico=cotorreando/icon.ico `
     --assume-yes-for-downloads `
     cotorreando

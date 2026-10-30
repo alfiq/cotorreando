@@ -1,6 +1,6 @@
 # Cambios
 
-## 0.0.2 — 2026-10-30
+## 0.0.4 — 2026-10-30
 
 - Calibración inicial: paneles breves en español e inglés, palabras que se iluminan al leer,
   fin automático de panel y entrenamiento LoRA en segundo plano.
