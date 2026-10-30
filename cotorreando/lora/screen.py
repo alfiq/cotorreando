@@ -7,10 +7,11 @@ import threading
 
 import numpy as np
 from PySide6.QtCore import QPropertyAnimation, Qt, QTimer, Signal
-from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QProgressBar,
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QProgressBar,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
 from ..audio import AudioInput
+from ..dialogs import Window, ask_password
 from ..i18n import tr
 from ..mosaic import Mosaic
 from ..vault import WrongPassword
@@ -25,7 +26,7 @@ PREPARE_SHARE = 0.05         # of the parrot, lit before training starts
 EXPORT_SHARE = 0.95
 
 
-class ShutdownPrompt(QDialog):
+class ShutdownPrompt(Window):
     """Windows does not say whether a shutdown or a restart was asked for, so this does."""
 
     def __init__(self, parent=None):
@@ -158,9 +159,8 @@ class TrainingScreen(QWidget):
         for _ in range(PASSWORD_TRIES):
             if not vault.locked:
                 return True
-            password, ok = QInputDialog.getText(self, "Cotorreando", tr("password_current"),
-                                                QLineEdit.EchoMode.Password)
-            if not ok:
+            password = ask_password(self, tr("password_current"))
+            if password is None:
                 return False
             try:
                 vault.unlock(password)

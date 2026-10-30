@@ -10,11 +10,12 @@ from html import escape
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLabel, QProgressBar,
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QProgressBar,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
 from ..asr import Stream
 from ..audio import AudioInput, list_microphones
+from ..dialogs import Window
 from ..i18n import tr
 from ..mosaic import Mosaic
 from ..paths import DATA_DIR
@@ -31,7 +32,7 @@ NEARLY_ALL = 2           # words that may go unrecognised at the end of a panel
 CHEERS = (0.0, 0.2, 0.45, 0.7, 0.9)
 
 
-class CalibrationDialog(QDialog):
+class CalibrationDialog(Window):
     """Welcome → reading panels → training. Closing it during training leaves training running."""
 
     skipped = Signal()

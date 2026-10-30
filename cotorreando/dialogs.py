@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
-                               QFrame, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QMenu, QMessageBox, QPushButton, QScrollArea, QSpinBox,
+import ctypes
+
+from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
+                               QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QListWidgetItem, QMenu, QPushButton, QScrollArea, QSpinBox,
                                QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
 
 from . import AUTHOR_URL, REPO_URL, __author__, __version__
@@ -17,6 +19,8 @@ from .mosaic import logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
 from .vault import WrongPassword
 
+TITLE_BAR_HEIGHT = 36
+DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND = 33, 2
 _ASSETS = (PACKAGE_DIR / "assets").as_posix()
 STYLE = """
 * { font-family: "Segoe UI"; font-size: 10pt; }
@@ -26,12 +30,18 @@ QMenu::item { padding: 8px 28px 8px 14px; border-radius: 8px; }
 QMenu::item:selected { background: #2a2d34; }
 QMenu::separator { height: 1px; background: #2c2e35; margin: 5px 10px; }
 QDialog, QStackedWidget, QStackedWidget > QWidget, QScrollArea, #content { background: #16171b; color: #e8e9ec; }
+QDialog { border: 1px solid #30323a; }
+#titleBar { background: #16171b; }
+#titleText { color: #8b8f99; font-size: 9pt; }
+QPushButton#titleClose { background: transparent; color: #a4a7b0; border-radius: 0; padding: 0; font-weight: 400; }
+QPushButton#titleClose:hover { background: #c42b1c; color: #ffffff; }
+QPushButton#titleClose:pressed { background: #a32417; color: #ffffff; }
 QLabel, QCheckBox { color: #e8e9ec; background: transparent; }
-#sidebar { background: #1b1c21; border: none; border-right: 1px solid #26282e; outline: 0; padding: 8px; }
+#sidebar { background: #16171b; border: none; border-right: 1px solid #26282e; outline: 0; padding: 8px; }
 #sidebar::item { color: #a4a7b0; padding: 9px 12px; border-radius: 8px; margin: 1px 0; }
 #sidebar::item:hover { background: #22242a; }
 #sidebar::item:selected { background: #2a2d34; color: #f3f4f6; }
-#sideLogo { background: #1b1c21; border-right: 1px solid #26282e; padding: 18px 0 8px 0; }
+#sideLogo { background: #16171b; border-right: 1px solid #26282e; padding: 18px 0 8px 0; }
 #pageTitle { font-size: 16pt; font-weight: 600; color: #f3f4f6; }
 #groupTitle { color: #8b8f99; font-size: 9pt; font-weight: 600; }
 #card { background: #1d1f24; border: 1px solid #292b32; border-radius: 12px; }
@@ -79,12 +89,78 @@ def styled_menu() -> QMenu:
     return menu
 
 
+class Window(QDialog):
+    """A dialog with our own title bar: same colour as the window, and only a close button."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent, Qt.Dialog | Qt.FramelessWindowHint)
+        self.bar = QFrame(self, objectName="titleBar")
+        self.bar.setFixedHeight(TITLE_BAR_HEIGHT)
+        caption = QLabel(objectName="titleText")
+        self.windowTitleChanged.connect(caption.setText)
+        close = QPushButton("✕", objectName="titleClose", clicked=self.close)
+        close.setFixedSize(TITLE_BAR_HEIGHT + 6, TITLE_BAR_HEIGHT)
+        close.setFocusPolicy(Qt.NoFocus)
+        row = QHBoxLayout(self.bar)
+        row.setContentsMargins(14, 0, 0, 0)
+        row.addWidget(caption, 1)
+        row.addWidget(close)
+        self.bar.installEventFilter(self)
+        caption.installEventFilter(self)
+        # The layouts subclasses put on this dialog stay below the bar and inside the border.
+        self.setContentsMargins(1, TITLE_BAR_HEIGHT + 1, 1, 1)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+            self.windowHandle().startSystemMove()
+            return True
+        return super().eventFilter(watched, event)
+
+    def resizeEvent(self, event):
+        self.bar.setGeometry(1, 1, self.width() - 2, TITLE_BAR_HEIGHT)
+        super().resizeEvent(event)
+
+    def showEvent(self, event):
+        # Windows 11 rounds frameless windows only when asked; older versions just decline.
+        corner = ctypes.c_int(DWMWCP_ROUND)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(int(self.winId()), DWMWA_WINDOW_CORNER_PREFERENCE,
+                                                   ctypes.byref(corner), ctypes.sizeof(corner))
+        super().showEvent(event)
+
+
+class Prompt(Window):
+    """A short message, optionally asking for a password."""
+
+    def __init__(self, parent, text, ok=None, cancel=True, password=False):
+        super().__init__(parent)
+        self.setWindowTitle("Cotorreando")
+        self.setFixedWidth(420)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 8, 24, 20)
+        layout.setSpacing(14)
+        layout.addWidget(QLabel(text, wordWrap=True))
+        self.field = QLineEdit(echoMode=QLineEdit.Password)
+        self.field.setVisible(password)
+        layout.addWidget(self.field)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        if cancel:
+            buttons.addWidget(QPushButton(tr("cancel"), objectName="ghost", clicked=self.reject))
+        buttons.addWidget(QPushButton(ok or tr("cal_finish"), clicked=self.accept, default=True))
+        layout.addLayout(buttons)
+
+
+def ask_password(parent, text) -> str | None:
+    prompt = Prompt(parent, text, ok="OK", password=True)
+    return prompt.field.text() if prompt.exec() else None
+
+
 def adapters() -> list[str]:
     root = MODELS_DIR / "adapters"
     return sorted(p.name for p in root.iterdir() if p.is_dir()) if root.exists() else []
 
 
-class SettingsDialog(QDialog):
+class SettingsDialog(Window):
     def __init__(self, settings, listener=None, learner=None, parent=None):
         super().__init__(parent)
         self.s, self.listener, self.learner = settings, listener, learner
@@ -277,21 +353,21 @@ class SettingsDialog(QDialog):
         vault = self.learner.vault
         if not vault.locked:
             return True
-        password, ok = QInputDialog.getText(self, "Cotorreando", tr("password_current"), QLineEdit.Password)
-        if not ok:
+        password = ask_password(self, tr("password_current"))
+        if password is None:
             return False
         try:
             vault.unlock(password)
             return True
         except WrongPassword:
-            QMessageBox.warning(self, "Cotorreando", tr("password_wrong"))
+            Prompt(self, tr("password_wrong"), cancel=False).exec()
             return False
 
     def _change_password(self):
         if not self._unlock():
             return
-        password, ok = QInputDialog.getText(self, "Cotorreando", tr("password_new"), QLineEdit.Password)
-        if ok and password:
+        password = ask_password(self, tr("password_new"))
+        if password:
             self.learner.vault.set_password(password)
             self.learner.vault.lock()
             self._show_password_state()
@@ -342,7 +418,7 @@ class SettingsDialog(QDialog):
         self.accept()
 
 
-class DataDialog(QDialog):
+class DataDialog(Window):
     """What has been kept, to read and delete. The vault must be unlocked."""
 
     def __init__(self, vault, parent=None):
@@ -375,12 +451,12 @@ class DataDialog(QDialog):
             self.list.takeItem(self.list.row(item))
 
     def _delete_all(self):
-        if QMessageBox.question(self, tr("data_title"), tr("data_confirm")) == QMessageBox.Yes:
+        if Prompt(self, tr("data_confirm"), ok=tr("data_delete_all")).exec():
             self.vault.delete_all_records()
             self.list.clear()
 
 
-class AboutDialog(QDialog):
+class AboutDialog(Window):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(tr("about_title"))
@@ -396,8 +472,9 @@ class AboutDialog(QDialog):
             f"<h3>{tr('credits')}</h3>{rows}")
         text = QTextBrowser(openExternalLinks=True)
         text.setHtml(html)
-        ok = QDialogButtonBox(QDialogButtonBox.Ok)
-        ok.accepted.connect(self.accept)
+        close = QHBoxLayout()
+        close.addStretch()
+        close.addWidget(QPushButton(tr("cal_finish"), clicked=self.accept))
         layout = QVBoxLayout(self)
         layout.addWidget(text)
-        layout.addWidget(ok)
+        layout.addLayout(close)

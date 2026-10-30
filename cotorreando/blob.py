@@ -2,7 +2,7 @@
 
 Visual states
 -------------
-disabled   flat grey disc, no animation at all
+disabled   soft grey disc, no animation at all
 idle       soft accent colour, slow breathing
 speaking   surface wobbles with the voice level and ripples spread outwards
 writing    iridescent (rotating hue) fill while text is being typed
@@ -18,7 +18,7 @@ import math
 import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
+from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
 # Window size and orb radius in pixels for each size the user can pick. The
@@ -32,6 +32,8 @@ ACCENT = QColor(64, 196, 255)
 # (hue, orbit radius, feather size) relative to the radius, drifting inside the orb.
 CLOUDS = ((320, 0.45, 0.75), (200, 0.35, 0.85), (140, 0.5, 0.7), (265, 0.3, 0.6), (45, 0.55, 0.45))
 GREY = QColor(128, 128, 134)
+EDGE_FADE = 0.8      # share of the way from the outline to the centre spent fading in
+MIN_RINGS = 24
 
 
 class Blob(QWidget):
@@ -158,9 +160,10 @@ class Blob(QWidget):
         t = time.monotonic() - self._t0
 
         if not self.enabled and not self.writing:
-            p.setPen(QPen(GREY.darker(130), 1.5))
-            p.setBrush(GREY)
-            p.drawPath(self._shape(c, self.radius, t, 0.0))
+            layer = self._layer()
+            layer.fill(GREY.rgba())
+            self._fade_edges(layer, self._shape(c, self.radius, t, 0.0), c)
+            p.drawImage(0, 0, layer)
             if self.loading is not None:
                 self._paint_loading(p, c, t)
             return
@@ -168,13 +171,48 @@ class Blob(QWidget):
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
             color = QColor.fromHsv(int(200 + self._hue + age * 120) % 360, 220, 255)
-            color.setAlphaF(0.55 * (1 - age))
+            color.setAlphaF(0.55 * math.sin(math.pi * age))   # born and gone invisible
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
             p.drawPath(self._shape(c, self.radius * (1 + age * 1.4), t, 0.4))
 
-        path = self._shape(c, self.radius, t, 1.0)
-        self._paint_orb(p, c, path, t)
+        layer = self._layer()
+        self._paint_orb(layer, c)
+        self._fade_edges(layer, self._shape(c, self.radius, t, 1.0), c)
+        p.drawImage(0, 0, layer)
+
+    def _layer(self) -> QImage:
+        ratio = self.devicePixelRatioF()
+        layer = QImage(round(self.side * ratio), round(self.side * ratio), QImage.Format_ARGB32_Premultiplied)
+        layer.setDevicePixelRatio(ratio)
+        layer.fill(Qt.transparent)
+        return layer
+
+    def _fade_edges(self, layer: QImage, path: QPainterPath, c: QPointF) -> None:
+        """Fades ``layer`` to nothing exactly on the outline, whatever shape it has.
+
+        The mask is the outline shrunk towards the centre, ring after ring, so
+        the opacity depends on how far along the way to the edge a pixel is.
+        """
+        mask = self._layer()
+        p = QPainter(mask)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setCompositionMode(QPainter.CompositionMode_Source)
+        p.setPen(Qt.NoPen)
+        rings = max(self.radius, MIN_RINGS)
+        for k in range(1, rings):
+            scale = 1 - k / rings
+            p.resetTransform()
+            p.translate(c)
+            p.scale(scale, scale)
+            p.translate(-c)
+            p.setBrush(QColor(0, 0, 0, round(255 * _edge_curve(k / rings))))
+            p.drawPath(path)
+        p.end()
+        p = QPainter(layer)
+        p.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+        p.drawImage(0, 0, mask)
+        p.end()
 
     def _paint_loading(self, p: QPainter, c: QPointF, t: float) -> None:
         """A ring around the bubble: spinning while busy, filling while downloading."""
@@ -193,25 +231,14 @@ class Blob(QWidget):
         else:
             p.drawArc(rect, -int(t * 300 * 16) % (360 * 16), 90 * 16)
 
-    def _paint_orb(self, p: QPainter, c: QPointF, path: QPainterPath, t: float) -> None:
+    def _paint_orb(self, layer: QImage, c: QPointF) -> None:
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
+        # An even fill: _fade_edges gives it its shape, sticky tail included.
+        layer.fill(QColor.fromHsv(int(220 + shift) % 360, 215, 200, 170))
+        p = QPainter(layer)
+        p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
-        # Densest in the middle, fading to nothing at the edge: no hard outline.
-        body = QRadialGradient(c, self.radius * 1.2)
-        body.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 210, 200, 150))
-        body.setColorAt(0.6, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 90))
-        body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 0))
-        p.fillPath(path, body)
-        # The same substance fills the sticky tail while it is stretched out.
-        if _norm(self._tail) > 1:
-            tip = c + self._tail * 0.55
-            reach = self.radius * 0.5 + _norm(self._tail) * 0.6
-            goo = QRadialGradient(tip, reach)
-            goo.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 220, 210, 140))
-            goo.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 0))
-            p.fillPath(path, goo)
-        p.setClipPath(path)
         p.setCompositionMode(QPainter.CompositionMode_Plus)
         glow = 0.75 + 0.25 * self.level
         for i, (hue, orbit, size) in enumerate(CLOUDS):
@@ -230,12 +257,13 @@ class Blob(QWidget):
             color.setAlphaF(glow)
             _feather(p, pos, angle, self.radius * size * 1.5, color)
         p.setCompositionMode(QPainter.CompositionMode_SourceOver)
-        p.setClipping(False)
-        gloss = QRadialGradient(c + QPointF(-self.radius * 0.4, -self.radius * 0.45), self.radius * 0.55)
+        gloss_at = c + QPointF(-self.radius * 0.4, -self.radius * 0.45)
+        gloss = QRadialGradient(gloss_at, self.radius * 0.55)
         gloss.setColorAt(0, QColor(255, 255, 255, 90))
         gloss.setColorAt(1, QColor(255, 255, 255, 0))
         p.setBrush(gloss)
-        p.drawPath(path)
+        p.drawEllipse(gloss_at, self.radius * 0.55, self.radius * 0.55)
+        p.end()
 
     def _shape(self, c: QPointF, radius: float, t: float, gain: float) -> QPainterPath:
         """A closed wobbly curve; amplitude grows with voice level."""
@@ -329,6 +357,12 @@ def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QCol
     p.setPen(QPen(fill, max(0.8, length * 0.025)))
     p.drawPath(spine)
     p.restore()
+
+
+def _edge_curve(depth: float) -> float:
+    """Opacity at ``depth`` from the outline (0) to the centre (1): starts flat, so no edge shows."""
+    u = min(depth / EDGE_FADE, 1.0)
+    return u * u * u * (u * (u * 6 - 15) + 10)
 
 
 def _norm(v: QPointF) -> float:

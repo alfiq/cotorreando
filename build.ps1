@@ -43,6 +43,8 @@ function Sign($path) {
 }
 Sign dist\cotorreando.dist\Cotorreando.exe
 
+python scripts\installer_art.py dist\installer-art.bmp
+
 # Inno Setup: winget install JRSoftware.InnoSetup
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
           "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
