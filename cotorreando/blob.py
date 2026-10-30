@@ -18,7 +18,7 @@ import math
 import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRadialGradient
+from PySide6.QtGui import QColor, QConicalGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
 SIZE = 190
@@ -48,6 +48,7 @@ class Blob(QWidget):
         self.ripples: list[float] = []   # birth times
         self._last_ripple = 0.0
         self._hue = 0.0
+        self._drift = 0.0          # accumulated phase of the inner colour clouds
         self._t0 = time.monotonic()
         self._last_tick = self._t0
         # Spring state for elastic dragging.
@@ -103,7 +104,9 @@ class Blob(QWidget):
             self._timer.stop()     # disabled and still: no CPU spent at all
             self.update()
             return
-        self.level += (self._target_level - self.level) * min(dt * 14, 1)
+        self.level += (self._target_level - self.level) * min(dt * 6, 1)
+        # Integrate the speed so the clouds never jump when the level changes.
+        self._drift += dt * (0.35 + 0.5 * self.level)
         self.ripples = [b for b in self.ripples if now - b < 1.4]
         if self.writing:
             self._hue = (self._hue + dt * 140) % 360
@@ -136,9 +139,9 @@ class Blob(QWidget):
 
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
-            color = QColor(ACCENT)
-            color.setAlphaF(0.45 * (1 - age))
-            p.setPen(QPen(color, 2.0))
+            color = QColor.fromHsv(int(200 + self._hue + age * 120) % 360, 220, 255)
+            color.setAlphaF(0.55 * (1 - age))
+            p.setPen(QPen(color, 2.5))
             p.setBrush(Qt.NoBrush)
             p.drawPath(self._shape(c, RADIUS + age * (SIZE / 2 - RADIUS - 4), t, 0.4))
 
@@ -146,16 +149,18 @@ class Blob(QWidget):
         self._paint_orb(p, c, path, t)
 
     def _paint_orb(self, p: QPainter, c: QPointF, path: QPainterPath, t: float) -> None:
-        """A dark glass sphere with glowing colour clouds drifting inside it."""
-        p.setPen(Qt.NoPen)
-        p.setClipPath(path)
-        p.fillPath(path, QColor(4, 4, 10))
-        p.setCompositionMode(QPainter.CompositionMode_Plus)
-        speed = 0.5 + 1.6 * self.level
-        glow = 0.75 + 0.25 * self.level
+        """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
+        p.setPen(Qt.NoPen)
+        body = QRadialGradient(c, RADIUS * 1.1)
+        body.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 200, 120, 60))
+        body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 170))
+        p.fillPath(path, body)
+        p.setClipPath(path)
+        p.setCompositionMode(QPainter.CompositionMode_Plus)
+        glow = 0.75 + 0.25 * self.level
         for i, (hue, orbit, size) in enumerate(CLOUDS):
-            a = t * speed * (0.6 + 0.17 * i) + i * 2.1
+            a = self._drift * (0.6 + 0.17 * i) + i * 2.1
             pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * RADIUS * orbit
             color = QColor.fromHsv(int(hue + shift) % 360, 255, 255)
             g = QRadialGradient(pos, RADIUS * size)
@@ -166,23 +171,24 @@ class Blob(QWidget):
             p.setBrush(g)
             p.drawEllipse(pos, RADIUS * size, RADIUS * size)
         p.setCompositionMode(QPainter.CompositionMode_SourceOver)
-        # Rim light and a soft highlight sell the glass look.
-        rim = QRadialGradient(c, RADIUS * 1.05)
-        rim.setColorAt(0.82, QColor(0, 0, 0, 0))
-        rim.setColorAt(0.97, QColor.fromHsv(int(200 + shift) % 360, 200, 255, 150))
-        rim.setColorAt(1, QColor(0, 0, 0, 0))
-        p.setBrush(rim)
+        p.setClipping(False)
+        # The rim is drawn along the deformed outline so it bends with the voice.
+        rim = QConicalGradient(c, self._drift * 40)
+        for i in range(7):
+            rim.setColorAt(i / 6, QColor.fromHsv(int(shift + i * 60) % 360, 230, 255, 220))
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(rim, 2.2))
         p.drawPath(path)
+        p.setPen(Qt.NoPen)
         gloss = QRadialGradient(c + QPointF(-RADIUS * 0.4, -RADIUS * 0.45), RADIUS * 0.55)
         gloss.setColorAt(0, QColor(255, 255, 255, 90))
         gloss.setColorAt(1, QColor(255, 255, 255, 0))
         p.setBrush(gloss)
         p.drawPath(path)
-        p.setClipping(False)
 
     def _shape(self, c: QPointF, radius: float, t: float, gain: float) -> QPainterPath:
         """A closed wobbly curve; amplitude grows with voice level."""
-        amp = (0.025 + 0.16 * self.level) * gain
+        amp = (0.03 + 0.28 * self.level) * gain
         stretch = self._vel * 0.0006
         path = QPainterPath()
         for i in range(POINTS + 1):
