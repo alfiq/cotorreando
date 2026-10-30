@@ -17,7 +17,8 @@ Registro de lo que se preguntó durante el diseño y lo que se eligió.
 | Repositorio | `github.com/alfiq/cotorreando`, privado al principio. |
 | Licencia | MIT. |
 | Origen del modelo | ONNX de istupakov; si falla, exportar el original de NVIDIA. |
-| Tamaño del conjunto de frases | Tres: 30, 60 y 150 frases; el usuario elige. |
+| Calibración | Obligatoria salvo omisión explícita: 12 paneles por idioma; solo se activa si mejora el WER. |
+| Logo | La cotorra dibujada a mano, azulejada, sin fondo; el icono actual sigue como mascota. |
 | Idioma de la interfaz | Español e inglés. |
 | Distribución | Ejecutable con Nuitka (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
 
@@ -36,7 +37,9 @@ Registro de lo que se preguntó durante el diseño y lo que se eligió.
 - **Tamaño del blob** configurable: pequeño, mediano o grande.
 - **sounddevice descartado.** Su PortAudio no expone dispositivos de loopback WASAPI.
 
+- **Pérdida TDT propia.** La de NeMo exige numba CUDA (`nvvm.dll`), que pip no instala en Windows.
+
 ## Pendientes de confirmar
 
 - Crear el repositorio privado en GitHub y subir el código (falta tu visto bueno).
-- Probar el entrenamiento LoRA de punta a punta: requiere instalar ~6 GB.
+- Medir la mejora del LoRA con voces y micrófonos reales: con voz sintética no hubo ganancia.

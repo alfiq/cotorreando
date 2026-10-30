@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- Calibración inicial: paneles breves en español e inglés, palabras que se iluminan al leer,
+  fin automático de panel y entrenamiento LoRA en segundo plano.
+- El adaptador solo se activa si reduce los errores en una lectura reservada.
+- Opciones rediseñadas: navegación lateral, tarjetas y estilo sobrio.
+- Logo azulejado de la cotorra, que se va armando con el progreso.
 - Dictado sin frases perdidas: el modelo ve 0,96 s por delante en lugar de 0,48 s.
 - Texto provisional inmediato que se corrige en una sola acción, sin tocar el texto previo.
 

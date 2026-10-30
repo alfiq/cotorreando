@@ -1,0 +1,14 @@
+# Paneles de calibración en español: un panel por línea, unos 15-20 segundos de lectura cada uno.
+# Las cuentas de cobertura fonética se comprueban con scripts/coverage.py.
+Hoy quiero dictar sin tropiezos. Jorge llegó ayer de Guadalajara con su perro y una guitarra vieja, y la niña le preguntó cuántos años tenía aquel chucho tan gracioso.
+El veloz murciélago hindú comía feliz cardillo y kiwi, mientras la cigüeña tocaba el saxofón detrás del palenque de paja. Parece un cuento, pero suena muy bien.
+Ximena vive cerca de Xochimilco, en México. Cada mañana compra chiles, jitomate y tortillas, y por la tarde prepara un caldo de pollo con cilantro y aguacate.
+En el taller arreglan coches, motos y bicicletas. El mecánico gruñe porque faltan tuercas, pero el ayudante encontró una caja llena de tornillos debajo de la escalera.
+Mañana a las ocho y media tengo una reunión. Enviaré el informe en PDF por correo, revisaré el software y, si el wifi funciona, abriré la hoja de cálculo con las cifras de marzo.
+El río crece después de la lluvia. Roberto rema despacio, el barro cubre la orilla y un ruiseñor canta en el árbol. Nadie había visto tanta agua desde hace veinte años.
+Fui al zoológico con mis sobrinos. Vimos un tlacuache, dos jaguares, un búho y una jirafa enorme. Al salir, Beatriz pidió un helado de guayaba y Óscar un jugo de piña.
+Por favor, borra la última línea, pon un punto y aparte y escribe lo siguiente: querida Eugenia, gracias por tu ayuda; sin ti, este proyecto no habría salido adelante.
+¿Qué opinas del examen? Yo creo que fue difícil, aunque la profesora explicó bien cada ejercicio. ¡Ojalá aprobemos! Luego iremos a celebrar a la plaza, cueste lo que cueste.
+El huésped abrió la ventana y sintió el aire frío. Afuera, el viento movía las hojas, un gato flaco saltaba la cerca y la luna iluminaba el pueblo entero.
+Necesito un presupuesto de mil doscientos cincuenta pesos, el quince de julio de dos mil veintiséis. Incluye transporte, comida y seguro, más un extra del diez por ciento.
+Gracias por leer conmigo. Ya conozco tu voz, tu micrófono y el ruido de este lugar. Desde hoy, cada palabra que digas me resultará un poco más fácil de entender.

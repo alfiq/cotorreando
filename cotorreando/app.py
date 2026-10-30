@@ -34,6 +34,7 @@ from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, foreground, replace_text, type_text
 from .listener import Listener
+from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ class Cotorreando(QObject):
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
         self._silent_frames = -1
+        self.calibration = None
 
         self.blob = Blob(self.s.blob_size)
         self.blob.place(self.s.blob_x, self.s.blob_y)
@@ -84,7 +86,7 @@ class Cotorreando(QObject):
         self.blob.menu_requested.connect(self._show_menu)
         self.level.connect(self.blob.set_level)
         self.writing.connect(self.blob.set_writing)
-        self.loaded.connect(self.start_audio)
+        self.loaded.connect(self._on_loaded)
         self.loading.connect(lambda v: self.blob.set_loading(None if v < -1 else v))
         self.toggle_requested.connect(self.toggle_enabled)
 
@@ -138,6 +140,12 @@ class Cotorreando(QObject):
         self.status.emit(tr("ready"))
         self.loading.emit(-2)
         self.loaded.emit()
+
+    def _on_loaded(self) -> None:
+        if self.s.calibrated or self.s.lora_adapter:
+            self.start_audio()
+        else:
+            self.open_training()
 
     def _download_progress(self, done: int, total: int) -> None:
         self.status.emit(tr("downloading", pct=done * 100 // max(total, 1)))
@@ -284,7 +292,11 @@ class Cotorreando(QObject):
     def open_settings(self) -> None:
         old = (self.s.use_gpu, self.s.lora_adapter)
         dialog = SettingsDialog(self.s, self.listener)
-        if not dialog.exec():
+        accepted = dialog.exec()
+        if dialog.calibrate_requested:
+            self.open_training()
+            return
+        if not accepted:
             return
         set_language(self.s.ui_language)
         self.keyboard.set_hotkey(self.s.hotkey)
@@ -292,31 +304,61 @@ class Cotorreando(QObject):
         set_autostart(self.s.autostart)
         self.s.save()
         if (self.s.use_gpu, self.s.lora_adapter) != old:
-            self.stop_audio()
-            threading.Thread(target=self._load_model, daemon=True).start()
+            self._reload_model()
         else:
             self.start_audio()
 
+    def _reload_model(self) -> None:
+        self.stop_audio()
+        threading.Thread(target=self._load_model, daemon=True).start()
+
     def open_training(self) -> None:
-        from .lora.ui import TrainingDialog, confirm_dependencies   # rarely used, load lazily
-        if not confirm_dependencies():
+        from .lora.ui import CalibrationDialog   # rarely used, load lazily
+        if self.model is None:
+            self.warning.emit(tr("loading"))
             return
-        was_enabled, adapter = self.enabled, self.s.lora_adapter
-        if was_enabled:
-            self.toggle_enabled()       # free the microphone while recording
-        TrainingDialog(self.s).exec()
+        if self.calibration is not None:
+            self.calibration.show()
+            self.calibration.raise_()
+            return
+        dialog = self.calibration = CalibrationDialog(self.s, self.model)
+        dialog.skipped.connect(self._calibration_skipped)
+        dialog.reading_started.connect(self.stop_audio)         # free the microphone
+        dialog.reading_finished.connect(self.start_audio)
+        dialog.trained.connect(self._calibration_trained)
+        dialog.finished.connect(self._calibration_closed)
+        dialog.show()
+
+    def _calibration_skipped(self) -> None:
+        self.s.calibrated = True
         self.s.save()
-        if self.s.lora_adapter != adapter:
-            self.enabled = was_enabled
-            threading.Thread(target=self._load_model, daemon=True).start()
-        elif was_enabled:
-            self.toggle_enabled()
+        self.tray.showMessage("Cotorreando", tr("cal_skipped_tip"))
+
+    def _calibration_trained(self, adapter: str) -> None:
+        self.s.calibrated = True
+        if adapter:
+            self.s.lora_adapter = adapter
+            self.tray.showMessage("Cotorreando", tr("cal_applied"))
+            self._reload_model()
+        self.s.save()
+        if not self.calibration.isVisible():
+            self._calibration_closed()
+
+    def _calibration_closed(self) -> None:
+        dialog = self.calibration
+        if not dialog.training:
+            self.calibration = None
+            dialog.deleteLater()
+        self.s.save()
+        if not self.audio:
+            self.start_audio()
 
     def open_about(self) -> None:
         AboutDialog().exec()
 
     def quit(self) -> None:
         self.stop_audio()
+        env.stop()
         self.keyboard.stop()
         self.s.save()
         self.tray.hide()

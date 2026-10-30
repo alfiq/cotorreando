@@ -40,7 +40,8 @@ class Settings:
 
     # Model
     lora_adapter: str = ""             # empty = stock model
-    lora_dataset: str = "es_60"
+    lora_language: str = "es"          # "es" | "en" | "both"
+    calibrated: bool = False           # finished or skipped the first calibration
 
     # Blob
     blob_size: str = "medium"          # "small" | "medium" | "large"

@@ -1,0 +1,14 @@
+# English calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Phonetic coverage is checked with scripts/coverage.py.
+Today I want to dictate without stumbling. The quick brown fox jumps over the lazy dog, while my neighbor's young child watches from the garage and laughs out loud.
+She sells fresh fish by the shore each Thursday. Although the weather was rough, those three brothers brought enough measure of oil, bread and cheese to share with everybody.
+Please schedule a meeting for Tuesday at nine thirty. I will send the report as a PDF, check the software update, and open the spreadsheet if the wifi keeps working.
+Joe took a boat around the bay and saw a huge whale. The water looked purple in the evening light, and the voice of a singing boy carried over the waves.
+The mechanic could not find the wrench, so he borrowed a usual pair of pliers. Good luck fixing that engine; the bolts are worn and the oil pan leaks.
+Delete the last line, start a new paragraph and write the following: dear Judy, thank you for your thoughtful advice. Without you, this project would never have reached the finish.
+What do you think about the exam? I thought it was tough, but the teacher explained every question. Hopefully we pass! Afterward, we should celebrate in the town square.
+A vision of pleasure filled the azure room. The zebra chewed quietly, a tiny mouse hid beneath the chair, and the judge smiled at the strange, beautiful picture.
+I need a budget of one thousand two hundred fifty dollars by July fifteenth, twenty twenty six. Include travel, food and insurance, plus an extra ten percent.
+The cat sat on a thick rug beside the fire. Outside, wind shook the leaves, a truck rolled through the mud, and rain began to tap against the window.
+Our crew ordered pizza, chicken wings, and a large orange juice. Nobody wanted anchovies, except Hugh, who claimed they taste better with lemon, garlic and a little extra sauce.
+Thanks for reading with me. Now I know your voice, your microphone and the noise around you. From today, every word you say will be a little easier to understand.

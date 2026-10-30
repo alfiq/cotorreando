@@ -32,4 +32,4 @@ build-backend = "setuptools.build_meta"
 include = ["cotorreando*"]
 
 [tool.setuptools.package-data]
-cotorreando = ["lora/datasets/*.txt"]
+cotorreando = ["lora/datasets/*.txt", "assets/*.png", "icon.*"]
