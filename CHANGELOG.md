@@ -1,5 +1,10 @@
 # Cambios
 
+## Sin publicar
+
+- Dictado sin frases perdidas: el modelo ve 0,96 s por delante en lugar de 0,48 s.
+- Texto provisional inmediato que se corrige en una sola acción, sin tocar el texto previo.
+
 ## 0.0.1 — 2026-10-29
 
 Primera versión.

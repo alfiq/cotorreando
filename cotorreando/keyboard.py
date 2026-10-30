@@ -15,13 +15,14 @@ from ctypes import wintypes
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
-WH_KEYBOARD_LL = 13
+WH_KEYBOARD_LL, WH_MOUSE_LL = 13, 14
+MOUSE_DOWN = {0x201, 0x204, 0x207}   # left, right and middle button
 WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x100, 0x101, 0x104, 0x105
 WM_QUIT = 0x12
 LLKHF_INJECTED = 0x10
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x2, 0x4
-VK_RETURN, VK_UNASSIGNED = 0x0D, 0xE8
+VK_BACK, VK_RETURN, VK_UNASSIGNED = 0x08, 0x0D, 0xE8
 
 MODIFIERS = {
     "ctrl": {0x11, 0xA2, 0xA3},
@@ -83,10 +84,12 @@ class KeyboardMonitor:
         self.groups = parse_hotkey(hotkey)
         self.on_down, self.on_up = on_hotkey_down, on_hotkey_up
         self.last_typed = 0.0
+        self.last_click = 0.0
         self._pressed: set[int] = set()
         self._active = False
         self._thread_id = 0
         self._proc = HOOKPROC(self._hook)  # keep a reference alive
+        self._mouse_proc = HOOKPROC(self._mouse_hook)
 
     def set_hotkey(self, hotkey: str) -> None:
         self.groups = parse_hotkey(hotkey)
@@ -101,10 +104,17 @@ class KeyboardMonitor:
     def _run(self) -> None:
         self._thread_id = kernel32.GetCurrentThreadId()
         hook = user32.SetWindowsHookExW(WH_KEYBOARD_LL, self._proc, None, 0)
+        mouse_hook = user32.SetWindowsHookExW(WH_MOUSE_LL, self._mouse_proc, None, 0)
         msg = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             pass
         user32.UnhookWindowsHookEx(hook)
+        user32.UnhookWindowsHookEx(mouse_hook)
+
+    def _mouse_hook(self, code, wparam, lparam):
+        if code >= 0 and wparam in MOUSE_DOWN:   # the caret may have moved
+            self.last_click = time.monotonic()
+        return user32.CallNextHookEx(None, code, wparam, lparam)
 
     def _hook(self, code, wparam, lparam):
         if code >= 0:
@@ -145,6 +155,37 @@ def _key(vk: int, scan: int, flags: int) -> INPUT:
 def send(inputs: list[INPUT]) -> None:
     array = (INPUT * len(inputs))(*inputs)
     user32.SendInput(len(inputs), array, ctypes.sizeof(INPUT))
+
+
+def foreground() -> int:
+    return user32.GetForegroundWindow()
+
+
+def _chars(text: str) -> list[INPUT]:
+    inputs = []
+    for ch in text:
+        if ch == "\n":
+            inputs += [_key(VK_RETURN, 0, 0), _key(VK_RETURN, 0, KEYEVENTF_KEYUP)]
+        else:
+            data = ch.encode("utf-16-le")
+            units = [int.from_bytes(data[i:i + 2], "little") for i in range(0, len(data), 2)]
+            inputs += [_key(0, u, KEYEVENTF_UNICODE | f) for f in (0, KEYEVENTF_KEYUP) for u in units]
+    return inputs
+
+
+def replace_text(old: str, new: str) -> None:
+    """Swap ``old``, just typed before the caret, for ``new`` in one single SendInput.
+
+    Only what differs is touched, so text that was already in the field is never at risk.
+    """
+    same = 0
+    while same < min(len(old), len(new)) and old[same] == new[same]:
+        same += 1
+    removed = len(old[same:].encode("utf-16-le")) // 2
+    back = [_key(VK_BACK, 0, f) for _ in range(removed) for f in (0, KEYEVENTF_KEYUP)]
+    inputs = back + _chars(new[same:])
+    if inputs:
+        send(inputs)
 
 
 def type_text(text: str, delay: float = 0.004) -> None:

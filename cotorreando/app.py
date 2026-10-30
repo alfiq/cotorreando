@@ -32,7 +32,7 @@ from .blob import Blob
 from .config import Settings
 from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
-from .keyboard import KeyboardMonitor, type_text
+from .keyboard import KeyboardMonitor, foreground, replace_text, type_text
 from .listener import Listener
 from .paths import DATA_DIR, MODELS_DIR
 
@@ -189,6 +189,7 @@ class Cotorreando(QObject):
             if job_uid != uid:                  # a new utterance (an unfinished one was cancelled)
                 uid, buffered, cancelled = job_uid, [], False
                 stream = asr.Stream(self.model) if self._should_stream() else None
+                self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
                 cancelled = True                # you are typing; never write over it
             if cancelled:
@@ -196,11 +197,11 @@ class Cotorreando(QObject):
             try:
                 if kind == "audio":
                     if stream:
-                        self._type(stream.feed(audio))
+                        self._rewrite(stream.feed(audio), stream.tail)
                     else:
                         buffered.append(audio)
                 elif stream:
-                    self._type(stream.finish(), end=True)
+                    self._rewrite(stream.finish(), "", end=True)
                 elif buffered:
                     text = self.model.transcribe(np.concatenate(buffered))
                     self._type(self._apply_activation(text), end=True)
@@ -210,6 +211,23 @@ class Cotorreando(QObject):
     def _should_stream(self) -> bool:
         keyword = self.s.mode == "activation" and self.s.activation == "keyword"
         return self.s.streaming and (not keyword or bool(self.listener and self.listener.awake))
+
+    def _rewrite(self, text: str, tail: str, end: bool = False) -> None:
+        """Swap the tentative tail on screen for the new final text plus the new tail."""
+        window = foreground()
+        if self.keyboard.last_click > self._tail_since or window != self._tail_window:
+            # The caret moved: what is before it is no longer ours to delete.
+            self._tail, self._tail_since, self._tail_window = "", time.monotonic(), window
+        if (text or tail) and self.listener and self.listener.awake:
+            self.listener.wake()                # keyword mode: keep the session alive
+        if end and text.strip() and self.s.trailing_space:
+            text = text.rstrip() + " "
+        old, self._tail = self._tail, tail
+        if text + tail == old:                  # what was tentative may just have become final
+            return
+        self.writing.emit(True)
+        replace_text(old, text + tail)
+        self.writing.emit(False)
 
     def _type(self, text: str, end: bool = False) -> None:
         if text and self.listener and self.listener.awake:

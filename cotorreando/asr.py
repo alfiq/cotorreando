@@ -8,6 +8,7 @@ how many frames to skip.
 
 from __future__ import annotations
 
+import copy
 import logging
 import urllib.request
 from pathlib import Path
@@ -183,7 +184,7 @@ class Stream:
 
     FRAME = 1280                   # samples per encoder frame (80 ms)
     LEFT = 32 * FRAME              # 2.6 s of context already decoded
-    RIGHT = 6 * FRAME              # 0.48 s of look-ahead
+    RIGHT = 12 * FRAME             # 0.96 s of look-ahead: with 0.48 s whole phrases get lost
     # New audio per step: 0.32 s on a GPU (~55 ms per step), 0.64 s on a CPU (~250 ms).
     GPU_CHUNK, CPU_CHUNK = 4 * FRAME, 8 * FRAME
 
@@ -195,13 +196,14 @@ class Stream:
         self.offset = 0            # absolute sample index of self.audio[0]
         self.done = 0              # absolute sample index decoded so far
         self.started = False
+        self.tail = ""             # tentative text of the look-ahead, replaced on every step
 
     def feed(self, audio: np.ndarray) -> str:
-        """Add audio; return any text that became final."""
+        """Add audio; return any text that became final. ``tail`` holds what may still change."""
         self.audio = np.concatenate([self.audio, audio.astype(np.float32)])
         text = ""
         while self.offset + self.audio.size >= self.done + self.CHUNK + self.RIGHT:
-            text += self._step(self.done + self.CHUNK)
+            text += self._step(self.done + self.CHUNK, preview=True)
         return text
 
     def finish(self) -> str:
@@ -209,9 +211,10 @@ class Stream:
         end, text = self.offset + self.audio.size, ""
         while self.done < end:
             text += self._step(min(self.done + self.CHUNK, end))
+        self.tail = ""
         return text
 
-    def _step(self, chunk_end: int) -> str:
+    def _step(self, chunk_end: int, preview: bool = False) -> str:
         # The window always has the same size: DirectML is only fast for the
         # shape it compiled first. Missing audio at either end is filled with a
         # mirror image of the real audio, because silence would skew the
@@ -227,12 +230,22 @@ class Stream:
         last = first + (chunk_end - self.done + self.FRAME - 1) // self.FRAME
         text = self.model.decode(encoded, first, min(last, encoded.shape[1]), self.state)
         self.done = chunk_end
+        # After a full stop the prediction network can get stuck emitting only blanks,
+        # silently losing the rest of the speech. Each sentence starts from a clean state.
+        if text.rstrip().endswith((".", "?", "!")):
+            carry = self.state.carry
+            self.state = DecoderState(self.model)
+            self.state.carry = carry
+        if preview:   # on a copy: the look-ahead is decoded again once it becomes final
+            self.tail = self.model.decode(encoded, min(last, encoded.shape[1]), encoded.shape[1],
+                                          copy.copy(self.state))
         # Keep only the left context needed for the next window.
         drop = max(0, self.done - self.LEFT - self.offset)
         self.audio, self.offset = self.audio[drop:], self.offset + drop
         if not self.started:
             text = text.lstrip()
             self.started = bool(text)
+            self.tail = self.tail if text else self.tail.lstrip()
         return text
 
 
