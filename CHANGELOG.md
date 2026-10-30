@@ -19,6 +19,9 @@
 - La burbuja se desvanece hasta ser transparente justo en su contorno, tenga la forma que tenga.
 - Sin gancho de teclado: la app ya no recibe lo que tecleas; solo consulta las teclas del atajo y
   la hora de la última actividad. Mover el ratón mientras tecleas puede ocultar alguna pulsación.
+- Contraseña obligatoria para aprender: todo se cifra con age y ya no lo puede abrir otro programa de
+  tu cuenta de Windows. Se pide al entrenar o ver tus datos, y un aviso de la burbuja la ofrece para
+  activar tus correcciones. Incluye código de recuperación. Los datos anteriores se pasan a una clave nueva.
 
 ## 0.0.1 — 2026-10-29
 

@@ -200,6 +200,13 @@ def foreground() -> int:
     return user32.GetForegroundWindow()
 
 
+def ours_in_front() -> bool:
+    """One of our own windows has the keyboard: dictation must not land in it."""
+    pid = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(user32.GetForegroundWindow(), ctypes.byref(pid))
+    return pid.value == kernel32.GetCurrentProcessId()
+
+
 def _chars(text: str) -> list[INPUT]:
     inputs = []
     for ch in text:

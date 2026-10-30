@@ -34,6 +34,8 @@ CREDITS = [
     ("PortAudio", "Audio I/O library bundled with PyAudioWPatch", "MIT",
      "https://www.portaudio.com", "https://www.portaudio.com/license.html",
      "© Ross Bencina, Phil Burk"),
+    ("pyrage", "Encryption with the age format", "MIT", "https://github.com/woodruffw/pyrage",
+     "https://github.com/woodruffw/pyrage/blob/main/LICENSE", "© William Woodruff"),
     ("NumPy", "Numerical arrays", "BSD-3-Clause", "https://numpy.org",
      "https://github.com/numpy/numpy/blob/main/LICENSE.txt", "© NumPy Developers"),
     ("Protocol Buffers", "Dependency of the LiveKit SDK", "BSD-3-Clause",

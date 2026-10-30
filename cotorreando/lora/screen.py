@@ -11,17 +11,15 @@ from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QProgressBar,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
 from ..audio import AudioInput
-from ..dialogs import Window, ask_password
+from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
 from ..mosaic import Mosaic
-from ..vault import WrongPassword
 from . import env, job
 
 log = logging.getLogger(__name__)
 
 FADE_MS = 900
 MIN_READING_S = 1.0
-PASSWORD_TRIES = 3
 PREPARE_SHARE = 0.05         # of the parrot, lit before training starts
 EXPORT_SHARE = 0.95
 
@@ -155,18 +153,7 @@ class TrainingScreen(QWidget):
         threading.Thread(target=self._prepare, daemon=True, name="prepare").start()
 
     def _unlock(self) -> bool:
-        vault = self.learner.vault
-        for _ in range(PASSWORD_TRIES):
-            if not vault.locked:
-                return True
-            password = ask_password(self, tr("password_current"))
-            if password is None:
-                return False
-            try:
-                vault.unlock(password)
-            except WrongPassword:
-                pass
-        return not vault.locked
+        return not self.learner.vault.locked or bool(UnlockDialog(self.learner, self).exec())
 
     def _prepare(self) -> None:
         try:

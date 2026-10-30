@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QProgressBar,
 from ..asr import Stream
 from ..audio import AudioInput, list_microphones
 from ..dialogs import Window
+from ..dialogs import UnlockDialog
 from ..i18n import tr
 from ..mosaic import Mosaic
 from ..paths import DATA_DIR
@@ -305,6 +306,9 @@ class CalibrationDialog(Window):
     # -- training -------------------------------------------------------------
 
     def _begin_training(self) -> None:
+        if self.learner.vault.locked and not UnlockDialog(self.learner, self).exec():
+            self.train_ended.emit(False, "")
+            return
         self.training = True
         self.retry.hide()
         self.final_title.setText(tr("cal_thanks"))
@@ -325,6 +329,8 @@ class CalibrationDialog(Window):
         except Exception:
             log.exception("Calibration failed")
             self.train_ended.emit(False, "")
+        finally:
+            self.learner.vault.lock()
 
     def _on_train_log(self, line: str) -> None:
         log.info(line)

@@ -19,7 +19,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .field import FieldReader, Snapshot
-from .vault import Vault, load_private, save_private
+from .vault import Vault
 
 log = logging.getLogger(__name__)
 
@@ -126,17 +126,71 @@ class Learner:
     def __init__(self, settings):
         self.s = settings
         self.vault = Vault()
-        self.vault.migrate_readings()
+        if self.vault.ready:
+            self.vault.migrate_readings()
         self.vault.delete_older_than(settings.retention_days)
         self.reader = FieldReader()
         self.lock = threading.Lock()
-        self.hard: dict = load_private("hard_words", {})
-        self.counts: dict = load_private("corrections", {})
+        self.loaded = False          # the word lists can only be read with the password
+        self.hard: dict = {}
+        self.counts: dict = {}
         self.rules: dict = {}
         self.rule_pattern = None
-        self._build_rules()
         self.pending: list[Pending] = []
         threading.Thread(target=self._watch, daemon=True, name="corrections").start()
+
+    # -- password -------------------------------------------------------------
+
+    def unlock(self, password: str) -> None:
+        """Raises WrongPassword. The caller locks the vault again when done with it."""
+        self.vault.unlock(password)
+        self.activate()
+
+    def recover(self, code: str, new_password: str) -> None:
+        """Raises WrongPassword."""
+        self.vault.recover(code, new_password)
+        self.activate()
+
+    def activate(self) -> None:
+        """The vault is unlocked: read the word lists and merge what the journal gathered."""
+        if self.loaded:
+            return
+        self.hard = self.vault.load_private("hard_words", {})
+        self.counts = self.vault.load_private("corrections", {})
+        self.loaded = True
+        events = self.vault.read_events()
+        for event in events:
+            self._apply(event)
+        if events:
+            self._save_lists()
+        self.vault.clear_events()
+        self._build_rules()
+
+    def _apply(self, event: dict) -> None:
+        if event["op"] == "correction":
+            key = f"{_plain(event['old'])}|{event['new']}"
+            self.counts[key] = self.counts.get(key, 0) + 1
+            words = WORD.findall(event["new"])
+        else:
+            words = [event["word"]]
+        for word in words:
+            clean = _plain(word)
+            if len(clean) >= 4:
+                entry = self.hard.setdefault(clean, {"word": word.strip(".,;:?!¿¡"), "count": 0, "read": 0})
+                entry["count"] += 1
+
+    def _note(self, event: dict) -> None:
+        """Learn from this now, or leave it sealed for when the lists can be read."""
+        if self.loaded:
+            self._apply(event)
+            self._save_lists()
+            self._build_rules()
+        else:
+            self.vault.add_event(event)
+
+    def _save_lists(self) -> None:
+        self._save_hard()
+        self.vault.save_private("corrections", self.counts)
 
     # -- during an utterance --------------------------------------------------
 
@@ -146,7 +200,7 @@ class Learner:
 
     def begin(self, window: int) -> Snapshot | None:
         """The field being dictated into, or None if it cannot or must not be used."""
-        if not self.s.learning or not self.allowed(window):
+        if not self.s.learning or not self.vault.ready or not self.allowed(window):
             return None
         return self.reader.snapshot()
 
@@ -175,25 +229,20 @@ class Learner:
 
     def _note_hesitations(self, trace: list) -> None:
         word, unsure = "", False
-        changed = False
         for piece, _, probability, margin in list(trace) + [(" ", 0, 1, 1)]:
             if piece.startswith(" ") and word:
                 clean = _plain(word)
                 if unsure and len(clean) >= 4 and clean.isalpha():
-                    entry = self.hard.setdefault(clean, {"word": word.strip(".,;:?!¿¡"), "count": 0, "read": 0})
-                    entry["count"] += 1
-                    changed = True
+                    self._note({"op": "word", "word": word.strip()})
                 word, unsure = "", False
             word += piece
             unsure = unsure or probability < LOW_PROBABILITY or margin < LOW_MARGIN
-        if changed:
-            self._save_hard()
 
     def _save_hard(self) -> None:
         if len(self.hard) > MAX_HARD_WORDS:
             kept = sorted(self.hard.items(), key=lambda kv: -kv[1]["count"])[:MAX_HARD_WORDS]
             self.hard = dict(kept)
-        save_private("hard_words", self.hard)
+        self.vault.save_private("hard_words", self.hard)
 
     # -- corrections ----------------------------------------------------------
 
@@ -224,16 +273,7 @@ class Learner:
             self.count_correction(old, new)
 
     def count_correction(self, old: str, new: str) -> None:
-        key = f"{_plain(old)}|{new}"
-        self.counts[key] = self.counts.get(key, 0) + 1
-        save_private("corrections", self.counts)
-        for word in WORD.findall(new):
-            clean = _plain(word)
-            if len(clean) >= 4:
-                entry = self.hard.setdefault(clean, {"word": word, "count": 0, "read": 0})
-                entry["count"] += 1
-        self._save_hard()
-        self._build_rules()
+        self._note({"op": "correction", "old": old, "new": new})
 
     def forget_correction(self, old: str, new: str) -> None:
         """The audio did not back this correction up after all."""
@@ -242,7 +282,7 @@ class Learner:
             self.counts[key] -= 1
             if self.counts[key] <= 0:
                 del self.counts[key]
-            save_private("corrections", self.counts)
+            self.vault.save_private("corrections", self.counts)
             self._build_rules()
 
     def _build_rules(self) -> None:

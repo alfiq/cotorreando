@@ -47,6 +47,7 @@ class Settings:
     learning: bool = True              # learn from corrections and hesitations
     excluded_apps: str = ""            # comma-separated executable names
     retention_days: int = 180
+    password_offered: bool = False
     vocabulary_on: bool = False        # only ever enabled by a measured improvement
     training_notice_shown: bool = False
 

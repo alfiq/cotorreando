@@ -15,6 +15,7 @@ python -m nuitka `
     --include-data-files=cotorreando/lora/train.py=cotorreando/lora/train.py `
     --include-data-files=cotorreando/lora/panels.py=cotorreando/lora/panels.py `
     --include-package=comtypes `
+    --include-package=pyrage `
     --include-data-files=LICENSE=LICENSE `
     --include-data-files=THIRD_PARTY_NOTICES.md=THIRD_PARTY_NOTICES.md `
     --nofollow-import-to=torch,nemo `

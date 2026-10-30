@@ -24,7 +24,7 @@ from ctypes import wintypes
 
 import numpy as np
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, Qt, QTimer, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
@@ -32,9 +32,9 @@ from . import asr
 from .audio import AudioInput
 from .blob import Blob
 from .config import Settings
-from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
+from .dialogs import STYLE, AboutDialog, Notice, SettingsDialog, SetupDialog, UnlockDialog, styled_menu
 from .i18n import set_language, tr
-from .keyboard import KeyboardMonitor, foreground, replace_text, type_text
+from .keyboard import KeyboardMonitor, foreground, ours_in_front, replace_text, type_text
 from .learning import Learner, fit_start
 from .listener import Listener
 from .lora import env
@@ -176,10 +176,40 @@ class Cotorreando(QObject):
         self.loaded.emit()
 
     def _on_loaded(self) -> None:
+        vault = self.learner.vault
+        first_run = not vault.ready and not self.s.password_offered
+        if first_run:
+            self.s.password_offered = True
+            self.s.save()
+            SetupDialog(self.learner).exec()
         if self.s.calibrated or self.s.lora_adapter:
             self.start_audio()
-        else:
+        elif vault.ready:
             self.open_training()
+        else:
+            self.s.calibrated = True    # calibration keeps your voice, which takes the password
+            self.start_audio()
+        if not first_run:
+            self._offer_password()
+
+    # -- password -------------------------------------------------------------
+
+    def _offer_password(self) -> None:
+        if not self.s.learning or self.learner.loaded:
+            return
+        ready = self.learner.vault.ready
+        self.notice = Notice(tr("notice_unlock" if ready else "notice_setup"),
+                             tr("notice_action" if ready else "notice_setup_action"), self.ask_password)
+        area = self.blob.screen().availableGeometry()
+        corner = QRect(area.bottomRight(), area.bottomRight())
+        self.notice.show_near(self.blob.geometry() if self.blob.isVisible() else corner, area)
+
+    def ask_password(self) -> None:
+        vault = self.learner.vault
+        if not vault.ready:
+            SetupDialog(self.learner).exec()
+        elif UnlockDialog(self.learner).exec():
+            vault.lock()                # the rules stay in memory; the key does not
 
     def _download_progress(self, done: int, total: int) -> None:
         self.status.emit(tr("downloading", pct=done * 100 // max(total, 1)))
@@ -239,6 +269,8 @@ class Cotorreando(QObject):
                                    if self.s.vocabulary_on else None)
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
                 cancelled = True                # you are typing; never write over it
+            if ours_in_front():
+                cancelled = True                # never into our own windows, such as the password
             if cancelled:
                 continue
             try:
@@ -492,6 +524,7 @@ class Cotorreando(QObject):
             (tr("disable") if self.enabled else tr("enable"), self.toggle_enabled),
             (tr("show") if self.s.hidden else tr("hide"), self.toggle_hidden),
             None,
+            *([(tr("unlock_menu"), self.ask_password)] if not self.learner.loaded else []),
             (tr("settings"), self.open_settings),
             (tr("train"), self.open_training),
             (tr("about"), self.open_about),

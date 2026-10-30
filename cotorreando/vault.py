@@ -1,35 +1,31 @@
 """Encrypted storage for everything learning keeps about the user's voice and words.
 
-Records are sealed to a public key, so dictation can store them without being able
-to read them back. The private key is wrapped with DPAPI, which ties it to this
-Windows account on this PC, and optionally with a password as well. Nothing else
-ever reaches the disk in clear: training receives the audio through a pipe.
+Everything uses age (https://age-encryption.org) through pyrage. Records are sealed
+to a public key, so dictation can store them without being able to read them back.
+The private key only exists on disk encrypted with the user's password, and again
+with a recovery code shown once. Nothing here depends on the operating system, and
+reading anything back always takes the password.
 
-Word lists and replacement rules are needed while dictating, before any password
-could be asked for, so they are protected by DPAPI alone (``load_private`` /
-``save_private``).
+While the vault is locked, what learning notices goes to a journal of sealed events
+that is merged into the word lists the next time it is unlocked.
 """
 
 from __future__ import annotations
 
-import ctypes
+import base64
 import json
 import logging
 import os
+import secrets
 import struct
 import time
 import uuid
 import wave
-from ctypes import wintypes
 from pathlib import Path
 
 import numpy as np
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+import pyrage
+from pyrage import passphrase, x25519
 
 from .audio import RATE
 from .paths import DATA_DIR, RECORDINGS_DIR
@@ -37,43 +33,36 @@ from .paths import DATA_DIR, RECORDINGS_DIR
 log = logging.getLogger(__name__)
 
 VAULT_DIR = DATA_DIR / "vault"
-KEY_FILE = VAULT_DIR / "key.json"
+RECIPIENT_FILE = VAULT_DIR / "recipient.txt"
+IDENTITY_FILE = VAULT_DIR / "identity.age"
+RECOVERY_FILE = VAULT_DIR / "recovery.age"
 RECORDS_DIR = VAULT_DIR / "records"
-RAW = serialization.Encoding.Raw, serialization.PublicFormat.Raw
+JOURNAL_DIR = VAULT_DIR / "journal"
+TRAINED_FILE = VAULT_DIR / "trained.json"
+MIN_PASSWORD = 8
+COMMON_PASSWORDS = {"password", "contraseña", "contrasena", "qwertyui", "qwerty123", "cotorreando",
+                    "iloveyou", "administrador", "admin123", "password1"}
+RECOVERY_GROUP = 4
 
 
 class WrongPassword(Exception):
     pass
 
 
-class _Blob(ctypes.Structure):
-    _fields_ = [("size", wintypes.DWORD), ("data", ctypes.POINTER(ctypes.c_ubyte))]
+class Locked(Exception):
+    pass
 
 
-def _dpapi(function, data: bytes) -> bytes:
-    buffer = (ctypes.c_ubyte * len(data)).from_buffer_copy(data)
-    source, target = _Blob(len(data), buffer), _Blob()
-    if not function(ctypes.byref(source), None, None, None, None, 1, ctypes.byref(target)):
-        raise ctypes.WinError(ctypes.get_last_error())
-    try:
-        return ctypes.string_at(target.data, target.size)
-    finally:
-        ctypes.windll.kernel32.LocalFree(target.data)
-
-
-def protect(data: bytes) -> bytes:
-    crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
-    return _dpapi(crypt32.CryptProtectData, data)
-
-
-def unprotect(data: bytes) -> bytes:
-    crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
-    return _dpapi(crypt32.CryptUnprotectData, data)
-
-
-def _stretch(password: str, salt: bytes) -> bytes:
-    return Argon2id(salt=salt, length=32, iterations=3, lanes=4, memory_cost=65536).derive(
-        password.encode("utf-8"))
+def password_problem(password: str) -> str | None:
+    """Why this password cannot be used, as an i18n key; None if it can."""
+    if len(password) < MIN_PASSWORD:
+        return "password_short"
+    lowered = password.lower()
+    ascending = "01234567890123456789"
+    if (lowered in COMMON_PASSWORDS or len(set(lowered)) < 4
+            or lowered in ascending or lowered in ascending[::-1]):
+        return "password_weak"
+    return None
 
 
 def _write(path: Path, data: bytes) -> None:
@@ -83,77 +72,96 @@ def _write(path: Path, data: bytes) -> None:
     temp.replace(path)
 
 
-def _derive(shared: bytes) -> bytes:
-    return HKDF(hashes.SHA256(), 32, None, b"cotorreando-record").derive(shared)
+def _normal_code(code: str) -> str:
+    return "".join(c for c in code.upper() if c.isalnum())
 
 
 class Vault:
     def __init__(self):
-        self._private: X25519PrivateKey | None = None
-        if KEY_FILE.exists():
-            self._file = json.loads(KEY_FILE.read_text(encoding="utf-8"))
-        else:
-            private = X25519PrivateKey.generate()
-            self._file = {"public": private.public_key().public_bytes(*RAW).hex()}
-            self._store(private, None)
-        self._public = X25519PublicKey.from_public_bytes(bytes.fromhex(self._file["public"]))
-
-    def _store(self, private: X25519PrivateKey, password: str | None) -> None:
-        raw = private.private_bytes_raw()
-        self._file.pop("salt", None)
-        if password:
-            salt = os.urandom(16)
-            nonce = os.urandom(12)
-            raw = nonce + AESGCM(_stretch(password, salt)).encrypt(nonce, raw, None)
-            self._file["salt"] = salt.hex()
-        self._file["wrapped"] = protect(raw).hex()
-        _write(KEY_FILE, json.dumps(self._file).encode("utf-8"))
+        self._identity: x25519.Identity | None = None
 
     # -- password -------------------------------------------------------------
 
     @property
-    def has_password(self) -> bool:
-        return "salt" in self._file
+    def ready(self) -> bool:
+        return RECIPIENT_FILE.exists() and IDENTITY_FILE.exists()
 
     @property
     def locked(self) -> bool:
-        return self._private is None and self.has_password
+        return self._identity is None
 
-    def unlock(self, password: str | None = None) -> None:
-        """Raises WrongPassword. Without a password set, none is needed."""
-        if self._private is not None:
-            return
-        raw = unprotect(bytes.fromhex(self._file["wrapped"]))
-        if self.has_password:
-            if not password:
-                raise WrongPassword
-            try:
-                raw = AESGCM(_stretch(password, bytes.fromhex(self._file["salt"]))).decrypt(
-                    raw[:12], raw[12:], None)
-            except InvalidTag as err:
-                raise WrongPassword from err
-        self._private = X25519PrivateKey.from_private_bytes(raw)
+    def create(self, password: str) -> str:
+        """Start a new key, replacing any before it. Returns the recovery code, shown only once."""
+        identity = x25519.Identity.generate()
+        secret = str(identity).encode("ascii")
+        raw = base64.b32encode(secrets.token_bytes(15)).decode("ascii")
+        code = "-".join(raw[i:i + RECOVERY_GROUP] for i in range(0, len(raw), RECOVERY_GROUP))
+        _write(IDENTITY_FILE, passphrase.encrypt(secret, password))
+        _write(RECOVERY_FILE, passphrase.encrypt(secret, _normal_code(code)))
+        _write(RECIPIENT_FILE, str(identity.to_public()).encode("ascii"))
+        self._identity = identity
+        return code
+
+    def _open_key(self, path: Path, password: str) -> x25519.Identity:
+        try:
+            return x25519.Identity.from_str(passphrase.decrypt(path.read_bytes(), password).decode("ascii"))
+        except pyrage.DecryptError as err:
+            raise WrongPassword from err
+
+    def unlock(self, password: str) -> None:
+        """Raises WrongPassword."""
+        self._identity = self._open_key(IDENTITY_FILE, password)
+
+    def recover(self, code: str, new_password: str) -> None:
+        """Set a new password with the recovery code. Raises WrongPassword."""
+        self._identity = self._open_key(RECOVERY_FILE, _normal_code(code))
+        self.change_password(new_password)
+
+    def change_password(self, password: str) -> None:
+        """The vault must be unlocked."""
+        if self._identity is None:
+            raise Locked
+        _write(IDENTITY_FILE, passphrase.encrypt(str(self._identity).encode("ascii"), password))
 
     def lock(self) -> None:
-        self._private = None
-
-    def set_password(self, password: str | None) -> None:
-        """Change or remove the password. The vault must be unlocked."""
-        self.unlock()
-        self._store(self._private, password)
+        self._identity = None
 
     # -- sealing --------------------------------------------------------------
 
     def seal(self, data: bytes) -> bytes:
-        ephemeral = X25519PrivateKey.generate()
-        key = _derive(ephemeral.exchange(self._public))
-        nonce = os.urandom(12)
-        return ephemeral.public_key().public_bytes(*RAW) + nonce + AESGCM(key).encrypt(nonce, data, None)
+        recipient = x25519.Recipient.from_str(RECIPIENT_FILE.read_text(encoding="ascii"))
+        return pyrage.encrypt(data, [recipient])
 
     def open(self, sealed: bytes) -> bytes:
-        self.unlock()
-        peer = X25519PublicKey.from_public_bytes(sealed[:32])
-        return AESGCM(_derive(self._private.exchange(peer))).decrypt(sealed[32:44], sealed[44:], None)
+        if self._identity is None:
+            raise Locked
+        return pyrage.decrypt(sealed, [self._identity])
+
+    # -- word lists and journal -----------------------------------------------
+
+    def load_private(self, name: str, default):
+        try:
+            return json.loads(self.open((VAULT_DIR / f"{name}.sealed").read_bytes()).decode("utf-8"))
+        except FileNotFoundError:
+            return default
+
+    def save_private(self, name: str, data) -> None:
+        _write(VAULT_DIR / f"{name}.sealed", self.seal(json.dumps(data, ensure_ascii=False).encode("utf-8")))
+
+    def add_event(self, event: dict) -> None:
+        name = time.strftime("%Y%m%dT%H%M%S-") + uuid.uuid4().hex[:8]
+        _write(JOURNAL_DIR / f"{name}.sealed", self.seal(json.dumps(event, ensure_ascii=False).encode("utf-8")))
+
+    def journal_size(self) -> int:
+        return sum(1 for _ in JOURNAL_DIR.glob("*.sealed"))
+
+    def read_events(self) -> list[dict]:
+        return [json.loads(self.open(path.read_bytes()).decode("utf-8"))
+                for path in sorted(JOURNAL_DIR.glob("*.sealed"))]
+
+    def clear_events(self) -> None:
+        for path in JOURNAL_DIR.glob("*.sealed"):
+            path.unlink()
 
     # -- records: a JSON header followed by 16-bit PCM ------------------------
 
@@ -189,15 +197,27 @@ class Vault:
 
     def delete_older_than(self, days: int) -> int:
         limit, removed = time.time() - days * 86400, 0
-        for path in RECORDS_DIR.glob("*.sealed"):
-            if path.stat().st_mtime < limit:
-                path.unlink()
-                removed += 1
+        for folder in (RECORDS_DIR, JOURNAL_DIR):
+            for path in folder.glob("*.sealed"):
+                if path.stat().st_mtime < limit:
+                    path.unlink()
+                    removed += 1
         return removed
 
     def delete_all_records(self) -> None:
         for path in RECORDS_DIR.glob("*.sealed"):
             path.unlink()
+
+    # -- which records have been trained on: only ids, which are just dates ----
+
+    def trained_ids(self) -> list[str]:
+        try:
+            return json.loads(TRAINED_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+
+    def set_trained_ids(self, ids: list[str]) -> None:
+        _write(TRAINED_FILE, json.dumps(ids).encode("utf-8"))
 
     # -- calibration readings -------------------------------------------------
 
@@ -224,14 +244,3 @@ class Vault:
 
 def reading_path(language: str, index: int) -> Path:
     return RECORDINGS_DIR / language / f"{index:03d}.sealed"
-
-
-def load_private(name: str, default):
-    try:
-        return json.loads(unprotect((VAULT_DIR / f"{name}.bin").read_bytes()).decode("utf-8"))
-    except (OSError, ValueError):
-        return default
-
-
-def save_private(name: str, data) -> None:
-    _write(VAULT_DIR / f"{name}.bin", protect(json.dumps(data, ensure_ascii=False).encode("utf-8")))

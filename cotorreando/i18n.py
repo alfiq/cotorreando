@@ -114,15 +114,44 @@ STRINGS = {
     "learning": ("Aprender de mis correcciones", "Learn from my corrections"),
     "excluded": ("Apps excluidas (ej. keepass.exe, banco.exe)", "Excluded apps (e.g. keepass.exe, bank.exe)"),
     "retention": ("Borrar datos con más de (días)", "Delete data older than (days)"),
-    "privacy_note": ("Tu voz y tu texto se cifran y solo se pueden abrir en esta cuenta de Windows, en esta PC. "
-                     "Nunca se guarda lo que dictas en campos de contraseña. Las listas de palabras y los "
-                     "reemplazos no usan la contraseña porque hacen falta mientras dictas.",
-                     "Your voice and text are encrypted and can only be opened in this Windows account, on this "
-                     "PC. Nothing dictated in password fields is ever kept. Word lists and replacements do not "
-                     "use the password because they are needed while you dictate."),
-    "password_set": ("Poner contraseña…", "Set password…"),
+    "privacy_note": ("Tu voz, tu texto y tus palabras se cifran con age y solo se abren con tu contraseña. "
+                     "Nunca se guarda lo que dictas en campos de contraseña. Tu modelo de voz entrenado no se "
+                     "cifra, porque hace falta para dictar.",
+                     "Your voice, text and words are encrypted with age and only open with your password. Nothing "
+                     "dictated in password fields is ever kept. Your trained voice model is not encrypted, because "
+                     "dictation needs it."),
+    "password_set": ("Crear contraseña…", "Create password…"),
     "password_change": ("Cambiar contraseña…", "Change password…"),
-    "password_remove": ("Quitar contraseña", "Remove password"),
+    "password_setup": ("Crea una contraseña para proteger lo que Cotorreando aprende de ti. Puedes guardarla en "
+                       "tu administrador de contraseñas. Sin ella puedes dictar, pero no se aprende nada.",
+                       "Create a password to protect what Cotorreando learns from you. You can keep it in your "
+                       "password manager. Without it you can dictate, but nothing is learnt."),
+    "password_create": ("Crear", "Create"),
+    "password_new_hint": ("Contraseña (mínimo 8 caracteres)", "Password (at least 8 characters)"),
+    "password_again": ("Repítela", "Repeat it"),
+    "password_old": ("Contraseña de la versión anterior", "Password of the previous version"),
+    "password_generate": ("Generar una segura", "Generate a strong one"),
+    "password_mismatch": ("Las contraseñas no coinciden.", "The passwords do not match."),
+    "password_short": ("Debe tener al menos 8 caracteres.", "It must have at least 8 characters."),
+    "password_weak": ("Es demasiado fácil de adivinar.", "It is too easy to guess."),
+    "password_forgot": ("La olvidé", "I forgot it"),
+    "password_wait": ("Demasiados intentos. Espera {seconds} segundos.", "Too many tries. Wait {seconds} seconds."),
+    "recovery_show": ("Este es tu código de recuperación. Guárdalo en un lugar seguro: solo se muestra ahora y "
+                      "es la única forma de entrar si olvidas tu contraseña.",
+                      "This is your recovery code. Keep it somewhere safe: it is only shown now and it is the "
+                      "only way in if you forget your password."),
+    "recovery_saved": ("Ya lo guardé", "I saved it"),
+    "recovery_prompt": ("Escribe tu código de recuperación y una contraseña nueva.",
+                        "Enter your recovery code and a new password."),
+    "recovery_wrong": ("Código de recuperación incorrecto.", "Wrong recovery code."),
+    "notice_unlock": ("Escribe tu contraseña para activar tus correcciones.",
+                      "Enter your password to turn on your corrections."),
+    "notice_setup": ("Crea una contraseña para que Cotorreando pueda aprender de ti.",
+                     "Create a password so Cotorreando can learn from you."),
+    "notice_action": ("Escribirla", "Enter it"),
+    "notice_setup_action": ("Crearla", "Create it"),
+    "unlock_menu": ("Activar mis correcciones…", "Turn on my corrections…"),
+    "later": ("Después", "Later"),
     "password_prompt": ("Contraseña de Cotorreando", "Cotorreando password"),
     "password_new": ("Nueva contraseña. Si la olvidas, tus datos guardados no se pueden recuperar.",
                      "New password. If you forget it, your saved data cannot be recovered."),

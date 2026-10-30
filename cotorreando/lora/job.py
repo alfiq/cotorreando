@@ -13,7 +13,7 @@ import numpy as np
 
 from ..asr import Bias, Parakeet, model_dir
 from ..paths import MODELS_DIR, PACKAGE_DIR
-from ..vault import VAULT_DIR, load_private, reading_path, save_private
+from ..vault import VAULT_DIR, reading_path
 from . import env
 from .align import word_errors
 
@@ -25,6 +25,7 @@ HOLDOUT_EVERY = 6
 BASE_STEPS, STEPS_PER_RECORD, MAX_STEPS = 150, 5, 400
 MIN_NEW_RECORDS = 5
 MIN_NEW_WORDS = 5
+MIN_JOURNAL = 30             # sealed events; what they hold is unknown until the password is given
 MAX_PANELS = 5
 
 
@@ -63,12 +64,13 @@ def has_evaluation_set() -> bool:
 
 def is_pending(learner) -> bool:
     """Something new to learn, or a run left unfinished. Never needs the password."""
-    if not env.installed() or not has_evaluation_set():
+    if not learner.vault.ready or not env.installed() or not has_evaluation_set():
         return False
     if CHECKPOINT.exists() or len(learner.words_to_practice(MIN_NEW_WORDS)) >= MIN_NEW_WORDS:
         return True
-    trained = set(load_private("training", {}).get("trained", []))
-    return len(set(learner.vault.record_ids()) - trained) >= MIN_NEW_RECORDS
+    if learner.vault.journal_size() >= MIN_JOURNAL:
+        return True
+    return len(set(learner.vault.record_ids()) - set(learner.vault.trained_ids())) >= MIN_NEW_RECORDS
 
 
 def _gather(vault) -> tuple[list[dict], list[np.ndarray]]:
@@ -86,11 +88,11 @@ def _gather(vault) -> tuple[list[dict], list[np.ndarray]]:
     return rows, audio
 
 
-def _session_key() -> str:
-    state = load_private("training", {})
+def _session_key(vault) -> str:
+    state = vault.load_private("training", {})
     if "key" not in state:
         state["key"] = os.urandom(32).hex()
-        save_private("training", state)
+        vault.save_private("training", state)
     return state["key"]
 
 
@@ -112,7 +114,7 @@ def run(learner, settings, log_line=log.info) -> Result:
     by_id = {row["id"]: samples for row, samples in zip(rows, audio)}
     records = sum(row["kind"] != "reading" for row in rows)
     steps = min(BASE_STEPS + STEPS_PER_RECORD * records, MAX_STEPS)
-    header = json.dumps({"key": _session_key(), "rows": rows}, ensure_ascii=False).encode("utf-8") + b"\n"
+    header = json.dumps({"key": _session_key(vault), "rows": rows}, ensure_ascii=False).encode("utf-8") + b"\n"
     payload = header + b"".join(samples.astype(np.float32).tobytes() for samples in audio)
     name = time.strftime("voz-%Y%m%d-%H%M")
     out = MODELS_DIR / "adapters" / name
@@ -147,9 +149,7 @@ def run(learner, settings, log_line=log.info) -> Result:
 
     CHECKPOINT.unlink(missing_ok=True)
     kept = [row for row in rows if row["id"] not in rejected]
-    state = load_private("training", {})
-    state["trained"] = [row["id"] for row in kept if row["kind"] != "reading"]
-    save_private("training", state)
+    vault.set_trained_ids([row["id"] for row in kept if row["kind"] != "reading"])
 
     # Measured on the held-out readings, against the model in use right now.
     held = [row for row in kept if row["held"]]
