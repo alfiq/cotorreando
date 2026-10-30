@@ -18,7 +18,7 @@ import math
 import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QConicalGradient, QPainter, QPainterPath, QPen, QRadialGradient
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
 # Window size and orb radius in pixels for each size the user can pick.
@@ -157,9 +157,11 @@ class Blob(QWidget):
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
         p.setPen(Qt.NoPen)
-        body = QRadialGradient(c, self.radius * 1.1)
-        body.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 200, 120, 60))
-        body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 170))
+        # Densest in the middle, fading to nothing at the edge: no hard outline.
+        body = QRadialGradient(c, self.radius * 1.2)
+        body.setColorAt(0, QColor.fromHsv(int(220 + shift) % 360, 210, 200, 150))
+        body.setColorAt(0.6, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 90))
+        body.setColorAt(1, QColor.fromHsv(int(220 + shift) % 360, 230, 200, 0))
         p.fillPath(path, body)
         p.setClipPath(path)
         p.setCompositionMode(QPainter.CompositionMode_Plus)
@@ -177,14 +179,6 @@ class Blob(QWidget):
             p.drawEllipse(pos, self.radius * size, self.radius * size)
         p.setCompositionMode(QPainter.CompositionMode_SourceOver)
         p.setClipping(False)
-        # The rim is drawn along the deformed outline so it bends with the voice.
-        rim = QConicalGradient(c, self._drift * 40)
-        for i in range(7):
-            rim.setColorAt(i / 6, QColor.fromHsv(int(shift + i * 60) % 360, 230, 255, 220))
-        p.setBrush(Qt.NoBrush)
-        p.setPen(QPen(rim, 1.5))
-        p.drawPath(path)
-        p.setPen(Qt.NoPen)
         gloss = QRadialGradient(c + QPointF(-self.radius * 0.4, -self.radius * 0.45), self.radius * 0.55)
         gloss.setColorAt(0, QColor(255, 255, 255, 90))
         gloss.setColorAt(1, QColor(255, 255, 255, 0))
