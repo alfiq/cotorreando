@@ -18,14 +18,16 @@ import math
 import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QConicalGradient, QPainter, QPainterPath, QPen, QRadialGradient
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
-SIZE = 170
-RADIUS = 30
+SIZE = 190
+RADIUS = 40
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 ACCENT = QColor(64, 196, 255)
+# (hue, orbit radius, cloud size) relative to RADIUS, drifting inside the orb.
+CLOUDS = ((320, 0.45, 0.75), (200, 0.35, 0.85), (140, 0.5, 0.7), (265, 0.3, 0.6), (45, 0.55, 0.45))
 GREY = QColor(128, 128, 134)
 
 
@@ -104,7 +106,7 @@ class Blob(QWidget):
         self.level += (self._target_level - self.level) * min(dt * 14, 1)
         self.ripples = [b for b in self.ripples if now - b < 1.4]
         if self.writing:
-            self._hue = (self._hue + dt * 120) % 360
+            self._hue = (self._hue + dt * 140) % 360
         self.update()
 
     def _step_spring(self, dt: float) -> bool:
@@ -141,14 +143,42 @@ class Blob(QWidget):
             p.drawPath(self._shape(c, RADIUS + age * (SIZE / 2 - RADIUS - 4), t, 0.4))
 
         path = self._shape(c, RADIUS, t, 1.0)
+        self._paint_orb(p, c, path, t)
+
+    def _paint_orb(self, p: QPainter, c: QPointF, path: QPainterPath, t: float) -> None:
+        """A dark glass sphere with glowing colour clouds drifting inside it."""
         p.setPen(Qt.NoPen)
-        p.setBrush(self._fill(c))
+        p.setClipPath(path)
+        p.fillPath(path, QColor(4, 4, 10))
+        p.setCompositionMode(QPainter.CompositionMode_Plus)
+        speed = 0.5 + 1.6 * self.level
+        glow = 0.75 + 0.25 * self.level
+        shift = self._hue if self.writing else 0.0
+        for i, (hue, orbit, size) in enumerate(CLOUDS):
+            a = t * speed * (0.6 + 0.17 * i) + i * 2.1
+            pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * RADIUS * orbit
+            color = QColor.fromHsv(int(hue + shift) % 360, 255, 255)
+            g = QRadialGradient(pos, RADIUS * size)
+            color.setAlphaF(glow)
+            g.setColorAt(0, color)
+            color.setAlphaF(0)
+            g.setColorAt(1, color)
+            p.setBrush(g)
+            p.drawEllipse(pos, RADIUS * size, RADIUS * size)
+        p.setCompositionMode(QPainter.CompositionMode_SourceOver)
+        # Rim light and a soft highlight sell the glass look.
+        rim = QRadialGradient(c, RADIUS * 1.05)
+        rim.setColorAt(0.82, QColor(0, 0, 0, 0))
+        rim.setColorAt(0.97, QColor.fromHsv(int(200 + shift) % 360, 200, 255, 150))
+        rim.setColorAt(1, QColor(0, 0, 0, 0))
+        p.setBrush(rim)
         p.drawPath(path)
-        gloss = QRadialGradient(c + QPointF(-RADIUS * 0.35, -RADIUS * 0.4), RADIUS)
-        gloss.setColorAt(0, QColor(255, 255, 255, 110))
+        gloss = QRadialGradient(c + QPointF(-RADIUS * 0.4, -RADIUS * 0.45), RADIUS * 0.55)
+        gloss.setColorAt(0, QColor(255, 255, 255, 90))
         gloss.setColorAt(1, QColor(255, 255, 255, 0))
         p.setBrush(gloss)
         p.drawPath(path)
+        p.setClipping(False)
 
     def _shape(self, c: QPointF, radius: float, t: float, gain: float) -> QPainterPath:
         """A closed wobbly curve; amplitude grows with voice level."""
@@ -166,17 +196,6 @@ class Blob(QWidget):
             pt = QPointF(c.x() + dx * r + stretch.x() * along * r, c.y() + dy * r + stretch.y() * along * r)
             path.moveTo(pt) if i == 0 else path.lineTo(pt)
         return path
-
-    def _fill(self, c: QPointF):
-        if self.writing:
-            g = QConicalGradient(c, self._hue)
-            for i in range(7):
-                g.setColorAt(i / 6, QColor.fromHsv(int(self._hue + i * 60) % 360, 150, 255))
-            return g
-        g = QRadialGradient(c, RADIUS * 1.2)
-        g.setColorAt(0, ACCENT.lighter(130))
-        g.setColorAt(1, ACCENT.darker(140))
-        return g
 
     # -- mouse ----------------------------------------------------------------
 
