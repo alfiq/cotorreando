@@ -101,3 +101,14 @@ Modelo Parakeet TDT 0.6B v3 de NVIDIA bajo CC BY 4.0.
 El resto de componentes y sus licencias están en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Licencia MIT.
+
+## Firma del instalador
+
+`build.ps1` firma el ejecutable y el instalador con un certificado autofirmado (`CN=Alfiq`)
+y lo exporta a `dist\Cotorreando.cer`. Para que Windows confíe en la firma, en la PC
+destino (PowerShell como administrador):
+
+```powershell
+Import-Certificate -FilePath Cotorreando.cer -CertStoreLocation Cert:\LocalMachine\Root
+Import-Certificate -FilePath Cotorreando.cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher
+```

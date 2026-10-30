@@ -21,7 +21,23 @@ python -m nuitka `
     --assume-yes-for-downloads `
     cotorreando
 
+# Self-signed code-signing certificate, created once in the user's store and reused.
+# Clients only trust it after importing dist\Cotorreando.cer (see README).
+$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
+    Where-Object Subject -eq "CN=Alfiq" | Select-Object -First 1
+if (-not $cert) {
+    $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Alfiq" `
+        -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5)
+}
+Export-Certificate -Cert $cert -FilePath dist\Cotorreando.cer | Out-Null
+function Sign($path) {
+    Set-AuthenticodeSignature -FilePath $path -Certificate $cert -HashAlgorithm SHA256 `
+        -TimestampServer "http://timestamp.digicert.com" | Out-Null
+}
+Sign dist\cotorreando.dist\Cotorreando.exe
+
 # Inno Setup: winget install JRSoftware.InnoSetup
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
           "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
 & $iscc installer.iss
+Sign (Get-ChildItem dist\Cotorreando-*-setup.exe | Sort-Object LastWriteTime | Select-Object -Last 1).FullName

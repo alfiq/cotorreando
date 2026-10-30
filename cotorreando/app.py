@@ -34,7 +34,7 @@ from .dialogs import STYLE, AboutDialog, SettingsDialog, styled_menu
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, type_text
 from .listener import Listener
-from .paths import MODELS_DIR
+from .paths import DATA_DIR, MODELS_DIR
 
 log = logging.getLogger(__name__)
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -63,6 +63,7 @@ class Cotorreando(QObject):
     status = Signal(str)
     loaded = Signal()
     toggle_requested = Signal()
+    warning = Signal(str)
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -74,6 +75,7 @@ class Cotorreando(QObject):
         self.audio: AudioInput | None = None
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
+        self._silent_frames = -1
 
         self.blob = Blob(self.s.blob_size)
         self.blob.place(self.s.blob_x, self.s.blob_y)
@@ -91,6 +93,8 @@ class Cotorreando(QObject):
         self.menu = styled_menu()
         self.menu.aboutToShow.connect(self._build_menu)
         self.tray.setContextMenu(self.menu)
+        self.warning.connect(lambda text: self.tray.showMessage(
+            "Cotorreando", text, QSystemTrayIcon.MessageIcon.Warning))
         self.tray.show()
 
         self.keyboard = KeyboardMonitor(self.s.hotkey, self._hotkey_down, self._hotkey_up)
@@ -110,9 +114,21 @@ class Cotorreando(QObject):
 
     def _load_model(self) -> None:
         self.status.emit(tr("loading"))
-        if not asr.is_downloaded():
-            asr.download(lambda d, t: self.status.emit(tr("downloading", pct=d * 100 // max(t, 1))))
-        self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu)
+        try:
+            if not asr.is_downloaded():
+                asr.download(lambda d, t: self.status.emit(tr("downloading", pct=d * 100 // max(t, 1))))
+            try:
+                self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu)
+            except Exception:
+                if not self.s.use_gpu:
+                    raise
+                log.exception("GPU model load failed; retrying on the CPU")
+                self.model = asr.Parakeet(self._model_dir(), use_gpu=False)
+        except Exception as err:
+            log.exception("Model load failed")
+            self.status.emit(tr("load_failed", error=err))
+            self.warning.emit(tr("load_failed", error=err))
+            return
         self.status.emit(tr("ready"))
         self.loaded.emit()
 
@@ -124,6 +140,7 @@ class Cotorreando(QObject):
                                  lambda uid: self.jobs.put(("end", uid, None)), self.level.emit)
         self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
                                 self.s.echo_cancellation, self.s.auto_gain)
+        self._silent_frames = 0
         self.audio.start()
         self.blob.set_enabled(True)
 
@@ -136,6 +153,13 @@ class Cotorreando(QObject):
         listener = self.listener
         if listener is None:
             return
+        # Windows hands out pure zeros when microphone access is denied in Privacy settings.
+        if self._silent_frames >= 0:
+            self._silent_frames = self._silent_frames + 1 if not frame.any() else -1
+            if self._silent_frames == 300:   # 3 s
+                log.warning("Microphone delivers only silence")
+                self.warning.emit(tr("mic_silent"))
+                self._silent_frames = -1
         holdoff = self.s.typing_holdoff_ms / 1000
         if time.monotonic() - self.keyboard.last_typed < holdoff:
             listener.pause_for_typing(holdoff)
@@ -213,6 +237,8 @@ class Cotorreando(QObject):
 
     def toggle_enabled(self) -> None:
         self.enabled = not self.enabled
+        if self.enabled and self.model is None:   # an earlier load failed: try again
+            threading.Thread(target=self._load_model, daemon=True).start()
         self.blob.set_enabled(self.enabled)
         self.start_audio() if self.enabled else self.stop_audio()
         self.tray.setIcon(self._tray_icon())
@@ -328,7 +354,12 @@ def already_running() -> bool:
 
 
 def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    handlers = [logging.FileHandler(DATA_DIR / "cotorreando.log", mode="w", encoding="utf-8")]
+    if sys.stderr is not None:   # the windowed build has no console
+        handlers.append(logging.StreamHandler())
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s",
+                        handlers=handlers)
     if already_running():
         return 0
     app = QApplication(sys.argv)

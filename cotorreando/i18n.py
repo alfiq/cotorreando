@@ -12,6 +12,9 @@ STRINGS = {
     "loading": ("Cargando modelo…", "Loading model…"),
     "downloading": ("Descargando modelo… {pct}%", "Downloading model… {pct}%"),
     "ready": ("Listo", "Ready"),
+    "load_failed": ("No se pudo cargar el modelo: {error}", "Could not load the model: {error}"),
+    "mic_silent": ("El micrófono no envía audio. Revisa Configuración > Privacidad > Micrófono.",
+                   "The microphone sends no audio. Check Settings > Privacy > Microphone."),
     "disabled": ("Desactivado", "Disabled"),
     # Settings
     "general": ("General", "General"),
