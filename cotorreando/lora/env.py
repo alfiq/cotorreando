@@ -55,13 +55,13 @@ def _uv() -> Path:
     return uv
 
 
-def _stream(cmd: list[str], log, payload: bytes | None = None) -> None:
+def _stream(cmd: list[str], log, payload: bytes | None = None, extra_env: dict | None = None) -> None:
     """Run ``cmd``, passing each output line to ``log``. ``payload`` goes in through stdin,
     which then stays open so that ``pause`` can talk to the process."""
     global _process
     proc = _process = subprocess.Popen(cmd, stdin=subprocess.PIPE if payload is not None else None,
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                       creationflags=NO_WINDOW, env={**os.environ, "PYTHONUTF8": "1"})
+                                       creationflags=NO_WINDOW, env={**os.environ, "PYTHONUTF8": "1", **(extra_env or {})})
 
     def feed():
         try:
@@ -102,7 +102,8 @@ def ensure_installed(log=print) -> None:
 
 
 def run_train(args: list[str], log=print, payload: bytes | None = None) -> None:
-    _stream([str(PYTHON), "-u", str(TRAIN_SCRIPT), *args], log, payload)
+    # Idle OpenMP threads would otherwise spin on every core between training steps.
+    _stream([str(PYTHON), "-u", str(TRAIN_SCRIPT), *args], log, payload, {"KMP_BLOCKTIME": "0"})
 
 
 def run_panels(payload: bytes, log=print) -> None:

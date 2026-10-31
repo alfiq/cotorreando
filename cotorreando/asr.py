@@ -101,11 +101,12 @@ class Parakeet:
         directory = directory or model_dir()
         cpu = ["CPUExecutionProvider"]
 
-        def load(name, providers=cpu, threads=0):
+        def load(name, providers=cpu, threads=0, spin=True):
             opts = ort.SessionOptions()
             opts.log_severity_level = 3
             if threads:
                 opts.intra_op_num_threads = threads
+            if threads or not spin:
                 opts.add_session_config_entry("session.intra_op.allow_spinning", "0")
             if providers is not cpu:
                 opts.enable_mem_pattern = False   # required by DirectML
@@ -114,7 +115,8 @@ class Parakeet:
         self.on_gpu = use_gpu and "DmlExecutionProvider" in ort.get_available_providers()
         gpu = ["DmlExecutionProvider"] + cpu if self.on_gpu else cpu
         self.preprocessor = load("nemo128.onnx")
-        self.encoder = load(self._pick(directory, "encoder-model"), gpu)
+        # On the CPU, spinning threads fight each other: a step takes ~160 ms without them, ~270 ms with.
+        self.encoder = load(self._pick(directory, "encoder-model"), gpu, spin=self.on_gpu)
         self.decoder = load(self._pick(directory, "decoder_joint-model"), threads=1)
 
         vocab = {}

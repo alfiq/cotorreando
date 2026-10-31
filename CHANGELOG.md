@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.0.5 — 2026-10-31
+
+- Entrenamiento mucho más rápido: la pérdida ya no construye un grafo por celda y la VRAM no se
+  desborda. Con voz sintética, un trabajo de 160 pasos pasa de más de una hora a unos 2 min.
+- La evaluación final no repite medidas ni cargas de modelo.
+- Dictado en CPU con menos latencia y menos consumo: los hilos del codificador ya no giran en vacío.
+
 ## 0.0.4 — 2026-10-30
 
 - Calibración inicial: paneles breves en español e inglés, palabras que se iluminan al leer,

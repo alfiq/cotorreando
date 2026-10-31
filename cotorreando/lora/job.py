@@ -96,9 +96,12 @@ def _session_key(vault) -> str:
     return state["key"]
 
 
-def error_rate(directory, rows: list[dict], audio: dict[str, np.ndarray], words=None) -> float:
-    """Error rate of an exported model the way the app really uses it: streaming ONNX."""
-    model = Parakeet(directory, use_gpu=False)
+def _evaluator(directory) -> Parakeet:
+    return Parakeet(directory, use_gpu=False)
+
+
+def error_rate(model: Parakeet, rows: list[dict], audio: dict[str, np.ndarray], words=None) -> float:
+    """Error rate of a loaded model the way the app really uses it: streaming ONNX."""
     model.bias = Bias(words) if words else None
     errors = total = 0
     for row in rows:
@@ -155,17 +158,24 @@ def run(learner, settings, log_line=log.info) -> Result:
     held = [row for row in kept if row["held"]]
     current = MODELS_DIR / "adapters" / settings.lora_adapter
     current = current if settings.lora_adapter and current.exists() else model_dir()
-    best = current
+    best, model, plain = current, None, None     # plain: best's rate without vocabulary, once known
     if out.exists():
-        result.before = error_rate(current, held, by_id)
-        result.after = error_rate(out, held, by_id)
+        # One model in memory at a time, each near 0.8 GB; the current one is reloaded only if the vocabulary needs it.
+        result.before = error_rate(_evaluator(current), held, by_id)
+        model = _evaluator(out)
+        result.after = error_rate(model, held, by_id)
         if result.after < result.before:
-            result.adapter, best = name, out
+            result.adapter, best, plain = name, out, result.after
         else:
+            model, plain = None, result.before   # the loser is not used again
             shutil.rmtree(out)
     words = learner.vocabulary()
-    settings.vocabulary_on = bool(words) and (
-        error_rate(best, held, by_id, words) < error_rate(best, held, by_id))
+    helps = False
+    if words:
+        model = model or _evaluator(best)
+        biased = error_rate(model, held, by_id, words)
+        helps = biased < (error_rate(model, held, by_id) if plain is None else plain)
+    settings.vocabulary_on = helps
     return result
 
 

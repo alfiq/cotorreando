@@ -81,32 +81,70 @@ def merge_lora(model) -> None:
                 setattr(att, name, module.merged())
 
 
+def _tdt_forward_backward(emit, blank, dur, backward: bool):
+    """Log-likelihood and, if ``backward``, the expected use of each log-probability (numpy fp64 arrays)."""
+    frames, length = emit.shape
+    add = np.logaddexp
+    stay = emit + dur[:, :length, 0]
+    prefix = np.zeros((frames, length + 1))
+    prefix[:, 1:] = np.cumsum(stay, 1)
+    leave = (blank[..., None] + dur[..., 1:]).transpose(0, 2, 1)     # frame, d - 1, cell
+    move = (emit[..., None] + dur[:, :length, 1:]).transpose(0, 2, 1)
+    reach = leave.shape[1]
+    alpha = np.full((frames + 1, length + 1), -1e4)      # a floor: the cost of a hopeless text is capped
+    alpha[0, 0] = 0.0
+    rows = np.empty((frames, length + 1))
+    for t in range(frames):
+        rows[t] = row = prefix[t] + add.accumulate(alpha[t] - prefix[t])   # zero-duration tokens, in closed form
+        out = leave[t] + row
+        out[:, 1:] = add(out[:, 1:], move[t] + row[:-1])
+        k = min(reach, frames - t)
+        alpha[t + 1:t + 1 + k] = add(alpha[t + 1:t + 1 + k], out[:k])
+        if k < reach:                                                      # skips past the end land on the last frame
+            alpha[frames] = add(alpha[frames], add.reduce(out[k:], 0))
+    z = alpha[frames, length]
+    if not backward:
+        return z, ()
+    beta = np.full((frames + 1, length + 1), -np.inf)
+    beta[frames, length] = 0.0
+    target = np.minimum(np.arange(frames)[:, None] + np.arange(1, reach + 1)[None], frames)
+    for t in range(frames - 1, -1, -1):
+        after = beta[target[t]]
+        out = leave[t] + after
+        out[:, :length] = add(out[:, :length], move[t] + after[:, 1:])
+        beta[t] = add.accumulate((add.reduce(out, 0) + prefix[t])[::-1])[::-1] - prefix[t]
+    after = beta[target]
+    use_stay = np.exp(rows[:, :length] + stay + beta[:frames, 1:] - z)
+    use_step = np.exp(rows[:, None] + leave + after - z)
+    use_move = np.exp(rows[:, None, :length] + move + after[:, :, 1:] - z)
+    use_dur = np.zeros_like(dur)
+    use_dur[:, :length, 0] = use_stay
+    use_dur[:, :, 1:] = use_step.transpose(0, 2, 1)
+    use_dur[:, :length, 1:] += use_move.transpose(0, 2, 1)
+    return z, (use_stay + use_move.sum(1), use_step.sum(1), use_dur)
+
+
 def tdt_cost(acts, labels, frames: int, length: int, durations: int):
     """Negative log-likelihood of one utterance: the forward algorithm over (frame, label).
 
     From each cell a blank advances 1..D-1 frames; a token advances 0..D-1 frames and one label.
+    The gradient of a log-likelihood is the expected use of each log-probability: forward-backward
+    gives that directly, so autograd only has to carry it back from the log-probabilities.
     """
     tokens = acts.size(-1) - durations
+    wants_grad = torch.is_grad_enabled() and acts.requires_grad
+    acts = acts[:frames, :length + 1]                    # without the batch's padding
     tok = torch.log_softmax(acts[..., :tokens], -1)
     dur = torch.log_softmax(acts[..., tokens:], -1)
-    blank = tokens - 1
-    index = torch.arange(length, device=acts.device)
-    start = torch.full((length + 1,), -1e4, device=acts.device, dtype=acts.dtype)
-    incoming = [start.clone() for _ in range(frames + 1)]
-    incoming[0] = torch.cat([start[:1] * 0, start[1:]])
-    for t in range(frames):
-        emit = tok[t, index, labels[:length]]            # label u from cell u
-        stay = emit + dur[t, index, 0]
-        cells = [incoming[t][0]]
-        for u in range(length):                          # zero-duration tokens, within the frame
-            cells.append(torch.logaddexp(incoming[t][u + 1], cells[u] + stay[u]))
-        row = torch.stack(cells)
-        for d in range(1, durations):
-            target = min(t + d, frames)
-            step = row + tok[t, :length + 1, blank] + dur[t, :length + 1, d]
-            moved = torch.cat([start[:1], row[:-1] + emit + dur[t, index, d]])
-            incoming[target] = torch.logaddexp(incoming[target], torch.logaddexp(step, moved))
-    return -incoming[frames][length] / frames
+    logs = (tok[:, torch.arange(length, device=acts.device), labels[:length]],   # label u from cell u
+            tok[..., tokens - 1], dur)
+    logs = tuple(x.clamp_min(-1e4) for x in logs)        # -inf would turn the expected uses into NaN
+    z, uses = _tdt_forward_backward(*(x.detach().double().cpu().numpy() for x in logs), wants_grad)
+    if not wants_grad:
+        return -dur.new_tensor(z) / frames
+    # Value z, gradient sum(use * d log-probability).
+    expected = sum((torch.from_numpy(u).to(x.device, x.dtype) * x).sum() for u, x in zip(uses, logs))
+    return -(expected - expected.detach() + float(z)) / frames
 
 
 def use_portable_loss(model) -> None:
@@ -117,6 +155,9 @@ def use_portable_loss(model) -> None:
                             for i in range(acts.size(0))])
 
     model.loss._loss.forward = forward  # noqa: SLF001
+    # One by one: otherwise the joint also computes the whole batch's padding rows, and the
+    # VRAM it reserves can outgrow the card and start paging.
+    model.joint._fused_batch_size = 1  # noqa: SLF001
 
 
 class Readings(torch.utils.data.Dataset):
@@ -207,12 +248,15 @@ def train(model, rows: list[dict], steps: int, lr: float, stopping: threading.Ev
             if stopping.is_set():
                 trainer.should_stop = True
 
+    # log_every_n_steps past the last step: at each one NeMo would decode the batch for a WER nobody reads.
     trainer = pl.Trainer(max_steps=steps - done, accelerator="gpu" if gpu else "cpu", devices=1,
                          precision="bf16-mixed" if gpu else "32-true", logger=False,
-                         enable_checkpointing=False, log_every_n_steps=5, limit_val_batches=0,
+                         enable_checkpointing=False, log_every_n_steps=steps - done + 1, limit_val_batches=0,
                          callbacks=[Progress()], enable_progress_bar=False)
     model.set_trainer(trainer)
     trainer.fit(model)
+    if gpu:
+        model.cuda()               # Lightning leaves the model on the CPU
     return not stopping.is_set()
 
 
