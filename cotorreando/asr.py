@@ -32,8 +32,28 @@ BIAS_BONUS = 1.5               # logits added to tokens that continue a preferre
 BIAS_CANDIDATES = 5            # only the best few tokens can receive it
 
 
+MODEL_NOTICE = """Parakeet TDT 0.6B v3 by NVIDIA, licensed under CC BY 4.0.
+https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
+https://creativecommons.org/licenses/by/4.0/
+
+Modified: converted to ONNX and quantized to int8 by Ilya Stupakov
+(https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx); optionally fine-tuned with LoRA.
+Provided as is, without warranties; see the license.
+"""
+
+
 def model_dir() -> Path:
     return MODELS_DIR / MODEL_NAME
+
+
+def write_notice(directory: Path) -> None:
+    """Keep the attribution CC BY asks for next to the model files."""
+    notice = directory / "NOTICE.txt"
+    try:
+        if not notice.exists():
+            notice.write_text(MODEL_NOTICE, encoding="utf-8")
+    except OSError as err:
+        log.warning("Could not write the model notice: %s", err)
 
 
 def is_downloaded(directory: Path | None = None) -> bool:
@@ -99,6 +119,7 @@ class Parakeet:
         which are faster on the CPU; the decoder gets one thread that does not
         spin between calls."""
         directory = directory or model_dir()
+        write_notice(directory)
         cpu = ["CPUExecutionProvider"]
 
         def load(name, providers=cpu, threads=0, spin=True):

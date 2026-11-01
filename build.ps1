@@ -29,6 +29,10 @@ $livekit = python -c "import livekit.rtc, os; print(os.path.dirname(livekit.rtc.
 $resources = New-Item -ItemType Directory -Force dist\cotorreando.dist\livekit\rtc\resources
 Copy-Item "$livekit\resources\livekit_ffi.dll" $resources -Force
 
+# Full license texts of everything bundled, which the licenses require us to ship.
+python scripts\collect_licenses.py dist\cotorreando.dist\licenses
+if ($LASTEXITCODE -ne 0) { throw "Could not collect the license texts" }
+
 # Self-signed code-signing certificate, created once in the user's store and reused.
 # Clients only trust it after importing dist\Cotorreando.cer (see README).
 $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |

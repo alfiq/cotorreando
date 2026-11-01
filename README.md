@@ -97,10 +97,12 @@ Autor: **Alfiq** · [github.com/alfiq](https://github.com/alfiq) ·
 [github.com/alfiq/cotorreando](https://github.com/alfiq/cotorreando)
 
 Inspirado en la idea de [Handy](https://github.com/cjpais/handy) (MIT).
-Modelo Parakeet TDT 0.6B v3 de NVIDIA bajo CC BY 4.0.
+Modelo [Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) de NVIDIA bajo
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), convertido a ONNX y cuantizado a int8
+por Ilya Stupakov.
 El resto de componentes y sus licencias están en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Licencia MIT.
+El código de Cotorreando tiene licencia MIT.
 
 ## Firma del instalador
 

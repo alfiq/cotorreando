@@ -32,7 +32,9 @@ Registro de lo que se preguntó durante el diseño y lo que se eligió.
   por bloques con estado del decodificador: nunca reescribe y no tiene límite de duración.
 - **ONNX Runtime → onnxruntime-directml.** Incluye CPU y usa cualquier GPU vía DirectML.
   Con ventana de tamaño fijo, el paso de streaming baja de ~250 ms (CPU) a ~55 ms (GPU).
-- **Sin CUDA.** Las librerías de CUDA/cuDNN tienen licencia propietaria de NVIDIA, no permisiva.
+- **Sin CUDA en la app.** Las librerías de CUDA/cuDNN tienen licencia propietaria de NVIDIA, no
+  permisiva, así que no se distribuyen. El entorno de entrenamiento opcional sí las descarga con
+  PyTorch si hay GPU NVIDIA.
 - **Sin modelo fp32.** Pesa 2,4 GB y no aporta velocidad frente al int8 con forma fija.
 - **Tamaño del blob** configurable: pequeño, mediano o grande.
 - **sounddevice descartado.** Su PortAudio no expone dispositivos de loopback WASAPI.
