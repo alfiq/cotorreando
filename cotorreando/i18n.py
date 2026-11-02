@@ -110,6 +110,14 @@ STRINGS = {
     "capture": ("Captura", "Capture"),
     "detection": ("Detección de voz", "Voice detection"),
     # Privacy
+    "boost": ("Inclinarse hacia tus palabras", "Lean towards your words"),
+    "boost_auto": ("Automático (si mejora con tu voz)", "Automatic (if it helps with your voice)"),
+    "boost_on": ("Siempre", "Always"),
+    "boost_off": ("Nunca", "Never"),
+    "boost_note": ("Cuando el modelo duda entre palabras parecidas, prefiere las que corregiste o agregaste. "
+                   "En automático se activa solo si el entrenamiento mide que acierta más con tu voz.",
+                   "When the model hesitates between similar words it prefers the ones you corrected or added. "
+                   "Automatic turns it on only if training measures that it gets your voice right more often."),
     "privacy": ("Privacidad", "Privacy"),
     "learning": ("Aprender de mis correcciones", "Learn from my corrections"),
     "excluded": ("Apps excluidas (ej. keepass.exe, banco.exe)", "Excluded apps (e.g. keepass.exe, bank.exe)"),

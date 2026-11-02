@@ -266,7 +266,8 @@ class Cotorreando(QObject):
                 self._typed, self._started = "", False
                 field = self.learner.begin(self._tail_window)
                 self._before = field.before if field and not field.password else None
-                self.model.set_phrases(self.learner.bias_words(field) if self.s.vocabulary_on else None)
+                boost = self.s.boost_mode == "on" or (self.s.boost_mode == "auto" and self.s.vocabulary_on)
+                self.model.set_phrases(self.learner.bias_words(field) if boost else None)
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
                 cancelled = True                # you are typing; never write over it
             if ours_in_front():

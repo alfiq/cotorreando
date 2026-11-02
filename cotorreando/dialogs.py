@@ -531,6 +531,9 @@ class SettingsDialog(Window):
 
     def _model(self):
         self.adapter = self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
+        self.boost = self._combo([("auto", tr("boost_auto")), ("on", tr("boost_on")), ("off", tr("boost_off"))],
+                                 self.s.boost_mode)
+        boost_note = QLabel(tr("boost_note"), objectName="note", wordWrap=True)
         help_text = QLabel(tr("calibrate_help"), objectName="note", wordWrap=True)
         calibrate = QPushButton(tr("calibrate_voice"))
         calibrate.clicked.connect(self._calibrate)
@@ -540,7 +543,7 @@ class SettingsDialog(Window):
         line.setSpacing(16)
         line.addWidget(help_text, 1)
         line.addWidget(calibrate)
-        return self._groups((None, [(tr("adapter"), self.adapter), row]))
+        return self._groups((None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]))
 
     def _privacy(self):
         self.learning = QCheckBox(tr("learning"), checked=self.s.learning)
@@ -612,6 +615,7 @@ class SettingsDialog(Window):
         s.typing_holdoff_ms, s.trailing_space = self.holdoff.value(), self.trailing.isChecked()
         s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
+        s.boost_mode = self.boost.currentData()
         s.learning, s.excluded_apps = self.learning.isChecked(), self.excluded.text().strip()
         s.retention_days = self.retention.value()
         self.accept()
