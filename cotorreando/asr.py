@@ -16,16 +16,15 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 
+from . import model_store
 from .boosting import BoostingTree, PhraseTokenizer
 from .paths import MODELS_DIR
 
 log = logging.getLogger(__name__)
 
 MODEL_NAME = "parakeet-tdt-0.6b-v3"
-ONNX_REPO = "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/main/"
+ONNX_REPO, FILES = model_store.ONNX_REPO, model_store.FILES
 ORIGINAL_REPO = "nvidia/parakeet-tdt-0.6b-v3"
-FILES = ("config.json", "vocab.txt", "nemo128.onnx",
-         "encoder-model.int8.onnx", "decoder_joint-model.int8.onnx")
 
 SAMPLE_RATE = 16000
 MAX_TOKENS_PER_FRAME = 10
@@ -58,31 +57,12 @@ def write_notice(directory: Path) -> None:
 
 
 def is_downloaded(directory: Path | None = None) -> bool:
-    directory = directory or model_dir()
-    return all((directory / f).exists() for f in FILES)
+    return model_store.is_complete(directory or model_dir())
 
 
-def download(progress=lambda done, total: None) -> Path:
-    """Fetch the ONNX export. Falls back to exporting the original .nemo."""
-    target = model_dir()
-    target.mkdir(parents=True, exist_ok=True)
-    try:
-        for name in FILES:
-            dest = target / name
-            if dest.exists():
-                continue
-            tmp = dest.with_suffix(dest.suffix + ".part")
-            with urllib.request.urlopen(ONNX_REPO + name) as r, open(tmp, "wb") as f:
-                total, done = int(r.headers.get("Content-Length", 0)), 0
-                while chunk := r.read(1 << 20):
-                    f.write(chunk)
-                    done += len(chunk)
-                    progress(done, total)
-            tmp.replace(dest)
-    except OSError as err:
-        log.warning("ONNX download failed (%s); exporting original model", err)
-        export_from_nemo(target)
-    return target
+def download(progress=lambda done, total: None, cancelled=lambda: False) -> Path:
+    """Fetch the ONNX export. Raises model_store.ModelError: offline, no space, cut or cancelled."""
+    return model_store.download(model_dir(), progress, cancelled)
 
 
 def export_from_nemo(target: Path) -> None:
@@ -93,10 +73,12 @@ def export_from_nemo(target: Path) -> None:
     env.run_train(["--export-only", "--model", ORIGINAL_REPO, "--out", str(target)], log.info)
 
 
-def phrase_tokenizer(directory: Path | None = None) -> PhraseTokenizer | None:
+def phrase_tokenizer(directory: Path | None = None, fetch: bool = True) -> PhraseTokenizer | None:
     """The model's tokenizer, fetched the first time; None if it cannot be had."""
     path = (directory or model_dir()) / "tokenizer.json"
     if not path.exists():
+        if not fetch:
+            return None
         try:
             tmp = path.with_suffix(".part")
             with urllib.request.urlopen(TOKENIZER_URL) as r, open(tmp, "wb") as f:
@@ -111,13 +93,18 @@ def phrase_tokenizer(directory: Path | None = None) -> PhraseTokenizer | None:
 class Parakeet:
     """Greedy TDT decoder over the three ONNX graphs."""
 
-    def __init__(self, directory: Path | None = None, use_gpu: bool = True):
+    def __init__(self, directory: Path | None = None, use_gpu: bool = True, custom: bool = False):
         """The encoder does the heavy lifting and runs on the GPU (DirectML) when
         there is one. The preprocessor and the decoder make many tiny calls,
         which are faster on the CPU; the decoder gets one thread that does not
-        spin between calls."""
+        spin between calls.
+
+        ``custom`` is the user's own model (see model_store.validate): phrase boosting then
+        uses the tokenizer.json in its folder, if any, never the stock one."""
         directory = directory or model_dir()
-        write_notice(directory)
+        self.tokenizer_dir, self.fetch_tokenizer = (directory, False) if custom else (model_dir(), True)
+        if not custom:
+            write_notice(directory)
         cpu = ["CPUExecutionProvider"]
 
         def load(name, providers=cpu, threads=0, spin=True):
@@ -154,10 +141,10 @@ class Parakeet:
 
     @staticmethod
     def _pick(directory: Path, stem: str) -> str:
-        for name in (f"{stem}.int8.onnx", f"{stem}.onnx"):
-            if (directory / name).exists():
-                return name
-        raise FileNotFoundError(stem)
+        name = model_store.pick(directory, stem)
+        if name is None:
+            raise FileNotFoundError(stem)
+        return name
 
     def transcribe(self, audio: np.ndarray) -> str:
         """Transcribe a whole utterance (mono float32, 16 kHz).
@@ -178,7 +165,7 @@ class Parakeet:
         self._boost_key, self.boost = key, None
         if not key:
             return
-        self._tokenizer = self._tokenizer or phrase_tokenizer()   # the base model's, also under an adapter
+        self._tokenizer = self._tokenizer or phrase_tokenizer(self.tokenizer_dir, self.fetch_tokenizer)   # the base model's, also under an adapter
         if self._tokenizer is None:
             return
         items = [(self._tokenizer(phrase), alpha) for phrase, alpha in key]

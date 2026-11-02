@@ -1,7 +1,9 @@
 # Cotorreando
 
 Dictado por voz para todo Windows. Hablas, y el texto aparece donde esté el cursor:
-en el navegador, en el editor, en el chat… Todo corre en tu máquina, sin nube.
+en el navegador, en el editor, en el chat… El reconocimiento corre en tu máquina: sin nube, sin
+cuentas y sin telemetría. Solo se conecta para descargar los modelos y, una vez al día, para ver si
+hay versión nueva. Detalles en [Privacidad](docs/PRIVACIDAD.md) ([English](docs/PRIVACY.md)).
 
 Usa [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)
 (25 idiomas europeos, con puntuación y mayúsculas) sobre ONNX Runtime.
@@ -57,7 +59,31 @@ pip install -e .
 cotorreando
 ```
 
-La primera vez descarga el modelo (~670 MB) a `%LOCALAPPDATA%\Cotorreando\models`.
+La primera vez descarga el modelo (~670 MB) a `%LOCALAPPDATA%\Cotorreando\models`, en una ventana
+con el progreso (el loro se va encendiendo) y un botón para cancelar. Antes comprueba que haya espacio
+libre; cada archivo se baja a `.part` y solo se da por bueno si su tamaño y su SHA-256 (los publica
+Hugging Face) coinciden. Si no hay conexión, se corta o el modelo no carga, Cotorreando lo dice y ofrece
+reintentar (la descarga se reanuda), volver a descargar, usar tu propio modelo o salir.
+
+#### Usar tu propio modelo
+
+En **Opciones → Modelo → Elegir carpeta…** (o desde el aviso de error) puedes apuntar a una carpeta con
+otro modelo. Sirve un modelo NVIDIA NeMo **FastConformer-TDT** (p. ej. Parakeet TDT 0.6B v2/v3) exportado
+a ONNX con la estructura de [onnx-asr](https://github.com/istupakov/onnx-asr):
+
+| Archivo | Contenido |
+|---|---|
+| `nemo128.onnx` | preprocesador: entradas `waveforms`, `waveforms_lens` → espectrograma de 128 bandas mel |
+| `encoder-model.onnx` o `encoder-model.int8.onnx` | entradas `audio_signal`, `length`; 2 salidas (submuestreo ×8, 80 ms por trama) |
+| `decoder_joint-model.onnx` o `.int8.onnx` | entradas `encoder_outputs`, `targets`, `target_length`, `input_states_1`, `input_states_2`; 4 salidas; la primera trae los tokens, el blank y las duraciones TDT |
+| `vocab.txt` | una línea `token índice` por token, `▁` marca el inicio de palabra, el índice más alto es el blank |
+| `tokenizer.json` (opcional) | tokenizador de Hugging Face, para potenciar tus palabras |
+
+Audio a 16 kHz. Da igual si está cuantizado a int8 o en float32 (si hay ambos se usa el int8). No sirven
+modelos RNN-T o CTC (el decodificador no predice duraciones), Whisper u otras arquitecturas, ni un `.nemo`
+sin exportar. Antes de aceptar la carpeta se abren los tres grafos en ONNX Runtime y se comprueban sus
+entradas y salidas. Con un modelo propio no se usan las adaptaciones LoRA, que están entrenadas sobre el
+modelo estándar.
 
 ### Ejecutable
 
@@ -89,6 +115,7 @@ instala aparte, solo si lo pides. Detalles en [docs/LORA.md](docs/LORA.md).
 - [docs/LORA.md](docs/LORA.md) — entrenamiento del adaptador.
 - [docs/DECISIONES.md](docs/DECISIONES.md) — preguntas resueltas durante el diseño.
 - [docs/IDEAS.md](docs/IDEAS.md) — ideas y pendientes.
+- [docs/VERSIONES.md](docs/VERSIONES.md) — numeración de versiones y cómo publicar una.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licencias y créditos.
 
 ## Créditos

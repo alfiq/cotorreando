@@ -19,8 +19,10 @@ import sys
 import threading
 import time
 import unicodedata
+import webbrowser
 import winreg
 from ctypes import wintypes
+from pathlib import Path
 
 import numpy as np
 
@@ -28,20 +30,23 @@ from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, QRect, Q
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from . import asr
+from . import asr, model_store
 from .audio import AudioInput
 from .blob import Blob
 from .config import Settings
-from .dialogs import (STYLE, AboutDialog, Notice, SettingsDialog, SetupDialog, UnlockDialog,
-                      WelcomeDialog, styled_menu)
+from .dialogs import (STYLE, AboutDialog, DownloadDialog, ModelErrorDialog, Notice, SettingsDialog,
+                      SetupDialog, UnlockDialog, WelcomeDialog, choose_model_folder, model_error_text,
+                      styled_menu)
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, foreground, ours_in_front, replace_text, type_text
 from .learning import Learner, fit_start
 from .listener import Listener
 from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
+from . import __version__, updates
 
 log = logging.getLogger(__name__)
+UPDATE_DELAY_MS = 30_000   # let the app settle before going online
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 WM_QUERYENDSESSION = 0x0011
 ENDSESSION_CRITICAL = 0x40000000
@@ -95,6 +100,8 @@ class Cotorreando(QObject):
     toggle_requested = Signal()
     warning = Signal(str)
     loading = Signal(float)   # -1 = busy, 0..1 = download progress
+    update_found = Signal(str, str)   # version, release page
+    model_failed = Signal(object)     # the exception that kept the model from loading
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -143,34 +150,82 @@ class Cotorreando(QObject):
         if not self.s.hidden:
             self.blob.show()
         self.blob.set_enabled(False)   # grey until the model is loaded
-        threading.Thread(target=self._load_model, daemon=True).start()
+        self.model_failed.connect(self._on_model_failed)
+        QTimer.singleShot(0, self._prepare_model)   # its dialogs need the event loop running
+        self.update_found.connect(self._offer_update)
+        QTimer.singleShot(UPDATE_DELAY_MS, self._check_updates)
 
     # -- model & audio --------------------------------------------------------
 
     def _model_dir(self):
+        if self.s.custom_model:
+            return Path(self.s.custom_model)   # adapters are trained on the stock model only
         path = MODELS_DIR / "adapters" / self.s.lora_adapter
         return path if self.s.lora_adapter and path.exists() else asr.model_dir()
+
+    def _prepare_model(self) -> None:
+        """Main thread: download the model if needed (with its own window), then load it."""
+        self.model = None
+        while not self.s.custom_model and not asr.is_downloaded():
+            self.status.emit(tr("loading"))
+            dialog = DownloadDialog(asr.download)
+            if dialog.exec():
+                break
+            log.warning("Model download failed: %r", dialog.error)
+            if not self._resolve_model_problem(model_error_text(dialog.error), "retry", tr("retry")):
+                return
+        threading.Thread(target=self._load_model, daemon=True).start()
+
+    def _resolve_model_problem(self, text: str, fix: str, fix_label: str) -> bool:
+        """Offer ``fix``, the user's own model (or back to the stock one) and quitting.
+        True if something changed and the model should be prepared again."""
+        options = [("own", tr("use_own_model")), (fix, fix_label)]
+        if self.s.custom_model:
+            options.insert(0, ("stock", tr("use_stock_model")))
+        dialog = ModelErrorDialog(text, options)
+        dialog.exec()
+        if dialog.choice == "own":
+            path = choose_model_folder(None, self.s.custom_model)
+            if not path:
+                return self._resolve_model_problem(text, fix, fix_label)
+            self.s.custom_model = path
+        elif dialog.choice == "stock":
+            self.s.custom_model = ""
+        elif dialog.choice == "redownload":
+            model_store.remove(asr.model_dir())
+        elif dialog.choice != "retry":
+            QTimer.singleShot(0, self.quit)
+            return False
+        self.s.save()
+        return True
+
+    def _on_model_failed(self, err: Exception) -> None:
+        if self.s.custom_model:
+            text = tr("model_custom_failed", path=self.s.custom_model, error=err)
+            again = self._resolve_model_problem(text, "retry", tr("retry"))
+        else:
+            again = self._resolve_model_problem(tr("model_corrupt", error=err), "redownload", tr("redownload"))
+        if again:
+            self._prepare_model()
 
     def _load_model(self) -> None:
         self.status.emit(tr("loading"))
         self.loading.emit(-1)
+        custom = bool(self.s.custom_model)
         try:
-            if not asr.is_downloaded():
-                asr.download(self._download_progress)
-                self.loading.emit(-1)
             try:
-                self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu)
+                self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu, custom=custom)
             except Exception:
                 if not self.s.use_gpu:
                     raise
                 log.exception("GPU model load failed; retrying on the CPU")
-                self.model = asr.Parakeet(self._model_dir(), use_gpu=False)
+                self.model = asr.Parakeet(self._model_dir(), use_gpu=False, custom=custom)
             self.model.boost_alpha = self.s.boost_alpha
         except Exception as err:
             log.exception("Model load failed")
             self.status.emit(tr("load_failed", error=err))
-            self.warning.emit(tr("load_failed", error=err))
             self.loading.emit(-2)
+            self.model_failed.emit(err)
             return
         log.info("Model loaded (%s)", "GPU" if self.model.on_gpu else "CPU")
         self.status.emit(tr("ready"))
@@ -194,6 +249,29 @@ class Cotorreando(QObject):
         if not first_run:
             self._offer_password()
 
+    # -- updates --------------------------------------------------------------
+
+    def _check_updates(self) -> None:
+        if not updates.due(self.s):
+            return
+
+        def run():
+            found = updates.check(self.s)
+            if found:
+                self.update_found.emit(*found)
+        threading.Thread(target=run, daemon=True, name="updates").start()
+
+    def _offer_update(self, version: str, url: str) -> None:
+        def skip():
+            self.s.update_skipped = version
+            self.s.save()
+        self.update_notice = Notice(tr("update_available", version=version, current=__version__),
+                                    tr("update_open"), lambda: webbrowser.open(url),
+                                    tr("update_skip"), skip)
+        area = self.blob.screen().availableGeometry()
+        corner = QRect(area.bottomRight(), area.bottomRight())
+        self.update_notice.show_near(self.blob.geometry() if self.blob.isVisible() else corner, area)
+
     # -- password -------------------------------------------------------------
 
     def _offer_password(self) -> None:
@@ -212,11 +290,6 @@ class Cotorreando(QObject):
             SetupDialog(self.learner).exec()
         elif UnlockDialog(self.learner).exec():
             vault.lock()                # the word lists stay in memory; the key does not
-
-    def _download_progress(self, done: int, total: int) -> None:
-        self.status.emit(tr("downloading", pct=done * 100 // max(total, 1)))
-        if total:
-            self.loading.emit(done / total)
 
     def start_audio(self) -> None:
         self.stop_audio()
@@ -385,7 +458,7 @@ class Cotorreando(QObject):
         self.s.save()
 
     def open_settings(self) -> None:
-        old = (self.s.use_gpu, self.s.lora_adapter)
+        old = (self.s.use_gpu, self.s.lora_adapter, self.s.custom_model)
         dialog = SettingsDialog(self.s, self.listener, self.learner)
         accepted = dialog.exec()
         if dialog.calibrate_requested:
@@ -398,14 +471,14 @@ class Cotorreando(QObject):
         self.blob.set_size(self.s.blob_size)
         set_autostart(self.s.autostart)
         self.s.save()
-        if (self.s.use_gpu, self.s.lora_adapter) != old:
+        if (self.s.use_gpu, self.s.lora_adapter, self.s.custom_model) != old:
             self._reload_model()
         else:
             self.start_audio()
 
     def _reload_model(self) -> None:
         self.stop_audio()
-        threading.Thread(target=self._load_model, daemon=True).start()
+        self._prepare_model()
 
     def open_training(self) -> None:
         from .lora.ui import CalibrationDialog   # rarely used, load lazily

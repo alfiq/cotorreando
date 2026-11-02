@@ -41,8 +41,8 @@ FORMAT, VERSION = "cotorreando-export", 1
 # What belongs to this computer rather than to the user: devices, where the blob sits,
 # files that are not exported (adapters, calibration readings) and notices already shown.
 MACHINE_FIELDS = {"microphone", "use_gpu", "autostart", "blob_x", "blob_y", "hidden",
-                  "lora_adapter", "calibrated", "password_offered", "training_notice_shown",
-                  "welcome_accepted"}
+                  "lora_adapter", "custom_model", "calibrated", "password_offered", "training_notice_shown",
+                  "welcome_accepted", "update_last_check", "update_skipped"}
 
 
 class NotAnExport(Exception):

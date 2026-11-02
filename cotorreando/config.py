@@ -41,6 +41,7 @@ class Settings:
     streaming: bool = True             # type words while you are still speaking
 
     # Model
+    custom_model: str = ""             # folder of the user's own model; empty = the downloaded one
     lora_adapter: str = ""             # empty = stock model
     lora_language: str = "es"          # "es" | "en" | "both"
     calibrated: bool = False           # finished or skipped the first calibration
@@ -54,6 +55,9 @@ class Settings:
     vocabulary_on: bool = False        # only ever enabled by a measured improvement
     boost_alpha: float = 1.0           # strength of the boost, the one that measured best
     training_notice_shown: bool = False
+    check_updates: bool = True         # ask GitHub once a day whether a newer version exists
+    update_last_check: float = 0.0     # time.time() of the last attempt
+    update_skipped: str = ""           # version the user chose to skip
 
     # Blob
     blob_size: str = "medium"          # "small" | "medium" | "large"

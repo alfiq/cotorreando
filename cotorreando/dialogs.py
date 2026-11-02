@@ -5,10 +5,11 @@ from __future__ import annotations
 import ctypes
 import logging
 import secrets
+import threading
 import time
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
                                QStackedWidget, QTabBar, QTextBrowser, QVBoxLayout, QWidget)
@@ -19,7 +20,8 @@ from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
 from .keyboard import parse_hotkey
 from .learning import phrase_alpha
-from .mosaic import logo_pixmap
+from . import model_store
+from .mosaic import Mosaic, logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
 from . import transfer
 from . import vault_legacy
@@ -344,7 +346,7 @@ class RecoverDialog(_Form):
 class Notice(QWidget):
     """A note that comes out of the bubble. It never takes the keyboard from what you are doing."""
 
-    def __init__(self, text, action, on_action):
+    def __init__(self, text, action, on_action, dismiss=None, on_dismiss=None):
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setObjectName("notice")
@@ -352,7 +354,8 @@ class Notice(QWidget):
         self.setAttribute(Qt.WA_StyledBackground)
         button = QPushButton(action, clicked=lambda: (self.close(), on_action()))
         button.setFocusPolicy(Qt.NoFocus)
-        later = QPushButton(tr("later"), objectName="ghost", clicked=self.close)
+        later = QPushButton(dismiss or tr("later"), objectName="ghost",
+                            clicked=lambda: (self.close(), on_dismiss and on_dismiss()))
         later.setFocusPolicy(Qt.NoFocus)
         row = QHBoxLayout()
         row.addStretch()
@@ -372,6 +375,154 @@ class Notice(QWidget):
         y = min(max(anchor.center().y() - self.height() // 2, area.top()), area.bottom() - self.height())
         self.move(max(x, area.left()), y)
         self.show()
+
+
+def model_error_text(err: Exception) -> str:
+    if isinstance(err, model_store.ModelError):
+        return tr(err.key, **err.kw)
+    return str(err)
+
+
+def choose_model_folder(parent=None, start: str = "") -> str | None:
+    """Ask for the folder of the user's own model; None unless it holds one we can run."""
+    path = QFileDialog.getExistingDirectory(parent, tr("own_model_pick"), start)
+    if not path:
+        return None
+    problem = None
+    QApplication.setOverrideCursor(Qt.WaitCursor)   # loading the graphs takes a few seconds
+    try:
+        model_store.validate(path)
+    except model_store.InvalidModel as err:
+        problem = model_error_text(err)
+    finally:
+        QApplication.restoreOverrideCursor()
+    if problem:
+        Prompt(parent, tr("model_invalid", reason=problem), ok="OK", cancel=False).exec()
+        return None
+    return path
+
+
+def _size(n: float) -> str:
+    return f"{n / 1024 ** 2:,.0f} MB"
+
+
+def _duration(seconds: float) -> str:
+    return f"{seconds / 60:.0f} min" if seconds >= 90 else f"{seconds:.0f} s"
+
+
+class DownloadDialog(Window):
+    """The first download of the model: the parrot's tiles light up as the bytes arrive.
+
+    ``download(progress, cancelled)`` runs on a thread and raises a ModelError on failure.
+    The result is accepted on success; otherwise ``error`` says why (Cancelled included).
+    """
+
+    _progress = Signal(int, int)
+    _ended = Signal(object)
+
+    def __init__(self, download, parent=None):
+        super().__init__(parent)
+        self.download, self.error = download, None
+        self._cancel, self._last = threading.Event(), 0.0
+        self._started = self._running = False
+        self._rate = model_store.Rate()
+        self.setWindowTitle(tr("dl_title"))
+        self.setFixedWidth(460)
+        self.mosaic = Mosaic(5, 0.0)
+        self.label = QLabel(tr("dl_starting"), objectName="note", alignment=Qt.AlignCenter)
+        self.cancel = QPushButton(tr("cancel"), objectName="ghost", clicked=self.reject)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 12, 24, 20)
+        layout.setSpacing(14)
+        layout.addWidget(self.mosaic, 0, Qt.AlignCenter)
+        layout.addWidget(QLabel(tr("dl_intro"), wordWrap=True))
+        layout.addWidget(self.label)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.cancel)
+        layout.addLayout(buttons)
+        self._progress.connect(self._show)
+        self._ended.connect(self._finish)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._started:
+            self._started = self._running = True
+            threading.Thread(target=self._run, daemon=True, name="download").start()
+
+    def _run(self):
+        try:
+            self.download(self._report, self._cancel.is_set)
+        except model_store.ModelError as err:
+            self._ended.emit(err)
+        except Exception as err:   # never leave the dialog spinning
+            log.exception("Model download failed")
+            self._ended.emit(model_store.DownloadFailed(str(err)))
+        else:
+            self._ended.emit(None)
+
+    def _report(self, done: int, total: int) -> None:
+        now = time.monotonic()
+        if now - self._last >= 0.1 or done == total:   # ~10 updates a second is plenty
+            self._last = now
+            self._progress.emit(done, total)
+
+    def _show(self, done: int, total: int) -> None:
+        speed = self._rate.update(done)
+        if not total:
+            self.label.setText(tr("dl_progress_unknown", done=_size(done)))
+            return
+        self.mosaic.set_progress(min(done / total, 1.0))
+        text = tr("dl_progress", done=_size(done), total=_size(total), pct=done * 100 // total)
+        if speed > 0 and done < total:
+            text += tr("dl_speed", speed=_size(speed), left=_duration((total - done) / speed))
+        elif done >= total:
+            text = tr("dl_verifying")
+        self.label.setText(text)
+
+    def _finish(self, error) -> None:
+        self._running, self.error = False, error
+        if error is None:
+            super().accept()
+        else:
+            super().reject()
+
+    def reject(self):
+        """Cancel and close: the worker notices between chunks and keeps the .part to resume."""
+        if self._running:
+            self._cancel.set()
+            self.cancel.setEnabled(False)
+            self.label.setText(tr("dl_cancelled"))
+        else:
+            super().reject()
+
+
+class ModelErrorDialog(Window):
+    """What went wrong with the model, and what can be done: ``options`` are (choice, label),
+    the last one the default. ``choice`` is "quit" unless another button was pressed."""
+
+    def __init__(self, text, options, parent=None):
+        super().__init__(parent)
+        self.choice = "quit"
+        self.setWindowTitle(tr("model_problem"))
+        self.setFixedWidth(480)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 12, 24, 20)
+        layout.setSpacing(14)
+        layout.addWidget(QLabel(text, wordWrap=True))
+        buttons = QHBoxLayout()
+        buttons.addWidget(QPushButton(tr("quit"), objectName="ghost", clicked=self.reject))
+        buttons.addStretch()
+        for i, (choice, label) in enumerate(options):
+            last = i == len(options) - 1
+            button = QPushButton(label, objectName="" if last else "ghost", default=last)
+            button.clicked.connect(lambda _=False, c=choice: self._pick(c))
+            buttons.addWidget(button)
+        layout.addLayout(buttons)
+
+    def _pick(self, choice: str) -> None:
+        self.choice = choice
+        self.accept()
 
 
 def adapters() -> list[str]:
@@ -532,7 +683,20 @@ class SettingsDialog(Window):
         return self._groups((None, [(tr("holdoff"), self.holdoff), self.trailing, self.streaming]))
 
     def _model(self):
-        self.adapter = self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
+        self.custom_model = self.s.custom_model
+        self.model_label = QLabel(wordWrap=True)
+        choose = QPushButton(tr("own_model_choose"), objectName="ghost", clicked=self._choose_model)
+        self.stock_button = QPushButton(tr("use_stock_model"), objectName="ghost",
+                                        clicked=lambda: self._set_model(""))
+        own = QWidget()
+        line = QHBoxLayout(own)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.addWidget(self.model_label, 1)
+        line.addWidget(self.stock_button)
+        line.addWidget(choose)
+        self._set_model(self.custom_model)
+        own_help = QLabel(tr("own_model_help"), objectName="note", wordWrap=True)
+        self.adapter =self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
         self.boost = self._combo([("auto", tr("boost_auto")), ("on", tr("boost_on")), ("off", tr("boost_off"))],
                                  self.s.boost_mode)
         boost_note = QLabel(tr("boost_note"), objectName="note", wordWrap=True)
@@ -545,13 +709,26 @@ class SettingsDialog(Window):
         line.setSpacing(16)
         line.addWidget(help_text, 1)
         line.addWidget(calibrate)
-        return self._groups((None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]))
+        return self._groups((tr("own_model"), [own, own_help]),
+                            (None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]))
+
+    def _set_model(self, path: str) -> None:
+        self.custom_model = path
+        self.model_label.setText(path or tr("own_model_stock"))
+        self.stock_button.setVisible(bool(path))
+
+    def _choose_model(self):
+        path = choose_model_folder(self, self.custom_model)
+        if path:
+            self._set_model(path)
 
     def _privacy(self):
         self.learning = QCheckBox(tr("learning"), checked=self.s.learning)
         self.excluded = QLineEdit(self.s.excluded_apps)
         self.retention = QSpinBox(minimum=1, maximum=3650, value=self.s.retention_days)
         note = QLabel(tr("privacy_note"), objectName="note", wordWrap=True)
+        self.updates = QCheckBox(tr("check_updates"), checked=self.s.check_updates)
+        updates_note = QLabel(tr("check_updates_note"), objectName="note", wordWrap=True)
         self.password = QPushButton(objectName="ghost", clicked=self._change_password)
         view = QPushButton(tr("data_view"), objectName="ghost", clicked=self._view_data)
         row = QWidget()
@@ -564,7 +741,8 @@ class SettingsDialog(Window):
         line.addStretch()
         self._show_password_state()
         return self._groups((None, [self.learning, (tr("excluded"), self.excluded),
-                                    (tr("retention"), self.retention), row, note]))
+                                    (tr("retention"), self.retention), row, note,
+                                    self.updates, updates_note, privacy_link()]))
 
     def _show_password_state(self):
         self.password.setText(tr("password_change") if self.learner.vault.ready else tr("password_set"))
@@ -664,9 +842,11 @@ class SettingsDialog(Window):
         s.typing_holdoff_ms, s.trailing_space = self.holdoff.value(), self.trailing.isChecked()
         s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
+        s.custom_model = self.custom_model
         s.boost_mode = self.boost.currentData()
         s.learning, s.excluded_apps = self.learning.isChecked(), self.excluded.text().strip()
         s.retention_days = self.retention.value()
+        s.check_updates = self.updates.isChecked()
         self.accept()
 
 
@@ -985,6 +1165,13 @@ class DataDialog(Window):
         super().done(result)
 
 
+def privacy_link() -> QLabel:
+    """A link to the privacy page, in the language of the interface; opens in the browser."""
+    link = QLabel(f"<a href='{tr('privacy_url')}'>{tr('privacy_link')}</a>", objectName="note")
+    link.setOpenExternalLinks(True)
+    return link
+
+
 class WelcomeDialog(Window):
     """First-run notice: what stays on this PC, what is saved, and the learning switch."""
 
@@ -997,6 +1184,7 @@ class WelcomeDialog(Window):
         layout.setContentsMargins(24, 8, 24, 20)
         layout.setSpacing(14)
         layout.addWidget(QLabel(tr("welcome_text"), wordWrap=True))
+        layout.addWidget(privacy_link())
         self.learning = QCheckBox(tr("welcome_learning"), checked=settings.learning)
         layout.addWidget(self.learning)
         buttons = QHBoxLayout()
@@ -1024,7 +1212,8 @@ class AboutDialog(Window):
         html = (
             f"<h2>Cotorreando {__version__}</h2><p>{tr('tagline')}</p>"
             f"<p>{tr('author')}: <b>{__author__}</b> · <a href='{AUTHOR_URL}'>{AUTHOR_URL}</a><br>"
-            f"Repo: <a href='{REPO_URL}'>{REPO_URL}</a> · MIT</p>"
+            f"Repo: <a href='{REPO_URL}'>{REPO_URL}</a> · MIT<br>"
+            f"<a href='{tr('privacy_url')}'>{tr('privacy_link')}</a></p>"
             f"<h3>{tr('credits')}</h3>{rows}")
         text = QTextBrowser(openExternalLinks=True)
         text.setHtml(html)

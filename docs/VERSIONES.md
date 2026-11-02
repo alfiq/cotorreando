@@ -1,0 +1,84 @@
+# Versiones y lanzamientos
+
+Cómo se numeran las versiones y qué pasos seguir para publicar una.
+
+## Numeración: MAYOR.MENOR.PARCHE
+
+Se usa [SemVer](https://semver.org/lang/es/). Al subir un dígito, los de su derecha vuelven a 0.
+
+| Sube | Cuándo | Ejemplo |
+|---|---|---|
+| PARCHE | Correcciones y cambios pequeños que no agregan funciones. | 0.0.8 → 0.0.9 |
+| MENOR | Funciones nuevas que no rompen lo que ya existe. | 0.0.9 → 0.1.0 |
+| MAYOR | Cambios que rompen algo (formato de datos, ajustes, exportaciones) o la primera versión estable, 1.0.0. | 0.4.2 → 1.0.0 |
+
+Mientras la versión empiece con **0.x**, la app está en desarrollo: lo habitual es subir el
+PARCHE, y un cambio que rompe algo sube el MENOR en lugar del MAYOR. Las etiquetas de Git
+llevan una `v` delante (`v0.0.9`); los archivos, no (`0.0.9`).
+
+## Cuándo lanzar
+
+Cuando hay un conjunto coherente de cambios en `main`, las pruebas pasan y el instalador se
+construye y se probó a mano en una PC. No hace falta esperar a juntar mucho: es mejor una
+versión pequeña que funciona que una grande a medias.
+
+## Pasos
+
+1. **Cambiar la versión.** Con el script:
+
+   ```powershell
+   python scripts/bump_version.py 0.0.9
+   ```
+
+   Escribe la versión en los cuatro lugares donde vive y agrega a `CHANGELOG.md` un
+   encabezado vacío `## 0.0.9 — AAAA-MM-DD`. A mano, son estos:
+
+   | Archivo | Línea |
+   |---|---|
+   | `pyproject.toml` | `version = "0.0.9"` |
+   | `cotorreando/__init__.py` | `__version__ = "0.0.9"` |
+   | `installer.iss` | `#define AppVersion "0.0.9"` |
+   | `build.ps1` | `--product-version=0.0.9 --file-version=0.0.9` |
+
+   `tests/test_version_consistency.py` falla si alguno quedó distinto o falta el encabezado.
+
+2. **Escribir el CHANGELOG.** Bajo el encabezado, viñetas cortas en español, pensadas para
+   quien usa la app (qué cambia para él, no cómo se programó). La versión más nueva va arriba.
+
+3. **Probar.**
+
+   ```powershell
+   .venv\Scripts\python -m pytest -q
+   ```
+
+4. **Construir** con `.\build.ps1`. Deja `dist\Cotorreando-0.0.9-setup.exe`. Instálalo y
+   pruébalo encima de la versión anterior.
+
+5. **Unir a `main`** (PR o merge) y hacer commit de la versión si no estaba.
+
+6. **Etiquetar y subir.**
+
+   ```powershell
+   git checkout main
+   git pull
+   git tag v0.0.9
+   git push origin main --tags
+   ```
+
+7. **Crear el Release en GitHub** sobre la etiqueta `v0.0.9`, con el texto del CHANGELOG y el
+   `setup.exe` adjunto:
+
+   ```powershell
+   gh release create v0.0.9 dist\Cotorreando-0.0.9-setup.exe --title "0.0.9" --notes-file notas.md
+   ```
+
+   No lo marques como borrador ni como pre-release: la búsqueda de actualizaciones de la app
+   pregunta por `releases/latest`, que ignora ambos, y compara su etiqueta (sin la `v`) con la
+   versión instalada. Una etiqueta que no sea `vX.Y.Z` se ignora.
+
+## Búsqueda de actualizaciones
+
+La app, si está activado en Opciones › Privacidad, consulta una vez al día
+`api.github.com/repos/alfiq/cotorreando/releases/latest`. Si hay una versión más nueva,
+avisa junto a la burbuja con un botón para abrir la página del Release y otro para omitir
+esa versión. Nunca descarga ni instala nada sola.

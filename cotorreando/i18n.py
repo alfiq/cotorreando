@@ -16,6 +16,72 @@ STRINGS = {
     "mic_silent": ("El micrófono no envía audio. Revisa Configuración > Privacidad > Micrófono.",
                    "The microphone sends no audio. Check Settings > Privacy > Microphone."),
     "disabled": ("Desactivado", "Disabled"),
+    # Model download and the user's own model
+    "dl_title": ("Descargando el modelo de voz", "Downloading the speech model"),
+    "dl_intro": ("La primera vez Cotorreando descarga el modelo de reconocimiento (unos 670 MB). "
+                 "Después funciona sin conexión.",
+                 "The first time, Cotorreando downloads the recognition model (about 670 MB). "
+                 "After that it works offline."),
+    "dl_starting": ("Conectando…", "Connecting…"),
+    "dl_progress": ("{done} de {total} · {pct}%", "{done} of {total} · {pct}%"),
+    "dl_progress_unknown": ("{done} descargados", "{done} downloaded"),
+    "dl_speed": (" · {speed}/s · quedan {left}", " · {speed}/s · {left} left"),
+    "dl_verifying": ("Comprobando los archivos…", "Checking the files…"),
+    "dl_offline": ("No hay conexión a internet y el modelo aún no está descargado. "
+                   "Conéctate y vuelve a intentarlo, o usa un modelo que ya tengas.\n\n{detail}",
+                   "There is no internet connection and the model is not downloaded yet. "
+                   "Connect and try again, or use a model you already have.\n\n{detail}"),
+    "dl_interrupted": ("La descarga del modelo se interrumpió. Lo ya descargado se conserva y "
+                       "se reanuda al reintentar; nada a medias se usará como modelo.\n\n{detail}",
+                       "The model download was interrupted. What was downloaded is kept and "
+                       "resumes when you retry; nothing half-done is ever used as the model.\n\n{detail}"),
+    "dl_no_space": ("No hay espacio suficiente para el modelo: hacen falta {needed} libres y hay {free}. "
+                    "Libera espacio en el disco y vuelve a intentarlo.",
+                    "Not enough disk space for the model: {needed} free are needed and there are {free}. "
+                    "Free up some space and try again."),
+    "dl_cancelled": ("Descarga cancelada. Sin el modelo Cotorreando no puede dictar.",
+                     "Download cancelled. Without the model Cotorreando cannot take dictation."),
+    "model_corrupt": ("El modelo descargado no se puede cargar; puede estar dañado.\n\n{error}",
+                      "The downloaded model cannot be loaded; it may be damaged.\n\n{error}"),
+    "model_custom_failed": ("Tu modelo ({path}) no se puede cargar.\n\n{error}",
+                            "Your model ({path}) cannot be loaded.\n\n{error}"),
+    "model_problem": ("Problema con el modelo", "Model problem"),
+    "retry": ("Reintentar", "Retry"),
+    "redownload": ("Volver a descargar", "Download again"),
+    "use_own_model": ("Usar mi modelo…", "Use my own model…"),
+    "use_stock_model": ("Usar el modelo estándar", "Use the standard model"),
+    "own_model": ("Modelo de reconocimiento", "Recognition model"),
+    "own_model_stock": ("Parakeet TDT 0.6B v3 (estándar)", "Parakeet TDT 0.6B v3 (standard)"),
+    "own_model_choose": ("Elegir carpeta…", "Choose folder…"),
+    "own_model_pick": ("Carpeta con tu modelo", "Folder with your model"),
+    "own_model_help": (
+        "Sirve un modelo NVIDIA NeMo FastConformer-TDT (p. ej. Parakeet TDT 0.6B v2/v3) exportado a ONNX "
+        "con la estructura de onnx-asr: nemo128.onnx (preprocesador de 128 bandas mel), "
+        "encoder-model.onnx y decoder_joint-model.onnx (o sus variantes .int8.onnx) y vocab.txt "
+        "(«token índice» por línea, el último índice es el blank). Audio de 16 kHz. "
+        "No sirven modelos RNN-T, CTC, Whisper ni .nemo sin exportar. "
+        "Opcional: tokenizer.json para potenciar tus palabras.",
+        "Works with an NVIDIA NeMo FastConformer-TDT model (e.g. Parakeet TDT 0.6B v2/v3) exported to "
+        "ONNX in the onnx-asr layout: nemo128.onnx (128-mel preprocessor), encoder-model.onnx and "
+        "decoder_joint-model.onnx (or their .int8.onnx variants) and vocab.txt (\"token index\" per "
+        "line, the last index is the blank). 16 kHz audio. RNN-T, CTC, Whisper or unexported .nemo "
+        "models do not work. Optional: tokenizer.json to boost your words."),
+    "model_invalid": ("Esa carpeta no contiene un modelo compatible: {reason}",
+                      "That folder does not hold a compatible model: {reason}"),
+    "model_no_folder": ("la carpeta {path} no existe.", "the folder {path} does not exist."),
+    "model_missing": ("faltan {files}.", "missing {files}."),
+    "model_bad_vocab": ("vocab.txt no tiene el formato «token índice» (línea {line}).",
+                        "vocab.txt is not in the \"token index\" format (line {line})."),
+    "model_bad_onnx": ("{file} no se puede abrir con ONNX Runtime: {detail}",
+                       "{file} cannot be opened with ONNX Runtime: {detail}"),
+    "model_bad_names": ("{file} no tiene las entradas y salidas esperadas (esperadas: {expected}; "
+                        "tiene: {found}).",
+                        "{file} does not have the expected inputs and outputs (expected: {expected}; "
+                        "found: {found})."),
+    "model_not_tdt": ("el decodificador no predice duraciones (salida de {width} para {vocab} tokens): "
+                      "no es un modelo TDT.",
+                      "the decoder predicts no durations (output of {width} for {vocab} tokens): "
+                      "it is not a TDT model."),
     # Settings
     "general": ("General", "General"),
     "audio": ("Audio", "Audio"),
@@ -120,6 +186,15 @@ STRINGS = {
                    "Automatic turns it on only if training measures that it gets your voice right more often."),
     "privacy": ("Privacidad", "Privacy"),
     "learning": ("Aprender de mis correcciones", "Learn from my corrections"),
+    "check_updates": ("Buscar actualizaciones", "Check for updates"),
+    "check_updates_note": ("Una vez al día pregunta a GitHub si hay una versión nueva. Es una petición web "
+                           "normal, sin datos tuyos, y nunca descarga ni instala nada sola.",
+                           "Once a day it asks GitHub whether there is a new version. It is a plain web "
+                           "request, with none of your data, and it never downloads or installs anything."),
+    "update_available": ("Hay una versión nueva de Cotorreando: {version} (tienes {current}).",
+                         "A new version of Cotorreando is out: {version} (you have {current})."),
+    "update_open": ("Ver novedades", "See what's new"),
+    "update_skip": ("Omitir esta versión", "Skip this version"),
     "excluded": ("Apps excluidas (ej. keepass.exe, banco.exe)", "Excluded apps (e.g. keepass.exe, bank.exe)"),
     "retention": ("Borrar datos con más de (días)", "Delete data older than (days)"),
     "privacy_note": ("Tu voz, tu texto y tus palabras se cifran con age y solo se abren con tu contraseña. "
@@ -250,20 +325,31 @@ STRINGS = {
     # Welcome (first run)
     "welcome_title": ("Bienvenido a Cotorreando", "Welcome to Cotorreando"),
     "welcome_text": (
-        "<p><b>Todo se procesa en esta PC.</b> Nada sale a internet, salvo una sola descarga del modelo "
-        "(~670 MB): Parakeet TDT 0.6B v3 de NVIDIA, licencia CC BY 4.0.</p>"
-        "<p>Cotorreando escucha el micrófono y escribe simulando el teclado.</p>"
-        "<p>Si lo permites, guarda audio y texto de tus correcciones para aprender de tu voz, en "
-        "<b>%LOCALAPPDATA%\\Cotorreando</b>, cifrado para tu cuenta de Windows en esta PC. "
+        "<p><b>Tu voz se procesa en esta PC.</b> Sin cuentas, sin telemetría, sin nube. Solo se conecta "
+        "para descargar el modelo de voz la primera vez (~670 MB: Parakeet TDT 0.6B v3 de NVIDIA, licencia "
+        "CC BY 4.0) y dos archivos pequeños que necesita.</p>"
+        "<p>Cotorreando escucha el micrófono mientras está activado y escribe simulando el teclado. "
+        "Si tecleas, se pausa.</p>"
+        "<p>Si lo permites y creas una contraseña, guarda audio y texto de tus correcciones para aprender "
+        "de tu voz, en <b>%LOCALAPPDATA%\\Cotorreando</b>, cifrado con tu contraseña. "
         "Puedes verlo, borrarlo o desactivarlo en Opciones.</p>"
+        "<p>Una vez al día pregunta a GitHub si hay una versión nueva: una petición web normal, sin "
+        "datos tuyos. Nunca descarga ni instala nada por su cuenta; se apaga en Opciones › Privacidad.</p>"
         "<p>Las licencias están en Acerca de.</p>",
-        "<p><b>Everything is processed on this PC.</b> Nothing goes to the internet, except a one-time "
-        "model download (~670 MB): Parakeet TDT 0.6B v3 by NVIDIA, CC BY 4.0 license.</p>"
-        "<p>Cotorreando listens to the microphone and types by simulating the keyboard.</p>"
-        "<p>If you allow it, it saves audio and text of your corrections to learn your voice, in "
-        "<b>%LOCALAPPDATA%\\Cotorreando</b>, encrypted for your Windows account on this PC. "
+        "<p><b>Your voice is processed on this PC.</b> No accounts, no telemetry, no cloud. It only "
+        "connects to download the voice model the first time (~670 MB: Parakeet TDT 0.6B v3 by NVIDIA, "
+        "CC BY 4.0 license) and two small files it needs.</p>"
+        "<p>Cotorreando listens to the microphone while it is on and types by simulating the keyboard. "
+        "If you type, it pauses.</p>"
+        "<p>If you allow it and create a password, it saves audio and text of your corrections to learn "
+        "your voice, in <b>%LOCALAPPDATA%\\Cotorreando</b>, encrypted with your password. "
         "You can view, delete or turn it off in Settings.</p>"
+        "<p>Once a day it asks GitHub whether there is a new version: a plain web request, with none "
+        "of your data. It never downloads or installs anything by itself; turn it off in Settings › Privacy.</p>"
         "<p>The licenses are in About.</p>"),
+    "privacy_link": ("Cómo cuida Cotorreando tu privacidad", "How Cotorreando handles your privacy"),
+    "privacy_url": ("https://github.com/alfiq/cotorreando/blob/main/docs/PRIVACIDAD.md",
+                    "https://github.com/alfiq/cotorreando/blob/main/docs/PRIVACY.md"),
     "welcome_learning": ("Guardar datos para aprender de mi voz", "Save data to learn from my voice"),
     "welcome_accept": ("Aceptar y continuar", "Accept and continue"),
     "welcome_exit": ("Salir", "Exit"),
