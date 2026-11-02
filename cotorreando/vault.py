@@ -177,9 +177,10 @@ class Vault:
         return meta, np.frombuffer(data[4 + size:], np.int16).astype(np.float32) / 32768
 
     def add_record(self, meta: dict, audio: np.ndarray) -> str:
-        """``meta`` holds at least kind and text. Returns the new record's id."""
+        """``meta`` holds at least kind and text, and keeps its time if it brings one.
+        Returns the new record's id."""
         rid = time.strftime("%Y%m%dT%H%M%S-") + uuid.uuid4().hex[:8]
-        _write(RECORDS_DIR / f"{rid}.sealed", self._pack({**meta, "id": rid, "time": time.time()}, audio))
+        _write(RECORDS_DIR / f"{rid}.sealed", self._pack({"time": time.time(), **meta, "id": rid}, audio))
         return rid
 
     def record_ids(self) -> list[str]:

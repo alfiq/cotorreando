@@ -560,6 +560,7 @@ class SettingsDialog(Window):
         line.addWidget(self.password)
         line.addWidget(view)
         line.addWidget(QPushButton(tr("export"), objectName="ghost", clicked=self._export))
+        line.addWidget(QPushButton(tr("import"), objectName="ghost", clicked=self._import))
         line.addStretch()
         self._show_password_state()
         return self._groups((None, [self.learning, (tr("excluded"), self.excluded),
@@ -604,6 +605,33 @@ class SettingsDialog(Window):
                     log.exception("Could not export")
                     Prompt(self, tr("export_failed"), cancel=False).exec()
         self.learner.vault.lock()
+
+    def _import(self):
+        """Applied settings close the dialog as if saved, so the app applies and stores them."""
+        if not self._unlock():
+            return
+        path, _ = QFileDialog.getOpenFileName(self, tr("import"), "", "Cotorreando (*.cotorreando)")
+        dialog = _Import(path, self) if path else None
+        applied = False
+        if dialog and dialog.exec():
+            learner = self.learner
+            try:
+                words, corrections, records = transfer.merge(learner.vault, dialog.head, dialog.audio)
+                if learner.loaded:
+                    learner.hard = learner.vault.load_private("hard_words", {})
+                    learner.counts = learner.vault.load_private("corrections", {})
+                    learner.custom = learner.vault.load_private("custom_words", [])
+                if dialog.settings.isChecked():
+                    transfer.apply_settings(self.s, dialog.head)
+                    applied = True
+                Prompt(self, tr("import_done", words=words, corrections=corrections, records=records),
+                       cancel=False).exec()
+            except Exception:
+                log.exception("Could not import")
+                Prompt(self, tr("import_failed"), cancel=False).exec()
+        self.learner.vault.lock()
+        if applied:
+            self.accept()
 
     def _calibrate(self):
         self.calibrate_requested = True
@@ -675,6 +703,34 @@ class _Export(_Form):
         problem = self.new.problem()
         if problem:
             self._show_error(problem)
+            return
+        self.accept()
+
+
+class _Import(_Form):
+    """The password of the file to import and whether its settings replace these."""
+
+    def __init__(self, path, parent=None):
+        super().__init__(parent, tr("import_password"), tr("import_ok"))
+        self.setWindowTitle(tr("import"))
+        self.path, self.head, self.audio = path, None, b""
+        self.field = QLineEdit(echoMode=QLineEdit.Password)
+        self.settings = QCheckBox(tr("import_settings"), checked=True)
+        self.body.addWidget(self.field)
+        self.body.addWidget(self.settings)
+        self._finish_layout()
+        self.field.setFocus()
+
+    def _submit(self):
+        try:
+            self.head, self.audio = transfer.read(self.path, self.field.text())
+        except WrongPassword:
+            self.field.clear()
+            self._show_error(tr("password_wrong"))
+            return
+        except Exception:
+            log.exception("Could not read %s", self.path)
+            self._show_error(tr("import_not_ours"))
             return
         self.accept()
 
