@@ -32,7 +32,8 @@ from . import asr
 from .audio import AudioInput
 from .blob import Blob
 from .config import Settings
-from .dialogs import STYLE, AboutDialog, Notice, SettingsDialog, SetupDialog, UnlockDialog, styled_menu
+from .dialogs import (STYLE, AboutDialog, Notice, SettingsDialog, SetupDialog, UnlockDialog,
+                      WelcomeDialog, styled_menu)
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, foreground, ours_in_front, replace_text, type_text
 from .learning import Learner, fit_start
@@ -592,5 +593,10 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setStyleSheet(STYLE)
+    settings = Settings.load()
+    if not settings.welcome_accepted:   # before anything is downloaded or recorded
+        set_language(settings.ui_language)
+        if not WelcomeDialog(settings).exec():
+            return 0
     app._cotorreando = Cotorreando(app)  # noqa: SLF001 - keep it alive
     return app.exec()

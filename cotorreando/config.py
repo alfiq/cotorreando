@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 @dataclass
 class Settings:
     # General
+    welcome_accepted: bool = False   # saw and accepted the first-run privacy notice
     ui_language: str = "es"            # "es" | "en"
     mode: str = "activation"           # "open" | "ptt" | "activation"
     activation: str = "voice"          # "voice" | "keyword"

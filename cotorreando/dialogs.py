@@ -985,6 +985,33 @@ class DataDialog(Window):
         super().done(result)
 
 
+class WelcomeDialog(Window):
+    """First-run notice: what stays on this PC, what is saved, and the learning switch."""
+
+    def __init__(self, settings, parent=None):
+        super().__init__(parent)
+        self.s = settings
+        self.setWindowTitle(tr("welcome_title"))
+        self.setFixedWidth(500)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 8, 24, 20)
+        layout.setSpacing(14)
+        layout.addWidget(QLabel(tr("welcome_text"), wordWrap=True))
+        self.learning = QCheckBox(tr("welcome_learning"), checked=settings.learning)
+        layout.addWidget(self.learning)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(QPushButton(tr("welcome_exit"), objectName="ghost", clicked=self.reject))
+        buttons.addWidget(QPushButton(tr("welcome_accept"), clicked=self.accept, default=True))
+        layout.addLayout(buttons)
+
+    def accept(self):
+        self.s.learning = self.learning.isChecked()
+        self.s.welcome_accepted = True
+        self.s.save()
+        super().accept()
+
+
 class AboutDialog(Window):
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -247,6 +247,26 @@ STRINGS = {
                      "o reinicies la PC. Siempre te preguntaré antes.",
                      "Your voice is calibrated. I keep learning, and I only train again when you shut down "
                      "or restart the PC. I always ask first."),
+    # Welcome (first run)
+    "welcome_title": ("Bienvenido a Cotorreando", "Welcome to Cotorreando"),
+    "welcome_text": (
+        "<p><b>Todo se procesa en esta PC.</b> Nada sale a internet, salvo una sola descarga del modelo "
+        "(~670 MB): Parakeet TDT 0.6B v3 de NVIDIA, licencia CC BY 4.0.</p>"
+        "<p>Cotorreando escucha el micrófono y escribe simulando el teclado.</p>"
+        "<p>Si lo permites, guarda audio y texto de tus correcciones para aprender de tu voz, en "
+        "<b>%LOCALAPPDATA%\\Cotorreando</b>, cifrado para tu cuenta de Windows en esta PC. "
+        "Puedes verlo, borrarlo o desactivarlo en Opciones.</p>"
+        "<p>Las licencias están en Acerca de.</p>",
+        "<p><b>Everything is processed on this PC.</b> Nothing goes to the internet, except a one-time "
+        "model download (~670 MB): Parakeet TDT 0.6B v3 by NVIDIA, CC BY 4.0 license.</p>"
+        "<p>Cotorreando listens to the microphone and types by simulating the keyboard.</p>"
+        "<p>If you allow it, it saves audio and text of your corrections to learn your voice, in "
+        "<b>%LOCALAPPDATA%\\Cotorreando</b>, encrypted for your Windows account on this PC. "
+        "You can view, delete or turn it off in Settings.</p>"
+        "<p>The licenses are in About.</p>"),
+    "welcome_learning": ("Guardar datos para aprender de mi voz", "Save data to learn from my voice"),
+    "welcome_accept": ("Aceptar y continuar", "Accept and continue"),
+    "welcome_exit": ("Salir", "Exit"),
     # About
     "about_title": ("Acerca de Cotorreando", "About Cotorreando"),
     "tagline": ("Dictado por voz para todo Windows.", "Voice dictation for all of Windows."),
