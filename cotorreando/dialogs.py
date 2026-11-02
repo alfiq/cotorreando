@@ -5,10 +5,11 @@ from __future__ import annotations
 import ctypes
 import logging
 import secrets
+import time
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
-                               QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
                                QStackedWidget, QTabBar, QTextBrowser, QVBoxLayout, QWidget)
 
@@ -20,6 +21,7 @@ from .keyboard import parse_hotkey
 from .learning import phrase_alpha
 from .mosaic import logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
+from . import transfer
 from . import vault_legacy
 from .vault import WrongPassword, password_problem
 
@@ -557,6 +559,7 @@ class SettingsDialog(Window):
         line.setContentsMargins(0, 0, 0, 0)
         line.addWidget(self.password)
         line.addWidget(view)
+        line.addWidget(QPushButton(tr("export"), objectName="ghost", clicked=self._export))
         line.addStretch()
         self._show_password_state()
         return self._groups((None, [self.learning, (tr("excluded"), self.excluded),
@@ -584,6 +587,23 @@ class SettingsDialog(Window):
         if self._unlock():
             DataDialog(self.learner, self).exec()
             self.learner.vault.lock()
+
+    def _export(self):
+        if not self._unlock():
+            return
+        dialog = _Export(self)
+        if dialog.exec():
+            name = f"cotorreando-{time.strftime('%Y%m%d')}.cotorreando"
+            path, _ = QFileDialog.getSaveFileName(self, tr("export"), name, "Cotorreando (*.cotorreando)")
+            if path:
+                try:
+                    transfer.export(self.learner.vault, self.s, path, dialog.new.password(),
+                                    dialog.dictations.isChecked())
+                    Prompt(self, tr("export_done"), cancel=False).exec()
+                except Exception:
+                    log.exception("Could not export")
+                    Prompt(self, tr("export_failed"), cancel=False).exec()
+        self.learner.vault.lock()
 
     def _calibrate(self):
         self.calibrate_requested = True
@@ -635,6 +655,27 @@ class _ChangePassword(_Form):
             self._show_error(problem)
             return
         self.vault.change_password(self.new.password())
+        self.accept()
+
+
+class _Export(_Form):
+    """The password of the exported file and whether it carries the dictations."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent, tr("export_password"), tr("export_ok"))
+        self.setWindowTitle(tr("export"))
+        self.new = NewPassword()
+        self.dictations = QCheckBox(tr("export_dictations"))
+        self.body.addWidget(self.new)
+        self.body.addWidget(self.dictations)
+        self.body.addWidget(QLabel(tr("export_dictations_note"), objectName="note", wordWrap=True))
+        self._finish_layout()
+
+    def _submit(self):
+        problem = self.new.problem()
+        if problem:
+            self._show_error(problem)
+            return
         self.accept()
 
 

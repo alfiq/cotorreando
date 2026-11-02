@@ -166,6 +166,16 @@ STRINGS = {
     "password_current": ("Escribe tu contraseña:", "Enter your password:"),
     "password_wrong": ("Contraseña incorrecta.", "Wrong password."),
     "data_view": ("Ver mis datos…", "View my data…"),
+    "export": ("Exportar…", "Export…"),
+    "export_password": ("Contraseña del archivo. Puede ser la misma que la de Cotorreando; la necesitarás para "
+                        "importarlo.", "Password for the file. It can be the same as your Cotorreando password; "
+                        "you will need it to import it."),
+    "export_ok": ("Elegir dónde guardar…", "Choose where to save…"),
+    "export_dictations": ("Incluir dictados con su audio", "Include dictations with their audio"),
+    "export_dictations_note": ("El archivo será mucho más grande y guardará tu voz.",
+                               "The file will be much larger and will hold your voice."),
+    "export_done": ("Listo. Tus ajustes y palabras se exportaron.", "Done. Your settings and words were exported."),
+    "export_failed": ("No se pudo exportar.", "Could not export."),
     "data_title": ("Datos guardados", "Saved data"),
     "data_delete": ("Borrar", "Delete"),
     "data_edit": ("Editar", "Edit"),
