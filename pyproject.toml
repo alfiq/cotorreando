@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["nuitka"]
+test = ["pytest"]
 
 [project.urls]
 Homepage = "https://github.com/alfiq/cotorreando"
@@ -37,3 +38,6 @@ include = ["cotorreando*"]
 
 [tool.setuptools.package-data]
 cotorreando = ["lora/datasets/*.txt", "assets/*.png", "icon.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
