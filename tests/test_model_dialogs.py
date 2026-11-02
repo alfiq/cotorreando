@@ -5,16 +5,10 @@ from types import SimpleNamespace
 import pytest
 
 pytest.importorskip("PySide6")
-from PySide6.QtWidgets import QApplication
 
 from cotorreando import dialogs, model_store
 from cotorreando.config import Settings
 from cotorreando.i18n import set_language
-
-
-@pytest.fixture(scope="module")
-def qapp():
-    return QApplication.instance() or QApplication([])
 
 
 @pytest.fixture(autouse=True)

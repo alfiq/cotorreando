@@ -99,3 +99,20 @@ def fake_audio():
     """Half a second of a 440 Hz sine at the app's sample rate."""
     t = np.arange(RATE // 2) / RATE
     return (0.5 * np.sin(2 * np.pi * 440 * t)).astype(np.float32)
+
+
+@pytest.fixture(scope="session")
+def qapp():
+    """One QApplication for the whole run, torn down before Python exits.
+
+    Left to the interpreter's shutdown, Qt objects can be freed after the application
+    and crash the process (exit code 0xC0000005) even though every test passed.
+    """
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication([])
+    yield app
+    for widget in app.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    app.processEvents()
+    app.shutdown()
