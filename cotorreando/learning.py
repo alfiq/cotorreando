@@ -34,6 +34,7 @@ MIN_KEPT = 0.6               # share of the dictated words that must still be in
 MAX_CHANGED_WORDS = 3
 MIN_SOUND_ALIKE = 0.5
 MAX_PHRASE_ALPHA = 3.0       # a corrected word's boost grows with each correction, up to this
+CUSTOM_ALPHA = 2.0           # words you added yourself: you know you say them
 MAX_FIELD_WORDS = 300
 WORD = re.compile(r"\w[\w'’-]*")
 SENTENCE_END = (".", "?", "!", "\n", "\r", ":")
@@ -62,6 +63,11 @@ def phrase_alpha(times: int) -> float:
 def _boostable(word: str) -> bool:
     # Digits are tokenised differently by SentencePiece and by the tokenizer used here.
     return len(word) >= 4 and not any(c.isdigit() for c in word)
+
+
+def custom_word_ok(phrase: str) -> bool:
+    """A word or phrase you add: whole words, no digits."""
+    return len(phrase) >= 2 and not any(c.isdigit() for c in phrase) and bool(WORD.search(phrase))
 
 
 def sound_alike(a: str, b: str) -> bool:
@@ -149,6 +155,7 @@ class Learner:
         self.loaded = False          # the word lists can only be read with the password
         self.hard: dict = {}
         self.counts: dict = {}
+        self.custom: list[str] = []
         self.pending: list[Pending] = []
         threading.Thread(target=self._watch, daemon=True, name="corrections").start()
 
@@ -180,6 +187,7 @@ class Learner:
             return
         self.hard = self.vault.load_private("hard_words", {})
         self.counts = self.vault.load_private("corrections", {})
+        self.custom = self.vault.load_private("custom_words", [])
         self.loaded = True
         events = self.vault.read_events()
         for event in events:
@@ -235,8 +243,8 @@ class Learner:
         return words
 
     def vocabulary(self) -> dict[str, float]:
-        """The corrected words, each boosted more the more times you corrected it."""
-        words: dict[str, float] = {}
+        """Your own words, and the corrected ones boosted more the more times you corrected them."""
+        words: dict[str, float] = {w: CUSTOM_ALPHA for w in self.custom}
         for _, new, times in self.corrections():
             alpha = phrase_alpha(times)
             for w in WORD.findall(new):
@@ -330,6 +338,20 @@ class Learner:
         """The user deleted it: forget it entirely, its boost included."""
         if self.counts.pop(f"{old}|{new}", None) is not None:
             self.vault.save_private("corrections", self.counts)
+
+    def add_custom_word(self, word: str) -> bool:
+        """False if it cannot be boosted (digits, too short) or is already there."""
+        word = " ".join(word.split())
+        if not custom_word_ok(word) or word in self.custom:
+            return False
+        self.custom.append(word)
+        self.vault.save_private("custom_words", self.custom)
+        return True
+
+    def drop_custom_word(self, word: str) -> None:
+        if word in self.custom:
+            self.custom.remove(word)
+            self.vault.save_private("custom_words", self.custom)
 
     def hard_words(self) -> list[dict]:
         return sorted(self.hard.values(), key=lambda e: -e["count"])

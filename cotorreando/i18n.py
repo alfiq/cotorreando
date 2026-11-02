@@ -174,6 +174,14 @@ STRINGS = {
     "data_old": ("Dictado original: {text}", "Original dictation: {text}"),
     "data_tab_dictations": ("Dictados", "Dictations"),
     "data_tab_words": ("Palabras", "Words"),
+    "words_custom": ("TUS PALABRAS", "YOUR WORDS"),
+    "words_custom_note": ("Nombres, términos o frases que dices seguido. El modelo se inclina hacia ellas cuando "
+                          "duda, pero nunca las escribe si no las dijiste.",
+                          "Names, terms or phrases you say often. The model leans towards them when it hesitates, "
+                          "but never writes them if you did not say them."),
+    "words_custom_hint": ("Ej. Tlaquepaque, Kubernetes, Itzel", "E.g. Tlaquepaque, Kubernetes, Itzel"),
+    "words_add": ("Agregar", "Add"),
+    "words_custom_bad": ("No se puede agregar: ya está, o lleva números.", "Cannot add it: it is already there, or has digits."),
     "words_boost": ("TUS CORRECCIONES", "YOUR CORRECTIONS"),
     "words_boost_note": ("Cuando el modelo duda, se inclina por la palabra corregida; más, cuantas más veces "
                          "la corriges. Nunca la cambia sin escucharte. Borra una y deja de inclinarse.",

@@ -711,6 +711,38 @@ class DataDialog(Window):
         rows.setSpacing(10)
         pairs = self.learner.corrections()
         drop = self.learner.drop_correction
+        rows.addWidget(QLabel(tr("words_custom"), objectName="groupTitle"))
+        rows.addWidget(self._text(tr("words_custom_note"), "note"))
+        entry = QLineEdit(placeholderText=tr("words_custom_hint"))
+        add = QPushButton(tr("words_add"), enabled=False)
+        error = QLabel(objectName="note", visible=False)
+        line = QHBoxLayout()
+        line.addWidget(entry, 1)
+        line.addWidget(add)
+        rows.addLayout(line)
+        rows.addWidget(error)
+        custom = QVBoxLayout()
+        custom.setSpacing(10)
+        rows.addLayout(custom)
+
+        def show(word: str) -> None:
+            custom.addWidget(self._word_row(word, "", lambda: self.learner.drop_custom_word(word)))
+
+        def submit() -> None:
+            word = " ".join(entry.text().split())
+            if self.learner.add_custom_word(word):
+                show(word)
+                entry.clear()
+                error.hide()
+            else:
+                error.setText(tr("words_custom_bad"))
+                error.show()
+
+        entry.textChanged.connect(lambda text: add.setEnabled(bool(text.strip())))
+        entry.returnPressed.connect(submit)
+        add.clicked.connect(submit)
+        for word in self.learner.custom:
+            show(word)
         sections = (
             (tr("words_boost"), tr("words_boost_note"),
              [(f"{old}  →  {new}", tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
@@ -737,7 +769,8 @@ class DataDialog(Window):
         line = QHBoxLayout(row)
         line.setContentsMargins(16, 8, 10, 8)
         line.addWidget(self._text(text), 1)
-        line.addWidget(QLabel(detail, objectName="caption"))
+        if detail:
+            line.addWidget(QLabel(detail, objectName="caption"))
 
         def delete() -> None:
             forget()
