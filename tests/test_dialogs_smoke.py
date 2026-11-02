@@ -132,3 +132,20 @@ def test_settings_dialog_rejects_a_bad_hotkey(settings_dialog):
     dialog.hotkey.setText("not+a+hotkey+at+all")
     dialog._accept()
     assert settings.hotkey == "ctrl+win" and dialog.result() == 0
+
+
+@pytest.mark.parametrize("locked, idle, closes", [(True, 0, True), (False, 10 ** 9, True), (False, 1000, False)])
+def test_data_window_closes_when_the_computer_is_left_alone(unlocked_vault, monkeypatch, locked, idle, closes):
+    monkeypatch.setattr(dialogs.keyboard, "session_locked", lambda: locked)
+    monkeypatch.setattr(dialogs.keyboard, "idle_ms", lambda: idle)
+    from cotorreando import learning
+    monkeypatch.setattr(learning, "FieldReader", lambda: None)
+    monkeypatch.setattr(learning.Learner, "_watch", lambda self: None)
+    learner = learning.Learner(Settings())
+    learner.vault = unlocked_vault
+    window = dialogs.DataDialog(learner)
+    rejected = []
+    window.rejected.connect(lambda: rejected.append(True))
+    window._check_away()
+    assert bool(rejected) == closes
+    window.done(0)

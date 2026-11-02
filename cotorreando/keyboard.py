@@ -86,6 +86,9 @@ user32.GetAsyncKeyState.argtypes = (ctypes.c_int,)
 user32.GetAsyncKeyState.restype = ctypes.c_short
 user32.GetLastInputInfo.argtypes = (ctypes.POINTER(LASTINPUTINFO),)
 kernel32.GetTickCount.restype = wintypes.DWORD
+user32.OpenInputDesktop.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+user32.OpenInputDesktop.restype = wintypes.HANDLE
+user32.CloseDesktop.argtypes = (wintypes.HANDLE,)
 
 _injected_at = 0      # GetTickCount of our last SendInput
 
@@ -98,6 +101,20 @@ def _last_input() -> int:
     info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
     user32.GetLastInputInfo(ctypes.byref(info))
     return info.dwTime
+
+
+def idle_ms() -> int:
+    """How long since the last key press or mouse move, anywhere in the session."""
+    return _ms_apart(kernel32.GetTickCount(), _last_input())
+
+
+def session_locked() -> bool:
+    """True while Windows shows the lock screen: the input desktop is then out of reach."""
+    desktop = user32.OpenInputDesktop(0, False, 0x0100)    # DESKTOP_SWITCHDESKTOP
+    if not desktop:
+        return True
+    user32.CloseDesktop(desktop)
+    return False
 
 
 def _ms_apart(a: int, b: int) -> int:

@@ -18,6 +18,7 @@ from . import AUTHOR_URL, REPO_URL, __author__, __version__
 from .audio import RATE, Player, list_microphones
 from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
+from . import keyboard
 from .keyboard import parse_hotkey
 from .learning import phrase_alpha
 from . import model_store
@@ -922,9 +923,13 @@ class _Import(_Form):
 
 
 class DataDialog(Window):
-    """What has been kept, to read, listen to and delete. The vault must be unlocked."""
+    """What has been kept, to read, listen to and delete. The vault must be unlocked.
+
+    It closes by itself, so that whoever opened it locks the vault again, when Windows
+    is locked or nobody has touched the computer for a while."""
 
     playback_ended = Signal(str)
+    IDLE_LIMIT_MS = 5 * 60 * 1000
 
     def __init__(self, learner, parent=None):
         super().__init__(parent)
@@ -936,6 +941,8 @@ class DataDialog(Window):
         self.setWindowTitle(tr("data_title"))
         self.resize(720, 560)
         self.playback_ended.connect(self._on_ended)
+        self.guard = QTimer(self, interval=2000, timeout=self._check_away)
+        self.guard.start()
 
         inner = QWidget(objectName="content")
         self.rows = QVBoxLayout(inner)
@@ -1160,7 +1167,13 @@ class DataDialog(Window):
             self.empty.show()
             self.delete_all.setEnabled(False)
 
+    def _check_away(self) -> None:
+        if keyboard.session_locked() or (not self.playing and keyboard.idle_ms() > self.IDLE_LIMIT_MS):
+            log.info("Closing the data window: the computer was left alone")
+            self.reject()
+
     def done(self, result):
+        self.guard.stop()
         self._stop()
         super().done(result)
 
