@@ -4,7 +4,7 @@
 ; tells what Cotorreando is and then installs. Inno Setup's pages stay underneath,
 ; doing the work; [Code] covers them with a single stage and changes its text.
 
-#define AppVersion "0.0.6"
+#define AppVersion "0.0.7"
 
 [Setup]
 AppId={{6F2C3B1E-8A4D-4C55-9E21-C0770EA2D0F1}

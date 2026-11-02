@@ -1,5 +1,15 @@
 # Cambios
 
+## 0.0.7 — 2026-11-02
+
+- Sesgo hacia tus palabras, como el phrase boosting de NVIDIA NeMo: automático, siempre o nunca,
+  y puedes agregar o quitar palabras propias.
+- Las palabras aprendidas se ven en su propia pestaña de los datos guardados.
+- Exportar ajustes y palabras en un archivo cifrado, e importarlos agregando o reemplazando.
+- Las correcciones solo se buscan mientras el campo dictado tiene el foco.
+- La burbuja vuelve a quedar encima si otra ventana siempre visible la tapa (pasaba al iniciar Windows).
+- Pre-roll de 0.6 s y migración de datos antiguos más robusta.
+
 ## 0.0.6 — 2026-11-01
 
 - Ver mis datos rediseñado: tarjetas con el texto completo, en el estilo del resto de los menús.
