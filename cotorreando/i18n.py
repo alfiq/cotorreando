@@ -125,15 +125,19 @@ STRINGS = {
     "train_title": ("Calibrar mi voz", "Calibrate my voice"),
     "cal_welcome": ("Vamos a conocernos", "Let's get to know each other"),
     "cal_intro": ("Lee en voz alta unos textos breves, unos 3 minutos. Con ellos me adapto a tu voz, tu "
-                  "micrófono y el ruido de este lugar. Todo se queda en tu PC.",
+                  "micrófono y el ruido de este lugar. Tu voz se queda en tu PC.",
                   "Read a few short texts aloud, about 3 minutes. They let me adapt to your voice, your "
-                  "microphone and the noise around you. Everything stays on your PC."),
+                  "microphone and the noise around you. Your voice stays on your PC."),
     "cal_language": ("Idioma en el que dictas", "Language you dictate in"),
     "cal_both": ("Ambos (unos 6 minutos)", "Both (about 6 minutes)"),
-    "cal_cost": ("La primera vez se descargan unos 6 GB y el ajuste tarda unos minutos.",
-                 "The first time downloads about 6 GB, and tuning takes a few minutes."),
-    "cal_cost_cpu": ("La primera vez se descargan unos 3 GB. Sin GPU NVIDIA, el ajuste puede tardar bastante.",
-                     "The first time downloads about 3 GB. Without an NVIDIA GPU, tuning can take a while."),
+    "cal_cost": ("La primera vez se descargan de internet unos 6 GB: herramientas y paquetes de Python (GitHub, PyPI, "
+                 "PyTorch) y modelos de Hugging Face. Tu audio no se sube. El ajuste tarda unos minutos.",
+                 "The first time downloads about 6 GB from the internet: tools and Python packages (GitHub, PyPI, "
+                 "PyTorch) and models from Hugging Face. Your audio is not uploaded. Tuning takes a few minutes."),
+    "cal_cost_cpu": ("La primera vez se descargan de internet unos 3 GB: herramientas y paquetes de Python (GitHub, PyPI, "
+                     "PyTorch) y modelos de Hugging Face. Tu audio no se sube. Sin GPU NVIDIA, el ajuste puede tardar bastante.",
+                     "The first time downloads about 3 GB from the internet: tools and Python packages (GitHub, PyPI, "
+                     "PyTorch) and models from Hugging Face. Your audio is not uploaded. Without an NVIDIA GPU, tuning can take a while."),
     "cal_skip_note": ("Si lo omites, puedes hacerlo cuando quieras en Opciones → Modelo.",
                       "If you skip it, you can do it anytime in Settings → Model."),
     "cal_skip": ("Omitir por ahora", "Skip for now"),

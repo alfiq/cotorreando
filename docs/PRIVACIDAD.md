@@ -86,9 +86,10 @@ En Opciones › Privacidad (te pide la contraseña):
 
 ## Desinstalar
 
-El desinstalador quita el programa y el inicio automático, pero **no borra tus datos**. Para
-quitarlo todo, después de desinstalar borra la carpeta `%LOCALAPPDATA%\Cotorreando`
-(pega esa ruta en el Explorador de archivos).
+El desinstalador quita el programa y el inicio automático, y después **pregunta si quieres borrar
+tus datos** (la carpeta `%LOCALAPPDATA%\Cotorreando`). La respuesta por defecto es no, para que
+puedas reinstalar sin perderlos. Si dijiste que no y luego cambias de idea, borra esa carpeta a
+mano (pega la ruta en el Explorador de archivos).
 
 ## Dudas
 

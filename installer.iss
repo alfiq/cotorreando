@@ -42,11 +42,12 @@ es.HelloText=Hablas y yo escribo, en cualquier programa de Windows: el correo, u
 es.Bubble=Te acompaño en una burbuja
 es.BubbleText=Una burbuja flotante se queda a la mano: se mueve cuando te escucha y cambia de color mientras escribe.%n%nArrástrala a donde quieras y dale clic derecho para abrir las opciones. Si te pones a teclear, me espero.
 es.Private=Lo que dices se queda contigo
-es.PrivateText=Reconozco tu voz aquí, en tu equipo. La primera vez descargo el modelo de voz (unos 670 MB) y, si quieres, aprendo tu forma de hablar.%n%nMi código es libre, con licencia MIT. El modelo es Parakeet TDT 0.6B v3 de NVIDIA, con licencia CC BY 4.0. Los demás créditos están en Acerca de.
+es.PrivateText=Reconozco tu voz aquí, en tu equipo. La primera vez descargo el modelo de voz (unos 670 MB) y, una vez al día, pregunto a GitHub si hay una versión nueva. Si quieres, aprendo tu forma de hablar.%n%nMi código es libre, con licencia MIT. El modelo es Parakeet TDT 0.6B v3 de NVIDIA, con licencia CC BY 4.0. Los demás créditos están en Acerca de.
 es.Legal=Lo legal, en corto
 es.LegalText=Soy software libre: puedes usarme, copiarme y modificarme. Vengo tal cual, sin garantías.%n%nUso piezas de otros proyectos, cada una con su licencia; vienen conmigo en la carpeta licenses.
 es.ReadLicenses=Leer las licencias
 es.Accept=Acepto la licencia de Cotorreando y las de terceros
+es.DeleteData=¿Borrar también tus datos de Cotorreando?%n%nIncluye tus grabaciones y palabras cifradas, tu voz entrenada, los modelos descargados y tus ajustes, en:%n%1%n%nSi piensas volver a instalarlo, puedes conservarlos.
 es.Desktop=Poner un acceso directo en el escritorio
 es.Install=Instalar
 es.Closing=Un momento
@@ -60,11 +61,12 @@ en.HelloText=You talk and I type, in any Windows program: your email, a chat, a 
 en.Bubble=I keep you company in a bubble
 en.BubbleText=A floating bubble stays close by: it moves when it hears you and changes colour while it types.%n%nDrag it anywhere and right-click it for the options. If you start typing, I wait.
 en.Private=What you say stays with you
-en.PrivateText=I recognise your voice here, on your computer. The first time I download the voice model (about 670 MB) and, if you like, I learn the way you speak.%n%nMy code is free software, under the MIT licence. The model is Parakeet TDT 0.6B v3 by NVIDIA, under CC BY 4.0. The other credits are in About.
+en.PrivateText=I recognise your voice here, on your computer. The first time I download the voice model (about 670 MB) and, once a day, I ask GitHub whether there is a new version. If you like, I learn the way you speak.%n%nMy code is free software, under the MIT licence. The model is Parakeet TDT 0.6B v3 by NVIDIA, under CC BY 4.0. The other credits are in About.
 en.Legal=The legal bit, in short
 en.LegalText=I am free software: you may use, copy and modify me. I come as is, without warranty.%n%nI use pieces from other projects, each under its own licence; they come with me in the licenses folder.
 en.ReadLicenses=Read the licences
 en.Accept=I accept the licence of Cotorreando and the third-party ones
+en.DeleteData=Also delete your Cotorreando data?%n%nThis includes your encrypted recordings and words, your trained voice, the downloaded models and your settings, in:%n%1%n%nIf you plan to install it again, you can keep them.
 en.Desktop=Add a shortcut to the desktop
 en.Install=Install
 en.Closing=One moment
@@ -289,6 +291,19 @@ begin
     Say('Done', 'DoneText')
   else
     Say('Hello', 'HelloText');
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Data: String;
+begin
+  // Ask after the program is gone; a silent uninstall keeps the data.
+  if CurUninstallStep <> usPostUninstall then
+    Exit;
+  Data := ExpandConstant('{localappdata}\Cotorreando');
+  if DirExists(Data) and (SuppressibleMsgBox(FmtMessage(CustomMessage('DeleteData'), [Data]),
+      mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDYES) then
+    DelTree(Data, True, True, True);
 end;
 
 procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);

@@ -86,9 +86,10 @@ In Settings › Privacy (it asks for the password):
 
 ## Uninstalling
 
-The uninstaller removes the program and the start-with-Windows entry, but **does not delete your
-data**. To remove everything, after uninstalling delete the folder `%LOCALAPPDATA%\Cotorreando`
-(paste that path into File Explorer).
+The uninstaller removes the program and the start-with-Windows entry, and then **asks whether to
+delete your data** (the folder `%LOCALAPPDATA%\Cotorreando`). The default answer is no, so you can
+reinstall without losing it. If you said no and change your mind, delete that folder by hand
+(paste the path into File Explorer).
 
 ## Questions
 
