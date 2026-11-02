@@ -1,5 +1,20 @@
 # Cambios
 
+## 0.0.9 — 2026-11-02
+
+- Avisa cuando hay una versión nueva en GitHub, una vez al día; se apaga en Opciones › Privacidad.
+  Nunca descarga ni instala nada solo.
+- Descarga del modelo con progreso en el mosaico de la cotorra, cancelable y reanudable, con errores
+  claros si no hay conexión, si se corta o si falta espacio.
+- Puedes usar tu propio modelo Parakeet TDT en ONNX; se valida antes de aceptarlo.
+- Página de privacidad (docs/PRIVACIDAD.md), enlazada desde la bienvenida, Opciones y Acerca de.
+- Al desinstalar pregunta si borrar también tus datos.
+- Calibrar avisa qué se descarga de internet para entrenar.
+- Correcciones: importar ya no acepta el aviso de privacidad, ni deja datos a medias si el archivo
+  viene dañado; ajustes guardados de forma atómica; un evento dañado ya no bloquea el aprendizaje;
+  la descarga del VAD se reintenta si se cortó; se registran las palabras dudosas.
+- Pruebas automáticas y CI en GitHub Actions.
+
 ## 0.0.8 — 2026-11-02
 
 - El instalador tiene una página "Lo legal, en corto": hay que aceptar la licencia, con un enlace
