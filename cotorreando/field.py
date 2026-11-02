@@ -52,8 +52,19 @@ class FieldReader:
     def snapshot(self, timeout: float = 0.1) -> Snapshot | None:
         return self._wait(self._submit(self._focused), timeout)
 
-    def reread(self, element, timeout: float = 1.0) -> str | None:
-        return self._wait(self._submit(lambda: self._read(element).text), timeout)
+    def read_if_focused(self, element, timeout: float = 1.0) -> str | None:
+        """The text of ``element``, only while it is the focused field; None otherwise.
+
+        Nothing is read from a field the user has left, nor from any other one.
+        """
+        return self._wait(self._submit(lambda: self._read_focused(element)), timeout)
+
+    def _read_focused(self, element) -> str | None:
+        focused = self.automation.GetFocusedElement()
+        if not focused or not self.automation.CompareElements(focused, element):
+            return None
+        snapshot = self._read(element)
+        return None if snapshot.password else snapshot.text
 
     def _run(self) -> None:
         try:

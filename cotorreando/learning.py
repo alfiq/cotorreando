@@ -24,7 +24,8 @@ from .vault import Vault
 
 log = logging.getLogger(__name__)
 
-SETTLE_S = 45                # corrections are looked for this long after dictating
+SETTLE_S = 120               # corrections are looked for this long after dictating
+WATCH_S = 2                  # how often the field is looked at, while it has the focus
 LOW_PROBABILITY = 0.6
 LOW_MARGIN = 0.3
 MAX_HARD_WORDS = 500
@@ -66,7 +67,8 @@ def find_corrections(typed: str, field: str) -> tuple[str, list[tuple[str, str]]
     a, b = list(WORD.finditer(typed)), list(WORD.finditer(field))
     if not a:
         return None
-    a_words, b_words = [_plain(m.group()) for m in a], [_plain(m.group()) for m in b]
+    # Accents are kept: adding a missing one (comic → cómic) is a correction too.
+    a_words, b_words = [m.group().lower() for m in a], [m.group().lower() for m in b]
     matcher = difflib.SequenceMatcher(None, a_words, b_words, autojunk=False)
     if sum(block.size for block in matcher.get_matching_blocks()) < MIN_KEPT * len(a_words):
         return None
@@ -121,6 +123,7 @@ class Pending:
     typed: str
     audio: np.ndarray
     since: float
+    latest: tuple | None = None  # what find_corrections said the last time the text was still there
 
 
 class Learner:
@@ -259,25 +262,36 @@ class Learner:
 
     def _watch(self) -> None:
         while True:
-            time.sleep(5)
+            time.sleep(WATCH_S)
             with self.lock:
-                now = time.monotonic()
-                ready = [p for p in self.pending if now - p.since >= SETTLE_S]
-                self.pending = [p for p in self.pending if now - p.since < SETTLE_S]
-            for item in ready:
+                watching = list(self.pending)
+            done = []
+            for item in watching:
                 try:
-                    self._settle(item)
+                    if self._look(item) or time.monotonic() - item.since >= SETTLE_S:
+                        done.append(item)
+                        self._settle(item)
                 except Exception:
+                    done.append(item)
                     log.exception("Could not check for corrections")
+            with self.lock:
+                self.pending = [p for p in self.pending if not any(p is d for d in done)]
+
+    def _look(self, item: Pending) -> bool:
+        """Reads the field only while it has the focus. True once the dictated text is gone."""
+        field = self.reader.read_if_focused(item.element)
+        if field is None:            # you are somewhere else: nothing is read
+            return False
+        found = find_corrections(item.typed, field)
+        if found is None:            # sent, cleared or rewritten: keep the last version seen
+            return True
+        item.latest = found
+        return False
 
     def _settle(self, item: Pending) -> None:
-        field = self.reader.reread(item.element)
-        if not field:
+        if not item.latest or not item.latest[1]:
             return
-        found = find_corrections(item.typed, field)
-        if not found or not found[1]:
-            return
-        text, pairs = found
+        text, pairs = item.latest
         self.vault.add_record({"kind": "correction", "text": text.strip(), "old": item.typed.strip()}, item.audio)
         log.info("Correction kept (%d words changed)", len(pairs))
         for old, new in pairs:
