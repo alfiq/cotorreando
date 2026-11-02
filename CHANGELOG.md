@@ -1,5 +1,16 @@
 # Cambios
 
+## 0.1.0 — 2026-11-02
+
+- Seguridad: todo lo que se descarga (el modelo de voz, el detector de voz, las herramientas y
+  el modelo base para entrenar) viene de una versión fija y se comprueba byte a byte antes de usarlo.
+- El entorno para entrenar se instala con versiones exactas y verificadas de cada paquete.
+- Ver mis datos se cierra solo, y vuelve a pedir la contraseña, si bloqueas Windows o dejas el
+  equipo 5 minutos sin usar.
+- Un ajuste dañado o un archivo importado con valores raros ya no puede borrar tus grabaciones
+  ni cerrar la app: se ignora y se usa el valor de siempre.
+- Importar rechaza archivos con dictados mal formados.
+
 ## 0.0.9 — 2026-11-02
 
 - Avisa cuando hay una versión nueva en GitHub, una vez al día; se apaga en Opciones › Privacidad.
