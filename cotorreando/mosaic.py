@@ -72,5 +72,5 @@ def logo_pixmap(tile: int = 6) -> QPixmap:
     mosaic = Mosaic(tile)
     pixmap = QPixmap(mosaic.size())
     pixmap.fill(QColor(0, 0, 0, 0))
-    mosaic.render(pixmap)
+    mosaic.render(pixmap, renderFlags=QWidget.RenderFlag.DrawChildren)   # no window background
     return pixmap
