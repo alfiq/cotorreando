@@ -9,6 +9,7 @@ how many frames to skip.
 from __future__ import annotations
 
 import copy
+import hashlib
 import logging
 import urllib.request
 from pathlib import Path
@@ -28,7 +29,9 @@ ORIGINAL_REPO = "nvidia/parakeet-tdt-0.6b-v3"
 
 SAMPLE_RATE = 16000
 MAX_TOKENS_PER_FRAME = 10
-TOKENIZER_URL = "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/resolve/main/tokenizer.json"
+TOKENIZER_URL = ("https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/resolve/"
+                 "541d1f99c6b0c3cd0b11a95167540bb8edefd82b/tokenizer.json")
+TOKENIZER_SHA256 = "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91"
 BOOST_ALPHA = 1.0              # NeMo's boosting_tree_alpha; tuned on the user's own dictations
 
 
@@ -81,8 +84,11 @@ def phrase_tokenizer(directory: Path | None = None, fetch: bool = True) -> Phras
             return None
         try:
             tmp = path.with_suffix(".part")
-            with urllib.request.urlopen(TOKENIZER_URL) as r, open(tmp, "wb") as f:
-                f.write(r.read())
+            with urllib.request.urlopen(TOKENIZER_URL, timeout=30) as r:
+                data = r.read()
+            if hashlib.sha256(data).hexdigest() != TOKENIZER_SHA256:
+                raise OSError("tokenizer.json: checksum mismatch")
+            tmp.write_bytes(data)
             tmp.replace(path)
         except OSError as err:
             log.warning("Could not fetch the tokenizer; no phrase boosting: %s", err)

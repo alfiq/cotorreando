@@ -7,6 +7,7 @@ data folder and install them there. Scripts are then run with that Python.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import shutil
@@ -18,14 +19,17 @@ from pathlib import Path
 
 from ..paths import DATA_DIR, PACKAGE_DIR
 
-UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+# A fixed release checked by hash: this executable gets run, so it must be exactly the one we expect.
+UV_URL = "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-pc-windows-msvc.zip"
+UV_SHA256 = "a2a8820d5eea32f08ef467ef3b7f66883a9b076d5737a2fc2fbb5f458d1bb50f"
 TOOLS_DIR = DATA_DIR / "tools"
 ENV_DIR = DATA_DIR / "train-env"
 PYTHON = ENV_DIR / "Scripts" / "python.exe"
 TORCH_INDEX = "https://download.pytorch.org/whl/cu128"
 TORCH_INDEX_CPU = "https://download.pytorch.org/whl/cpu"
-EXTRAS = ["cryptography", "bitsandbytes", "accelerate"]
-PACKAGES = ["nemo_toolkit[asr]", "onnx", "onnxruntime", *EXTRAS]
+# Every package pinned by version and hash; regenerate with scripts/lock_training.ps1.
+LOCK = PACKAGE_DIR / "lora" / "requirements-cu128.txt"
+LOCK_CPU = PACKAGE_DIR / "lora" / "requirements-cpu.txt"
 TRAIN_SCRIPT = PACKAGE_DIR / "lora" / "train.py"
 PANELS_SCRIPT = PACKAGE_DIR / "lora" / "panels.py"
 NO_WINDOW = subprocess.CREATE_NO_WINDOW
@@ -49,9 +53,12 @@ def _uv() -> Path:
     uv = TOOLS_DIR / "uv.exe"
     if not uv.exists():
         TOOLS_DIR.mkdir(parents=True, exist_ok=True)
-        with urllib.request.urlopen(UV_URL) as r:
-            with zipfile.ZipFile(io.BytesIO(r.read())) as z:
-                uv.write_bytes(z.read("uv.exe"))
+        with urllib.request.urlopen(UV_URL, timeout=60) as r:
+            data = r.read()
+        if hashlib.sha256(data).hexdigest() != UV_SHA256:
+            raise RuntimeError("uv download: checksum mismatch")
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            uv.write_bytes(z.read("uv.exe"))
     return uv
 
 
@@ -79,12 +86,17 @@ def _stream(cmd: list[str], log, payload: bytes | None = None, extra_env: dict |
         raise RuntimeError(f"{cmd[0]} exited with {proc.returncode}")
 
 
+def _install_locked(log) -> None:
+    gpu = has_nvidia()
+    _stream([str(_uv()), "pip", "install", "--python", str(PYTHON), "--require-hashes",
+             "-r", str(LOCK if gpu else LOCK_CPU),
+             "--extra-index-url", TORCH_INDEX if gpu else TORCH_INDEX_CPU,
+             "--index-strategy", "unsafe-best-match"], log)
+
+
 def install(log=print) -> None:
-    uv = str(_uv())
-    _stream([uv, "venv", "--clear", "--python", "3.12", str(ENV_DIR)], log)
-    _stream([uv, "pip", "install", "--python", str(PYTHON), "torch", "torchaudio",
-             "--index-url", TORCH_INDEX if has_nvidia() else TORCH_INDEX_CPU], log)
-    _stream([uv, "pip", "install", "--python", str(PYTHON), *PACKAGES], log)
+    _stream([str(_uv()), "venv", "--clear", "--python", "3.12", str(ENV_DIR)], log)
+    _install_locked(log)
 
 
 def _has_extras() -> bool:
@@ -98,7 +110,7 @@ def ensure_installed(log=print) -> None:
         if not installed():
             install(log)
         elif not _has_extras():    # an environment from before these were needed
-            _stream([str(_uv()), "pip", "install", "--python", str(PYTHON), *EXTRAS], log)
+            _install_locked(log)
 
 
 def run_train(args: list[str], log=print, payload: bytes | None = None) -> None:

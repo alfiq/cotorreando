@@ -37,7 +37,7 @@ build-backend = "setuptools.build_meta"
 include = ["cotorreando*"]
 
 [tool.setuptools.package-data]
-cotorreando = ["lora/datasets/*.txt", "assets/*.png", "icon.*"]
+cotorreando = ["lora/datasets/*.txt", "lora/requirements-*.txt", "assets/*.png", "icon.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

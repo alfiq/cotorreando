@@ -1,0 +1,11 @@
+# Direct dependencies of the training environment. After editing, regenerate both
+# locks with scripts/lock_training.ps1 (they pin every package by hash); the torch
+# version is repeated there, as each lock picks the CUDA or the CPU build.
+torch==2.11.0
+torchaudio==2.11.0
+nemo_toolkit[asr]==3.0.0
+onnx==1.23.2
+onnxruntime==1.31.1
+cryptography==50.0.2
+bitsandbytes==0.50.2
+accelerate==1.15.0

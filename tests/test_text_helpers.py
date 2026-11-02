@@ -1,5 +1,7 @@
 """Small helpers around the model download and the voice-activity detector, without any model."""
 
+import hashlib
+
 import numpy as np
 import pytest
 
@@ -18,7 +20,15 @@ def downloads(isolated_data, monkeypatch):
             f.write(b"onnx")
 
     monkeypatch.setattr(vad.urllib.request, "urlretrieve", fake_retrieve)
+    monkeypatch.setattr(vad, "SHA256", hashlib.sha256(b"onnx").hexdigest())
     return calls
+
+
+def test_tampered_model_is_rejected(downloads, monkeypatch):
+    monkeypatch.setattr(vad, "SHA256", "0" * 64)
+    with pytest.raises(OSError):
+        vad.ensure_model()
+    assert not vad.PATH.exists() and not vad.PATH.with_name(vad.PATH.name + ".part").exists()
 
 
 def test_ensure_model_downloads_once(downloads):
@@ -49,6 +59,7 @@ def test_interrupted_download_is_fetched_again(isolated_data, monkeypatch):
             f.write(b"complete model")
 
     monkeypatch.setattr(vad.urllib.request, "urlretrieve", flaky)
+    monkeypatch.setattr(vad, "SHA256", hashlib.sha256(b"complete model").hexdigest())
     with pytest.raises(ConnectionError):
         vad.ensure_model()
     vad.ensure_model()
