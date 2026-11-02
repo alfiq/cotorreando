@@ -41,7 +41,8 @@ FORMAT, VERSION = "cotorreando-export", 1
 # What belongs to this computer rather than to the user: devices, where the blob sits,
 # files that are not exported (adapters, calibration readings) and notices already shown.
 MACHINE_FIELDS = {"microphone", "use_gpu", "autostart", "blob_x", "blob_y", "hidden",
-                  "lora_adapter", "calibrated", "password_offered", "training_notice_shown"}
+                  "lora_adapter", "calibrated", "password_offered", "training_notice_shown",
+                  "welcome_accepted"}
 
 
 class NotAnExport(Exception):
@@ -80,7 +81,8 @@ def read(path: Path, password: str) -> tuple[dict, bytes]:
         head = json.loads(line.decode("utf-8"))
     except ValueError as err:
         raise NotAnExport from err
-    if not isinstance(head, dict) or head.get("format") != FORMAT or head.get("version", 0) > VERSION:
+    if (not isinstance(head, dict) or head.get("format") != FORMAT
+            or not isinstance(head.get("version", 0), int) or head.get("version", 0) > VERSION):
         raise NotAnExport
     return head, audio
 
@@ -90,25 +92,51 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
 
     ``replace`` starts the word lists from nothing instead of adding to them.
     """
+    try:
+        incoming = head.get("custom_words", [])
+        corrections = head.get("corrections", {})
+        hard_in = head.get("hard_words", {})
+        records = head.get("records", [])
+        if not (isinstance(incoming, list) and all(isinstance(w, str) for w in incoming)
+                and isinstance(corrections, dict) and isinstance(hard_in, dict)
+                and isinstance(records, list)):
+            raise NotAnExport
+        if not all(isinstance(c, int) for c in corrections.values()):
+            raise NotAnExport
+        for entry in hard_in.values():
+            if not (isinstance(entry, dict) and isinstance(entry.get("word"), str)
+                    and all(isinstance(entry.get(k, 0), int) for k in ("count", "read"))):
+                raise NotAnExport
+        total = 0
+        for record in records:
+            samples = record["samples"]
+            if not (isinstance(record["id"], str) and isinstance(record["meta"], dict)
+                    and isinstance(samples, int) and samples >= 0):
+                raise NotAnExport
+            total += samples
+        if total * 4 > len(audio):
+            raise NotAnExport
+    except (KeyError, TypeError) as err:
+        raise NotAnExport from err
     custom = [] if replace else vault.load_private("custom_words", [])
-    words = [w for w in dict.fromkeys(head.get("custom_words", [])) if w not in custom]
-    vault.save_private("custom_words", custom + words)
+    words = [w for w in dict.fromkeys(incoming) if w not in custom]
     counts = {} if replace else vault.load_private("corrections", {})
-    for key, count in head.get("corrections", {}).items():
-        counts[key] = counts.get(key, 0) + count
-    vault.save_private("corrections", counts)
+    for key, count in corrections.items():
+        counts[key] = counts.get(key, 0) + max(count, 1)     # a count below 1 means nothing
     hard = {} if replace else vault.load_private("hard_words", {})
-    for plain, entry in head.get("hard_words", {}).items():
+    for plain, entry in hard_in.items():
         mine = hard.setdefault(plain, {"word": entry["word"], "count": 0, "read": 0})
         mine["count"] += entry.get("count", 0)
         mine["read"] += entry.get("read", 0)
+    vault.save_private("custom_words", custom + words)
+    vault.save_private("corrections", counts)
     vault.save_private("hard_words", hard)
     seen = set()
     for rid in vault.record_ids():
         seen.add(rid)
         seen.add(vault.read_record(rid)[0].get("imported_from"))
     added, start = 0, 0
-    for record in head.get("records", []):
+    for record in records:
         samples = np.frombuffer(audio, "<f4", record["samples"], start * 4)
         start += record["samples"]
         origin = record["meta"].get("imported_from") or record["id"]
@@ -116,7 +144,7 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
             vault.add_record({**record["meta"], "imported_from": origin}, samples.astype(np.float32))
             seen.add(origin)
             added += 1
-    return len(words), len(head.get("corrections", {})), added
+    return len(words), len(corrections), added
 
 
 def apply_settings(settings, head: dict) -> None:

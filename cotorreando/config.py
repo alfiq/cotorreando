@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import asdict, dataclass, fields
 
 from .paths import CONFIG_FILE
@@ -66,12 +67,16 @@ class Settings:
             data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return cls()
+        if not isinstance(data, dict):
+            return cls()
         known = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in data.items() if k in known})
 
     def save(self) -> None:
         try:
             CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-            CONFIG_FILE.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
+            temp = CONFIG_FILE.with_name(CONFIG_FILE.name + ".tmp")
+            temp.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
+            os.replace(temp, CONFIG_FILE)
         except OSError as err:
             log.error("Could not save settings: %s", err)

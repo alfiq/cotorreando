@@ -57,7 +57,7 @@ def _sound(text: str) -> str:
 
 def phrase_alpha(times: int) -> float:
     """NeMo's per-phrase alpha, from how many times you made this correction."""
-    return min(1.0 + math.log2(times), MAX_PHRASE_ALPHA)
+    return min(1.0 + math.log2(max(times, 1)), MAX_PHRASE_ALPHA)
 
 
 def _boostable(word: str) -> bool:
@@ -191,7 +191,10 @@ class Learner:
         self.loaded = True
         events = self.vault.read_events()
         for event in events:
-            self._apply(event)
+            try:
+                self._apply(event)
+            except (KeyError, TypeError, AttributeError):
+                log.warning("Skipped a malformed learning event")
         if events:
             self._save_lists()
         self.vault.clear_events()
@@ -265,7 +268,7 @@ class Learner:
         word, unsure = "", False
         for piece, _, probability, margin in list(trace) + [(" ", 0, 1, 1)]:
             if piece.startswith(" ") and word:
-                clean = _plain(word)
+                clean = _plain(word).strip()
                 if unsure and len(clean) >= 4 and clean.isalpha():
                     self._note({"op": "word", "word": word.strip()})
                 word, unsure = "", False

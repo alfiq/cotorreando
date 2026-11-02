@@ -18,7 +18,9 @@ CONTEXT = 64     # v5 expects the tail of the previous chunk prepended
 def ensure_model() -> None:
     if not PATH.exists():
         PATH.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(URL, PATH)
+        part = PATH.with_name(PATH.name + ".part")    # renamed only once it is complete
+        urllib.request.urlretrieve(URL, part)
+        part.replace(PATH)
 
 
 class SileroVAD:
