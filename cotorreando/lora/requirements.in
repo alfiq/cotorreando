@@ -9,3 +9,6 @@ onnxruntime==1.31.1
 cryptography==50.0.2
 bitsandbytes==0.50.2
 accelerate==1.15.0
+# pip-audit flags fsspec, hydra-core and lightning (capped by NeMo 3.0) and setuptools
+# (capped by torch 2.11). None of their flaws is reachable here: training only reads
+# files this app wrote. Raise them as soon as NeMo and torch allow.

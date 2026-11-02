@@ -11,6 +11,15 @@ from .paths import CONFIG_FILE
 
 log = logging.getLogger(__name__)
 
+# What each value may be; anything else, from a hand-edited file or an imported one,
+# falls back to the default instead of reaching the code that relies on it.
+CHOICES = {"ui_language": {"es", "en"}, "mode": {"open", "ptt", "activation"},
+           "activation": {"voice", "keyword"}, "lora_language": {"es", "en", "both"},
+           "boost_mode": {"auto", "on", "off"}, "blob_size": {"small", "medium", "large"}}
+RANGES = {"retention_days": (1, 3650), "silence_ms": (100, 10000), "typing_holdoff_ms": (0, 10000),
+          "session_timeout_s": (1.0, 600.0), "vad_threshold": (0.0, 1.0),
+          "energy_threshold_db": (-100.0, 0.0), "boost_alpha": (0.0, 10.0)}
+
 
 @dataclass
 class Settings:
@@ -73,8 +82,27 @@ class Settings:
             return cls()
         if not isinstance(data, dict):
             return cls()
-        known = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in data.items() if k in known})
+        settings = cls()
+        settings.update(data)
+        return settings
+
+    def update(self, data: dict, skip=()) -> None:
+        """Take the values in ``data`` that this version knows and that make sense."""
+        default = Settings()
+        for f in fields(self):
+            if f.name not in data or f.name in skip:
+                continue
+            value, kind = data[f.name], type(getattr(default, f.name))
+            if kind is float and type(value) is int:
+                value = float(value)
+            if type(value) is not kind:
+                continue
+            if f.name in CHOICES and value not in CHOICES[f.name]:
+                continue
+            low, high = RANGES.get(f.name, (None, None))
+            if low is not None and not low <= value <= high:
+                continue
+            setattr(self, f.name, value)
 
     def save(self) -> None:
         try:

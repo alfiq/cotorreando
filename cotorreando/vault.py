@@ -197,6 +197,8 @@ class Vault:
         (RECORDS_DIR / f"{rid}.sealed").unlink(missing_ok=True)
 
     def delete_older_than(self, days: int) -> int:
+        if days < 1:            # a bad setting must never wipe everything
+            return 0
         limit, removed = time.time() - days * 86400, 0
         for folder in (RECORDS_DIR, JOURNAL_DIR):
             for path in folder.glob("*.sealed"):

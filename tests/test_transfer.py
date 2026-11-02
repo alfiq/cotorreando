@@ -151,10 +151,10 @@ def test_merge_adds_to_existing(unlocked_vault):
 
 def test_merge_replace_replaces_lists_but_only_adds_dictations(unlocked_vault):
     seed(unlocked_vault, ["viejo"], {"x|y": 9}, {"w": {"word": "w", "count": 9, "read": 0}})
-    unlocked_vault.add_record({"kind": "k", "text": "mine"}, np.zeros(10, np.float32))
+    unlocked_vault.add_record({"kind": "correction", "text": "mine"}, np.zeros(10, np.float32))
     audio = np.ones(5, "<f4").tobytes()
     head = head_of(custom_words=["nuevo"], corrections={"a|b": 1}, hard_words={},
-                   records=[{"id": "R1", "meta": {"kind": "k", "text": "theirs"}, "samples": 5}])
+                   records=[{"id": "R1", "meta": {"kind": "correction", "text": "theirs"}, "samples": 5}])
     assert transfer.merge(unlocked_vault, head, audio, replace=True) == (1, 1, 1)
     assert unlocked_vault.load_private("custom_words", None) == ["nuevo"]
     assert unlocked_vault.load_private("corrections", None) == {"a|b": 1}
@@ -164,8 +164,8 @@ def test_merge_replace_replaces_lists_but_only_adds_dictations(unlocked_vault):
 
 def test_merge_dedups_and_reimport_adds_nothing(unlocked_vault):
     audio = np.ones(8, "<f4").tobytes()
-    head = head_of(records=[{"id": "R1", "meta": {"kind": "k", "text": "a"}, "samples": 4},
-                            {"id": "R1", "meta": {"kind": "k", "text": "a"}, "samples": 4}])
+    head = head_of(records=[{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
+                            {"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4}])
     assert transfer.merge(unlocked_vault, head, audio)[2] == 1
     assert transfer.merge(unlocked_vault, head, audio)[2] == 0
     assert len(unlocked_vault.record_ids()) == 1
@@ -182,7 +182,7 @@ def test_import_back_to_origin_adds_nothing(unlocked_vault, tmp_path):
 
 def test_chain_keeps_the_original_id(unlocked_vault):
     audio = np.ones(4, "<f4").tobytes()
-    first = head_of(records=[{"id": "A1", "meta": {"kind": "k", "text": "a"}, "samples": 4}])
+    first = head_of(records=[{"id": "A1", "meta": {"kind": "correction", "text": "a"}, "samples": 4}])
     transfer.merge(unlocked_vault, first, audio)            # A -> B
     (rid,) = unlocked_vault.record_ids()
     meta, samples = unlocked_vault.read_record(rid)
@@ -221,8 +221,8 @@ def test_merge_is_all_or_nothing_on_truncated_audio(unlocked_vault):
     seed(unlocked_vault)
     audio = np.ones(4, "<f4").tobytes()                      # the second record's audio is missing
     head = head_of(custom_words=["nuevo"],
-                   records=[{"id": "R1", "meta": {"kind": "k", "text": "a"}, "samples": 4},
-                            {"id": "R2", "meta": {"kind": "k", "text": "b"}, "samples": 4}])
+                   records=[{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
+                            {"id": "R2", "meta": {"kind": "correction", "text": "b"}, "samples": 4}])
     with pytest.raises(Exception):
         transfer.merge(unlocked_vault, head, audio)
     assert unlocked_vault.record_ids() == []

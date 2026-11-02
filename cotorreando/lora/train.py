@@ -33,6 +33,10 @@ import torch
 from torch import nn
 
 BASE_MODEL = "nvidia/parakeet-tdt-0.6b-v3"
+# A .nemo carries a config that Hydra instantiates, so the file must be exactly this one.
+BASE_REVISION = "541d1f99c6b0c3cd0b11a95167540bb8edefd82b"
+BASE_FILE = "parakeet-tdt-0.6b-v3.nemo"
+BASE_SHA256 = "3cbdc85877e668ca7b82d0d56770eb1fac76691f55d6b97545e8d61ca588d10d"
 TARGETS = ("linear_q", "linear_k", "linear_v", "linear_out")
 COPIED = ("nemo128.onnx", "vocab.txt", "config.json")
 DURATIONS = 5       # the model predicts frame skips 0..4
@@ -360,6 +364,23 @@ def write_vocab(model, out: Path) -> None:
     model.preprocessor.export(str(out / "nemo128.onnx"))
 
 
+def load_base(name: str):
+    """The pinned base model, checked byte for byte before NeMo opens it."""
+    if name != BASE_MODEL:
+        raise SystemExit(f"Unknown model {name!r}: only the pinned {BASE_MODEL} is allowed")
+    import nemo.collections.asr as nemo_asr
+    from huggingface_hub import hf_hub_download
+    path = hf_hub_download(BASE_MODEL, BASE_FILE, revision=BASE_REVISION)
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1 << 20):
+            h.update(chunk)
+    if h.hexdigest() != BASE_SHA256:
+        os.remove(path)
+        raise SystemExit(f"{BASE_FILE}: checksum mismatch, deleted")
+    return nemo_asr.models.ASRModel.restore_from(path)
+
+
 def main() -> None:
     import nemo.collections.asr as nemo_asr
 
@@ -379,7 +400,7 @@ def main() -> None:
         key, rows = read_job()     # first, so that the sender never waits on a loading model
         stopping = threading.Event()
         watch_for_stop(stopping)
-    model = nemo_asr.models.ASRModel.from_pretrained(args.model)
+    model = load_base(args.model)
     if not args.export_only:
         if torch.cuda.is_available():
             model = model.cuda()

@@ -27,7 +27,7 @@ back into the install it came from, does not add its dictations again.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, fields
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +37,7 @@ from pyrage import passphrase
 from .vault import WrongPassword
 
 FORMAT, VERSION = "cotorreando-export", 1
+RECORD_KINDS = {"correction", "panel"}   # what the data screen and training know how to read
 
 # What belongs to this computer rather than to the user: devices, where the blob sits,
 # files that are not exported (adapters, calibration readings) and notices already shown.
@@ -110,8 +111,11 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
         total = 0
         for record in records:
             samples = record["samples"]
-            if not (isinstance(record["id"], str) and isinstance(record["meta"], dict)
-                    and isinstance(samples, int) and samples >= 0):
+            meta = record["meta"]
+            if not (isinstance(record["id"], str) and isinstance(meta, dict)
+                    and isinstance(samples, int) and samples >= 0
+                    and meta.get("kind") in RECORD_KINDS and isinstance(meta.get("text"), str)
+                    and isinstance(meta.get("old", ""), (str, type(None)))):
                 raise NotAnExport
             total += samples
         if total * 4 > len(audio):
@@ -149,12 +153,6 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
 
 def apply_settings(settings, head: dict) -> None:
     """Only the fields this version knows that do not belong to the other computer."""
-    known = {f.name: type(getattr(settings, f.name)) for f in fields(settings)}
-    for name, value in head.get("settings", {}).items():
-        kind = known.get(name)
-        if name in MACHINE_FIELDS or kind is None:
-            continue
-        if kind is float and type(value) is int:
-            value = float(value)
-        if type(value) is kind:
-            setattr(settings, name, value)
+    incoming = head.get("settings", {})
+    if isinstance(incoming, dict):
+        settings.update(incoming, skip=MACHINE_FIELDS)
