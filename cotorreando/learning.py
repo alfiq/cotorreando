@@ -296,6 +296,24 @@ class Learner:
             self.vault.save_private("corrections", self.counts)
             self._build_rules()
 
+    def corrections(self) -> list[tuple[str, str, int]]:
+        """(heard, corrected, times), most frequent first."""
+        pairs = [(*key.split("|", 1), count) for key, count in self.counts.items()]
+        return sorted(pairs, key=lambda p: -p[2])
+
+    def drop_correction(self, old: str, new: str) -> None:
+        """The user deleted it: forget it entirely, replacement included."""
+        if self.counts.pop(f"{old}|{new}", None) is not None:
+            self.vault.save_private("corrections", self.counts)
+            self._build_rules()
+
+    def hard_words(self) -> list[dict]:
+        return sorted(self.hard.values(), key=lambda e: -e["count"])
+
+    def drop_hard_word(self, word: str) -> None:
+        if self.hard.pop(_plain(word), None) is not None:
+            self._save_hard()
+
     def _build_rules(self) -> None:
         rules = {}
         for key, count in self.counts.items():
