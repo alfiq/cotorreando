@@ -583,6 +583,8 @@ def already_running() -> bool:
 
 
 def main() -> int:
+    if already_running():        # before the log is opened: opening it wipes what the running copy wrote
+        return 0
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     handlers = [logging.FileHandler(DATA_DIR / "cotorreando.log", mode="w", encoding="utf-8")]
     if sys.stderr is not None:   # the windowed build has no console
@@ -592,8 +594,6 @@ def main() -> int:
     # Without a console, exceptions raised in Qt slots would vanish.
     sys.excepthook = lambda *exc: logging.getLogger("cotorreando").error(
         "Unhandled exception", exc_info=exc)
-    if already_running():
-        return 0
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setStyleSheet(STYLE)

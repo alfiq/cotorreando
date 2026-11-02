@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 
 KEY_FILE = VAULT_DIR / "key.json"
 LISTS = ("hard_words", "corrections", "training")
+UNREADABLE_DIR = VAULT_DIR / "unreadable"
+AGE_HEADER = b"age-encryption.org/"
 
 
 class _Blob(ctypes.Structure):
@@ -81,7 +83,15 @@ def migrate(vault: Vault, old_password: str | None = None) -> None:
     """Reseal everything to ``vault``, which must have its new key. Old files go last."""
     key = _old_key(old_password)
     sealed = [*RECORDS_DIR.glob("*.sealed"), *RECORDINGS_DIR.glob("*/*.sealed")]
-    resealed = {path: vault.seal(_open(key, path.read_bytes())) for path in sealed}
+    resealed, unreadable = {}, []
+    for path in sealed:
+        data = path.read_bytes()
+        if data.startswith(AGE_HEADER):   # sealed to the new key already
+            continue
+        try:
+            resealed[path] = vault.seal(_open(key, data))
+        except (InvalidTag, ValueError):
+            unreadable.append(path)
     for path, data in resealed.items():
         temp = path.with_name(path.name + ".tmp")
         temp.write_bytes(data)
@@ -90,12 +100,23 @@ def migrate(vault: Vault, old_password: str | None = None) -> None:
         path = VAULT_DIR / f"{name}.bin"
         if not path.exists():
             continue
-        data = json.loads(_unprotect(path.read_bytes()).decode("utf-8"))
+        try:
+            data = json.loads(_unprotect(path.read_bytes()).decode("utf-8"))
+        except (OSError, ValueError):
+            unreadable.append(path)
+            continue
         if name == "training":   # the ids stay readable; the checkpoint they belonged to does not survive
             vault.set_trained_ids(data.get("trained", []))
         else:
             vault.save_private(name, data)
         path.unlink()
     (VAULT_DIR / "checkpoint.sealed").unlink(missing_ok=True)
-    KEY_FILE.unlink()
-    log.info("Moved %d records to the new key", len(sealed))
+    if unreadable:               # set aside with the old key: nothing is destroyed, and nothing blocks the rest
+        UNREADABLE_DIR.mkdir(parents=True, exist_ok=True)
+        for path in unreadable:
+            log.warning("Could not read %s; moved to %s", path.name, UNREADABLE_DIR)
+            path.replace(UNREADABLE_DIR / f"{path.parent.name}-{path.name}")
+        KEY_FILE.replace(UNREADABLE_DIR / KEY_FILE.name)
+    else:
+        KEY_FILE.unlink()
+    log.info("Moved %d records to the new key, %d unreadable", len(resealed), len(unreadable))

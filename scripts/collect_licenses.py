@@ -18,8 +18,8 @@ PACKAGES = ("numpy", "onnxruntime-directml", "PyAudioWPatch", "livekit", "crypto
 MARKS = ("LICENSE", "LICENCE", "NOTICE", "COPYING", "THIRDPARTY", "CYCLONEDX")
 # Their packages do not carry the text we need.
 DOWNLOADS = {
-    "Qt/LGPL-3.0.txt": "https://www.gnu.org/licenses/lgpl-3.0.txt",
-    "Qt/GPL-3.0.txt": "https://www.gnu.org/licenses/gpl-3.0.txt",
+    "Qt/LGPL-3.0.txt": "https://raw.githubusercontent.com/qt/qtbase/dev/LICENSES/LGPL-3.0-only.txt",
+    "Qt/GPL-3.0.txt": "https://raw.githubusercontent.com/qt/qtbase/dev/LICENSES/GPL-3.0-only.txt",
     "OpenSSL/LICENSE.txt": "https://raw.githubusercontent.com/openssl/openssl/openssl-3.0/LICENSE.txt",
     "PortAudio/LICENSE.txt": "https://raw.githubusercontent.com/PortAudio/portaudio/master/LICENSE.txt",
     "flatbuffers/LICENSE.txt": "https://raw.githubusercontent.com/google/flatbuffers/master/LICENSE",

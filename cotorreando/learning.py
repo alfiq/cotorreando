@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from . import vault_legacy
 from .field import FieldReader, Snapshot
 from .vault import Vault
 
@@ -144,12 +145,22 @@ class Learner:
     def unlock(self, password: str) -> None:
         """Raises WrongPassword. The caller locks the vault again when done with it."""
         self.vault.unlock(password)
+        self._finish_migration()
         self.activate()
 
     def recover(self, code: str, new_password: str) -> None:
         """Raises WrongPassword."""
         self.vault.recover(code, new_password)
+        self._finish_migration()
         self.activate()
+
+    def _finish_migration(self) -> None:
+        """Data of an older version that a previous attempt left behind."""
+        if vault_legacy.pending() and not vault_legacy.needs_old_password():
+            try:
+                vault_legacy.migrate(self.vault)
+            except Exception:
+                log.exception("Could not move the old data to the new key")
 
     def activate(self) -> None:
         """The vault is unlocked: read the word lists and merge what the journal gathered."""

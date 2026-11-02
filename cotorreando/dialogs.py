@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import logging
 import secrets
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
@@ -20,6 +21,8 @@ from .mosaic import logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
 from . import vault_legacy
 from .vault import WrongPassword, password_problem
+
+log = logging.getLogger(__name__)
 
 TITLE_BAR_HEIGHT = 36
 MAX_FAILURES, COOLDOWN_S = 5, 60
@@ -261,7 +264,10 @@ class SetupDialog(_Form):
                 return
         code = vault.create(self.new.password())
         if vault_legacy.pending():
-            vault_legacy.migrate(vault, old)
+            try:
+                vault_legacy.migrate(vault, old)
+            except Exception:    # the new key exists, so the code must still be shown; tried again on unlock
+                log.exception("Could not move the old data to the new key")
         vault.migrate_readings()
         self.learner.activate()
         vault.lock()
