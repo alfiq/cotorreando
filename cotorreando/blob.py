@@ -171,7 +171,7 @@ class Blob(QWidget):
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
             color = QColor.fromHsv(int(200 + self._hue + age * 120) % 360, 220, 255)
-            color.setAlphaF(0.55 * math.sin(math.pi * age))   # born and gone invisible
+            color.setAlphaF(max(0.0, 0.55 * math.sin(math.pi * age)))   # born and gone invisible
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
             p.drawPath(self._shape(c, self.radius * (1 + age * 1.4), t, 0.4))

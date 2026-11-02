@@ -20,7 +20,7 @@ import numpy as np
 from .audio import RATE
 from .vad import CHUNK, SileroVAD
 
-PREROLL_S = 0.3
+PREROLL_S = 0.6
 CALIBRATION_FRAMES = 300   # ~10 s of 32 ms chunks used for the noise floor
 AUTO_MARGIN_DB = 12.0
 
