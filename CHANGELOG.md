@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.0.8 — 2026-11-02
+
+- El instalador tiene una página "Lo legal, en corto": hay que aceptar la licencia, con un enlace
+  para leer las licencias.
+- Aviso de privacidad al abrir por primera vez: qué se queda en la PC, qué se guarda y dónde, y si
+  guardar datos para aprender. Si no lo aceptas, la app se cierra sin descargar ni grabar nada.
+
 ## 0.0.7 — 2026-11-02
 
 - Sesgo hacia tus palabras, como el phrase boosting de NVIDIA NeMo: automático, siempre o nunca,

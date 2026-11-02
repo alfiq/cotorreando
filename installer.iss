@@ -4,7 +4,7 @@
 ; tells what Cotorreando is and then installs. Inno Setup's pages stay underneath,
 ; doing the work; [Code] covers them with a single stage and changes its text.
 
-#define AppVersion "0.0.7"
+#define AppVersion "0.0.8"
 
 [Setup]
 AppId={{6F2C3B1E-8A4D-4C55-9E21-C0770EA2D0F1}
@@ -43,6 +43,10 @@ es.Bubble=Te acompaño en una burbuja
 es.BubbleText=Una burbuja flotante se queda a la mano: se mueve cuando te escucha y cambia de color mientras escribe.%n%nArrástrala a donde quieras y dale clic derecho para abrir las opciones. Si te pones a teclear, me espero.
 es.Private=Lo que dices se queda contigo
 es.PrivateText=Reconozco tu voz aquí, en tu equipo. La primera vez descargo el modelo de voz (unos 670 MB) y, si quieres, aprendo tu forma de hablar.%n%nMi código es libre, con licencia MIT. El modelo es Parakeet TDT 0.6B v3 de NVIDIA, con licencia CC BY 4.0. Los demás créditos están en Acerca de.
+es.Legal=Lo legal, en corto
+es.LegalText=Soy software libre: puedes usarme, copiarme y modificarme. Vengo tal cual, sin garantías.%n%nUso piezas de otros proyectos, cada una con su licencia; vienen conmigo en la carpeta licenses.
+es.ReadLicenses=Leer las licencias
+es.Accept=Acepto la licencia de Cotorreando y las de terceros
 es.Desktop=Poner un acceso directo en el escritorio
 es.Install=Instalar
 es.Closing=Un momento
@@ -57,6 +61,10 @@ en.Bubble=I keep you company in a bubble
 en.BubbleText=A floating bubble stays close by: it moves when it hears you and changes colour while it types.%n%nDrag it anywhere and right-click it for the options. If you start typing, I wait.
 en.Private=What you say stays with you
 en.PrivateText=I recognise your voice here, on your computer. The first time I download the voice model (about 670 MB) and, if you like, I learn the way you speak.%n%nMy code is free software, under the MIT licence. The model is Parakeet TDT 0.6B v3 by NVIDIA, under CC BY 4.0. The other credits are in About.
+en.Legal=The legal bit, in short
+en.LegalText=I am free software: you may use, copy and modify me. I come as is, without warranty.%n%nI use pieces from other projects, each under its own licence; they come with me in the licenses folder.
+en.ReadLicenses=Read the licences
+en.Accept=I accept the licence of Cotorreando and the third-party ones
 en.Desktop=Add a shortcut to the desktop
 en.Install=Install
 en.Closing=One moment
@@ -68,6 +76,8 @@ en.DoneText=Look for the bubble on your screen and start talking. The first time
 
 [Files]
 Source: "dist\installer-art.bmp"; Flags: dontcopy
+Source: "LICENSE"; DestName: "LICENSE.txt"; Flags: dontcopy
+Source: "THIRD_PARTY_NOTICES.md"; DestName: "THIRD_PARTY_NOTICES.txt"; Flags: dontcopy
 Source: "dist\cotorreando.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -97,8 +107,9 @@ const
 var
   Stage: TPanel;
   TitleText, BodyText: TLabel;
-  DesktopBox: TNewCheckBox;
-  StoryBubble, StoryPrivate: TWizardPage;
+  DesktopBox, AcceptBox: TNewCheckBox;
+  LicensesLink: TLabel;
+  StoryBubble, StoryPrivate, StoryLegal: TWizardPage;
 
 function ReleaseCapture: BOOL; external 'ReleaseCapture@user32.dll stdcall';
 function SendMessage(hWnd: HWND; Msg: UINT; wParam, lParam: Longint): Longint;
@@ -125,6 +136,21 @@ begin
     WizardForm.NextButton.OnClick(WizardForm.NextButton);
   end else
     WizardForm.Close;
+end;
+
+procedure AcceptClicked(Sender: TObject);
+begin
+  WizardForm.NextButton.Enabled := AcceptBox.Checked;
+end;
+
+procedure LicensesClicked(Sender: TObject);
+var
+  Code: Integer;
+begin
+  ExtractTemporaryFile('LICENSE.txt');
+  ExtractTemporaryFile('THIRD_PARTY_NOTICES.txt');
+  ShellExec('open', ExpandConstant('{tmp}\LICENSE.txt'), '', '', SW_SHOW, ewNoWait, Code);
+  ShellExec('open', ExpandConstant('{tmp}\THIRD_PARTY_NOTICES.txt'), '', '', SW_SHOW, ewNoWait, Code);
 end;
 
 function NewLabel(Left, Top, Width, Height, Size: Integer; Style: TFontStyles; Color: Integer): TLabel;
@@ -196,6 +222,20 @@ begin
   DesktopBox.Caption := CustomMessage('Desktop');
   DesktopBox.Visible := False;
 
+  LicensesLink := NewLabel(TEXT_X, 318, TEXT_W, 22, 10, [fsUnderline], $F0B45A);
+  LicensesLink.Caption := CustomMessage('ReadLicenses');
+  LicensesLink.Cursor := crHand;
+  LicensesLink.OnMouseDown := nil;
+  LicensesLink.OnClick := @LicensesClicked;
+  LicensesLink.Visible := False;
+
+  AcceptBox := TNewCheckBox.Create(Stage);
+  AcceptBox.Parent := Stage;
+  AcceptBox.SetBounds(ScaleX(TEXT_X), ScaleY(350), ScaleX(TEXT_W), ScaleY(22));
+  AcceptBox.Caption := CustomMessage('Accept');
+  AcceptBox.OnClick := @AcceptClicked;
+  AcceptBox.Visible := False;
+
   WizardForm.BackButton.Parent := Stage;
   WizardForm.NextButton.Parent := Stage;
   WizardForm.NextButton.SetBounds(ScaleX(TEXT_X), ScaleY(400), ScaleX(120), ScaleY(32));
@@ -208,6 +248,7 @@ begin
   // Blank pages: they only give the story its Back and Next.
   StoryBubble := CreateCustomPage(wpWelcome, '', '');
   StoryPrivate := CreateCustomPage(StoryBubble.ID, '', '');
+  StoryLegal := CreateCustomPage(StoryPrivate.ID, '', '');
   CreateCustomPage(wpWelcome, '', '');
 
   Stage.BringToFront;
@@ -227,14 +268,19 @@ end;
 procedure CurPageChanged(CurPageID: Integer);
 begin
   DesktopBox.Visible := CurPageID = StoryPrivate.ID;
+  AcceptBox.Visible := CurPageID = StoryLegal.ID;
+  LicensesLink.Visible := CurPageID = StoryLegal.ID;
   WizardForm.ProgressGauge.Visible := CurPageID = wpInstalling;
   TitleText.BringToFront;
   BodyText.BringToFront;
   if CurPageID = StoryBubble.ID then
     Say('Bubble', 'BubbleText')
-  else if CurPageID = StoryPrivate.ID then begin
-    Say('Private', 'PrivateText');
+  else if CurPageID = StoryPrivate.ID then
+    Say('Private', 'PrivateText')
+  else if CurPageID = StoryLegal.ID then begin
+    Say('Legal', 'LegalText');
     WizardForm.NextButton.Caption := CustomMessage('Install');
+    WizardForm.NextButton.Enabled := AcceptBox.Checked;
   end else if CurPageID = wpPreparing then
     Say('Closing', 'ClosingText')
   else if CurPageID = wpInstalling then
