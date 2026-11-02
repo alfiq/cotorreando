@@ -14,6 +14,8 @@ spring, which gives the elastic feel and a squash in the direction of motion.
 
 from __future__ import annotations
 
+import ctypes
+import ctypes.wintypes
 import math
 import time
 
@@ -34,6 +36,17 @@ CLOUDS = ((320, 0.45, 0.75), (200, 0.35, 0.85), (140, 0.5, 0.7), (265, 0.3, 0.6)
 GREY = QColor(128, 128, 134)
 EDGE_FADE = 0.8      # share of the way from the outline to the centre spent fading in
 MIN_RINGS = 24
+# Windows keeps on top whichever topmost window asked last, so one opened later
+# (the taskbar or an app starting with Windows) hides the blob for good unless
+# it claims its place again now and then.
+RAISE_MS = 2000
+HWND_TOPMOST, HWND_NOTOPMOST, GW_HWNDPREV = -1, -2, 3
+SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = 0x1, 0x2, 0x10
+user32 = ctypes.windll.user32
+# Without these, -1 reaches Windows as 0xFFFFFFFF instead of a 64-bit HWND_TOPMOST.
+user32.SetWindowPos.argtypes = [ctypes.wintypes.HWND, ctypes.wintypes.HWND] + [ctypes.c_int] * 4 \
+    + [ctypes.c_uint]
+user32.GetWindow.restype = ctypes.wintypes.HWND
 
 
 class Blob(QWidget):
@@ -66,6 +79,32 @@ class Blob(QWidget):
         self._tail_vel = QPointF()
         self._timer = QTimer(self, interval=16, timeout=self._tick)
         self._timer.start()
+        self._raise_timer = QTimer(self, interval=RAISE_MS, timeout=self._stay_on_top)
+        self._raise_timer.start()
+
+    def _stay_on_top(self) -> None:
+        """Climbs back over any other app's window covering it.
+
+        Asking for topmost again is ignored while the flag is set, so it is
+        dropped and set again; our own menus and dialogs are left above it.
+        """
+        if not self.isVisible():
+            return
+        hwnd = int(self.winId())
+        own, mine, pid = ctypes.wintypes.RECT(), ctypes.wintypes.DWORD(), ctypes.wintypes.DWORD()
+        user32.GetWindowRect(hwnd, ctypes.byref(own))
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(mine))
+        other, rect = user32.GetWindow(hwnd, GW_HWNDPREV), ctypes.wintypes.RECT()
+        while other:
+            user32.GetWindowThreadProcessId(other, ctypes.byref(pid))
+            user32.GetWindowRect(other, ctypes.byref(rect))
+            if pid.value != mine.value and user32.IsWindowVisible(other) and rect.left < own.right \
+                    and rect.right > own.left and rect.top < own.bottom and rect.bottom > own.top:
+                flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+                user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags)
+                user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags)
+                return
+            other = user32.GetWindow(other, GW_HWNDPREV)
 
     # -- state ----------------------------------------------------------------
 
