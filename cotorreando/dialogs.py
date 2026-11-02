@@ -5,14 +5,14 @@ from __future__ import annotations
 import ctypes
 import secrets
 
-from PySide6.QtCore import QEvent, QRect, Qt, QTimer
+from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QMenu, QPushButton, QScrollArea, QSpinBox,
+                               QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
                                QStackedWidget, QTextBrowser, QVBoxLayout, QWidget)
 
 from . import AUTHOR_URL, REPO_URL, __author__, __version__
-from .audio import list_microphones
+from .audio import RATE, Player, list_microphones
 from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
 from .keyboard import parse_hotkey
@@ -77,6 +77,9 @@ QPushButton#ghost { background: transparent; color: #b6b9c2; border: 1px solid #
 QPushButton#ghost:hover { background: #24262c; color: #e8e9ec; }
 QProgressBar#meter { background: #25272d; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
 QProgressBar#meter::chunk { background: #3f9d78; border-radius: 3px; }
+QPlainTextEdit { background: #25272d; color: #e8e9ec; border: 1px solid #33353d; border-radius: 8px;
+        padding: 6px; selection-background-color: #3f9d78; }
+QPlainTextEdit:focus { border-color: #3f9d78; }
 QTextBrowser { background: #1d1f24; color: #e8e9ec; border: 1px solid #292b32; border-radius: 12px; padding: 12px; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: #3a3c45; border-radius: 3px; min-height: 28px; }
@@ -620,41 +623,152 @@ class _ChangePassword(_Form):
 
 
 class DataDialog(Window):
-    """What has been kept, to read and delete. The vault must be unlocked."""
+    """What has been kept, to read, listen to and delete. The vault must be unlocked."""
+
+    playback_ended = Signal(str)
 
     def __init__(self, vault, parent=None):
         super().__init__(parent)
         self.vault = vault
+        self.player = Player()
+        self.playing = ""
+        self.cards: dict[str, tuple[QFrame, QPushButton]] = {}
         self.setWindowTitle(tr("data_title"))
-        self.resize(640, 460)
-        self.list = QListWidget()
-        for rid in vault.record_ids():
-            meta, _ = vault.read_record(rid)
-            label = f"{rid[:8]} · {tr('kind_' + meta['kind'])} · {meta['text']}"
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, rid)
-            self.list.addItem(item)
-        delete = QPushButton(tr("data_delete"), objectName="ghost", clicked=self._delete)
-        delete_all = QPushButton(tr("data_delete_all"), objectName="ghost", clicked=self._delete_all)
-        close = QPushButton(tr("cal_finish"), clicked=self.accept)
-        buttons = QHBoxLayout()
-        buttons.addWidget(delete)
-        buttons.addWidget(delete_all)
-        buttons.addStretch()
-        buttons.addWidget(close)
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.list, 1)
-        layout.addLayout(buttons)
+        self.resize(720, 560)
+        self.playback_ended.connect(self._on_ended)
 
-    def _delete(self):
-        for item in self.list.selectedItems():
-            self.vault.delete_record(item.data(Qt.UserRole))
-            self.list.takeItem(self.list.row(item))
+        inner = QWidget(objectName="content")
+        self.rows = QVBoxLayout(inner)
+        self.rows.setContentsMargins(28, 24, 28, 24)
+        self.rows.setSpacing(10)
+        self.rows.addWidget(QLabel(tr("data_title"), objectName="pageTitle"))
+        self.rows.addSpacing(8)
+        for rid in reversed(vault.record_ids()):
+            meta, samples = vault.read_record(rid)
+            self.rows.addWidget(self._card(rid, meta, samples.size / RATE))
+        self.empty = QLabel(tr("data_empty"), objectName="note")
+        self.empty.setVisible(not self.cards)
+        self.rows.addWidget(self.empty)
+        self.rows.addStretch()
+        scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.NoFrame)
+        scroll.setWidget(inner)
+
+        self.delete_all = QPushButton(tr("data_delete_all"), objectName="ghost", clicked=self._delete_all)
+        self.delete_all.setEnabled(bool(self.cards))
+        close = QPushButton(tr("cal_finish"), clicked=self.accept, default=True)
+        footer = QFrame(objectName="footer")
+        bottom = QHBoxLayout(footer)
+        bottom.setContentsMargins(24, 12, 24, 12)
+        bottom.addWidget(self.delete_all)
+        bottom.addStretch()
+        bottom.addWidget(close)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(scroll, 1)
+        layout.addWidget(footer)
+
+    def _card(self, rid: str, meta: dict, seconds: float) -> QFrame:
+        date = f"{rid[6:8]}/{rid[4:6]}/{rid[:4]} {rid[9:11]}:{rid[11:13]}"
+        card = QFrame(objectName="card")
+        column = QVBoxLayout(card)
+        column.setContentsMargins(16, 12, 16, 12)
+        column.setSpacing(8)
+        column.addWidget(QLabel(f"{tr('kind_' + meta['kind'])} · {date} · {seconds:.0f} s", objectName="caption"))
+        label = self._text(meta["text"])
+        editor = QPlainTextEdit(tabChangesFocus=True, visible=False)
+        editor.setFixedHeight(96)
+        column.addWidget(label)
+        column.addWidget(editor)
+        if meta.get("old"):
+            column.addWidget(self._text(tr("data_old", text=meta["old"]), "note"))
+        play = QPushButton(tr("data_play"), clicked=lambda: self._toggle(rid))
+        edit = QPushButton(tr("data_edit"), objectName="ghost")
+        delete = QPushButton(tr("data_delete"), objectName="ghost", clicked=lambda: self._delete(rid))
+        save = QPushButton(tr("save"), visible=False)
+        cancel = QPushButton(tr("cancel"), objectName="ghost", visible=False)
+
+        def editing(on: bool) -> None:
+            for widget in (editor, save, cancel):
+                widget.setVisible(on)
+            for widget in (label, edit, delete):
+                widget.setVisible(not on)
+
+        def begin() -> None:
+            editor.setPlainText(label.text())
+            editing(True)
+            editor.setFocus()
+
+        def finish() -> None:
+            text = editor.toPlainText().strip()
+            self._save_text(rid, text)
+            label.setText(text)
+            editing(False)
+
+        edit.clicked.connect(begin)
+        save.clicked.connect(finish)
+        cancel.clicked.connect(lambda: editing(False))
+        editor.textChanged.connect(lambda: save.setEnabled(bool(editor.toPlainText().strip())))
+        line = QHBoxLayout()
+        for widget in (play, edit, delete, save, cancel):
+            line.addWidget(widget)
+        line.addStretch()
+        column.addLayout(line)
+        self.cards[rid] = (card, play)
+        return card
+
+    def _save_text(self, rid: str, text: str) -> None:
+        # Your own word counts as verified: training must not throw it away. Untrained again, so it gets learnt.
+        self.vault.update_record(rid, {"text": text, "verified": True})
+        self.vault.set_trained_ids([i for i in self.vault.trained_ids() if i != rid])
+
+    @staticmethod
+    def _text(text: str, name: str = "") -> QLabel:
+        label = QLabel(text, objectName=name, wordWrap=True, textFormat=Qt.PlainText)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        return label
+
+    def _toggle(self, rid: str) -> None:
+        same = rid == self.playing
+        self._stop()
+        if same:
+            return
+        _, samples = self.vault.read_record(rid)
+        self.playing = rid
+        self.cards[rid][1].setText(tr("data_stop"))
+        self.player.play(samples, lambda: self.playback_ended.emit(rid))
+
+    def _stop(self) -> None:
+        self.player.stop()
+        if self.playing in self.cards:
+            self.cards[self.playing][1].setText(tr("data_play"))
+        self.playing = ""
+
+    def _on_ended(self, rid: str) -> None:
+        if rid == self.playing:      # not one that was stopped to play another
+            self._stop()
+
+    def _delete(self, rid: str) -> None:
+        if rid == self.playing:
+            self._stop()
+        self.vault.delete_record(rid)
+        self.cards.pop(rid)[0].deleteLater()
+        self.empty.setVisible(not self.cards)
+        self.delete_all.setEnabled(bool(self.cards))
 
     def _delete_all(self):
         if Prompt(self, tr("data_confirm"), ok=tr("data_delete_all")).exec():
+            self._stop()
             self.vault.delete_all_records()
-            self.list.clear()
+            for card, _ in self.cards.values():
+                card.deleteLater()
+            self.cards.clear()
+            self.empty.show()
+            self.delete_all.setEnabled(False)
+
+    def done(self, result):
+        self._stop()
+        super().done(result)
 
 
 class AboutDialog(Window):

@@ -169,6 +169,44 @@ class AudioInput:
         return np.frombuffer(near.data, np.int16).astype(np.float32) / 32768.0
 
 
+class Player:
+    """Plays one recording at a time on the default output, without blocking the interface."""
+
+    def __init__(self):
+        self._running = False
+        self._thread: threading.Thread | None = None
+
+    def play(self, samples: np.ndarray, on_end) -> None:
+        self.stop()
+        self._running = True
+        pcm = (np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes()
+        self._thread = threading.Thread(target=self._run, args=(pcm, on_end), daemon=True, name="playback")
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=1)
+            self._thread = None
+
+    def _run(self, pcm: bytes, on_end) -> None:
+        pa = pyaudio.PyAudio()
+        try:
+            stream = pa.open(format=pyaudio.paInt16, channels=1, rate=RATE, output=True)
+            try:
+                for start in range(0, len(pcm), FRAME * 10):
+                    if not self._running:
+                        break
+                    stream.write(pcm[start:start + FRAME * 10])
+            finally:
+                stream.close()
+        except Exception:
+            log.exception("Could not play the recording")
+        finally:
+            pa.terminate()
+            on_end()
+
+
 def _to_frame(x: np.ndarray):
     pcm = (np.clip(x, -1, 1) * 32767).astype(np.int16)
     return rtc.AudioFrame(pcm.tobytes(), RATE, 1, FRAME)

@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.0.6 — 2026-11-01
+
+- Ver mis datos rediseñado: tarjetas con el texto completo, en el estilo del resto de los menús.
+- Se puede escuchar el audio de cada registro, sin dejar copias sin cifrar en el disco.
+- El texto de cada registro se puede editar a mano; lo editado cuenta como verificado y se vuelve a entrenar.
+- Cada registro se puede borrar desde su propia tarjeta.
+
 ## 0.0.5 — 2026-10-31
 
 - Entrenamiento mucho más rápido: la pérdida ya no construye un grafo por celda y la VRAM no se
