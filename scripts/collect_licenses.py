@@ -23,6 +23,8 @@ DOWNLOADS = {
     "OpenSSL/LICENSE.txt": "https://raw.githubusercontent.com/openssl/openssl/openssl-3.0/LICENSE.txt",
     "PortAudio/LICENSE.txt": "https://raw.githubusercontent.com/PortAudio/portaudio/master/LICENSE.txt",
     "flatbuffers/LICENSE.txt": "https://raw.githubusercontent.com/google/flatbuffers/master/LICENSE",
+    "tokenizers/LICENSE.txt": "https://raw.githubusercontent.com/huggingface/tokenizers/main/LICENSE",
+    "NeMo/LICENSE.txt": "https://raw.githubusercontent.com/NVIDIA/NeMo/main/LICENSE",
 }
 DIRECTML = "https://api.nuget.org/v3-flatcontainer/microsoft.ai.directml/1.15.4/microsoft.ai.directml.1.15.4.nupkg"
 

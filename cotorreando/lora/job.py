@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..asr import Bias, Parakeet, model_dir
+from ..asr import Parakeet, model_dir
 from ..paths import MODELS_DIR, PACKAGE_DIR
 from ..vault import VAULT_DIR, reading_path
 from . import env
@@ -27,6 +27,7 @@ MIN_NEW_RECORDS = 5
 MIN_NEW_WORDS = 5
 MIN_JOURNAL = 30             # sealed events; what they hold is unknown until the password is given
 MAX_PANELS = 5
+BOOST_ALPHAS = (0.5, 1.0, 2.0, 3.0)   # boosting_tree_alpha values tried; NeMo gives none, only "tune it"
 
 
 @dataclass
@@ -100,9 +101,11 @@ def _evaluator(directory) -> Parakeet:
     return Parakeet(directory, use_gpu=False)
 
 
-def error_rate(model: Parakeet, rows: list[dict], audio: dict[str, np.ndarray], words=None) -> float:
+def error_rate(model: Parakeet, rows: list[dict], audio: dict[str, np.ndarray], words=None,
+               alpha: float = 1.0) -> float:
     """Error rate of a loaded model the way the app really uses it: streaming ONNX."""
-    model.bias = Bias(words) if words else None
+    model.set_phrases(words)
+    model.boost_alpha = alpha
     errors = total = 0
     for row in rows:
         e, n = word_errors(row["text"], model.transcribe(audio[row["id"]]))
@@ -169,12 +172,17 @@ def run(learner, settings, log_line=log.info) -> Result:
         else:
             model, plain = None, result.before   # the loser is not used again
             shutil.rmtree(out)
+    # The boost's strength is tuned on your own held-out readings, as NeMo advises for boosting_tree_alpha.
     words = learner.vocabulary()
     helps = False
     if words:
         model = model or _evaluator(best)
-        biased = error_rate(model, held, by_id, words)
-        helps = biased < (error_rate(model, held, by_id) if plain is None else plain)
+        unbiased = error_rate(model, held, by_id) if plain is None else plain
+        rates = {alpha: error_rate(model, held, by_id, words, alpha) for alpha in BOOST_ALPHAS}
+        alpha = min(rates, key=rates.get)
+        helps = rates[alpha] < unbiased
+        if helps:
+            settings.boost_alpha = alpha
     settings.vocabulary_on = helps
     return result
 

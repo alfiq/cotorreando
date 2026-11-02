@@ -16,6 +16,7 @@ dependencies = [
     "cryptography",
     "pyrage",
     "comtypes",
+    "tokenizers",
 ]
 
 [project.optional-dependencies]

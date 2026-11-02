@@ -56,6 +56,12 @@ CREDITS = [
      "https://github.com/libffi/libffi/blob/master/LICENSE", "© Anthony Green, Red Hat, Inc. and others"),
     ("comtypes", "Windows COM access", "MIT", "https://github.com/enthought/comtypes",
      "https://github.com/enthought/comtypes/blob/main/LICENSE.txt", "© Thomas Heller and contributors"),
+    ("NVIDIA NeMo (phrase boosting)", "Boosting tree ported from context_graph_universal.py and "
+     "boosting_graph_batched.py", "Apache-2.0", "https://github.com/NVIDIA/NeMo",
+     "https://github.com/NVIDIA/NeMo/blob/main/LICENSE", "© NVIDIA Corporation. Ported to NumPy."),
+    ("Hugging Face Tokenizers", "Splitting boosted words into the model's pieces", "Apache-2.0",
+     "https://github.com/huggingface/tokenizers",
+     "https://github.com/huggingface/tokenizers/blob/main/LICENSE", "© The Hugging Face team"),
     ("NumPy", "Numerical arrays", "BSD-3-Clause", "https://numpy.org",
      "https://github.com/numpy/numpy/blob/main/LICENSE.txt", "© NumPy Developers"),
     ("OpenBLAS", "Linear algebra library bundled with NumPy", "BSD-3-Clause",

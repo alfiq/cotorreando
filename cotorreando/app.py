@@ -164,6 +164,7 @@ class Cotorreando(QObject):
                     raise
                 log.exception("GPU model load failed; retrying on the CPU")
                 self.model = asr.Parakeet(self._model_dir(), use_gpu=False)
+            self.model.boost_alpha = self.s.boost_alpha
         except Exception as err:
             log.exception("Model load failed")
             self.status.emit(tr("load_failed", error=err))
@@ -209,7 +210,7 @@ class Cotorreando(QObject):
         if not vault.ready:
             SetupDialog(self.learner).exec()
         elif UnlockDialog(self.learner).exec():
-            vault.lock()                # the rules stay in memory; the key does not
+            vault.lock()                # the word lists stay in memory; the key does not
 
     def _download_progress(self, done: int, total: int) -> None:
         self.status.emit(tr("downloading", pct=done * 100 // max(total, 1)))
@@ -262,11 +263,10 @@ class Cotorreando(QObject):
                 uid, buffered, cancelled, heard = job_uid, [], False, []
                 stream = asr.Stream(self.model) if self._should_stream() else None
                 self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
-                self._typed, self._started, self._moved = "", False, False
+                self._typed, self._started = "", False
                 field = self.learner.begin(self._tail_window)
                 self._before = field.before if field and not field.password else None
-                self.model.bias = (asr.Bias(self.learner.bias_words(field))
-                                   if self.s.vocabulary_on else None)
+                self.model.set_phrases(self.learner.bias_words(field) if self.s.vocabulary_on else None)
             if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
                 cancelled = True                # you are typing; never write over it
             if ours_in_front():
@@ -293,11 +293,6 @@ class Cotorreando(QObject):
 
     def _finish_utterance(self, heard: list, trace: list, field) -> None:
         typed = self._typed
-        if typed and not self._moved and time.monotonic() - self.keyboard.last_typed > 0.2:
-            fixed = self.learner.apply_rules(typed)
-            if fixed != typed:          # repeated corrections become replacements
-                replace_text(typed, fixed)
-                typed = self._typed = fixed
         if heard:
             self.learner.finish(typed, np.concatenate(heard), trace, field)
 
@@ -320,7 +315,6 @@ class Cotorreando(QObject):
         if self.keyboard.last_click > self._tail_since or window != self._tail_window:
             # The caret moved: what is before it is no longer ours to delete.
             self._tail, self._tail_since, self._tail_window = "", time.monotonic(), window
-            self._moved = True
         if (text or tail) and self.listener and self.listener.awake:
             self.listener.wake()                # keyword mode: keep the session alive
         text, tail = self._fit(text, tail)
@@ -337,7 +331,7 @@ class Cotorreando(QObject):
     def _type(self, text: str, end: bool = False) -> None:
         if text and self.listener and self.listener.awake:
             self.listener.wake()                # keyword mode: keep the session alive
-        text = self.learner.apply_rules(self._fit(text, "")[0])
+        text = self._fit(text, "")[0]
         if end and text.strip() and self.s.trailing_space:
             text = text.rstrip() + " "
         if not text:

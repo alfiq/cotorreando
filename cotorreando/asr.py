@@ -16,6 +16,7 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 
+from .boosting import BoostingTree, PhraseTokenizer
 from .paths import MODELS_DIR
 
 log = logging.getLogger(__name__)
@@ -28,8 +29,8 @@ FILES = ("config.json", "vocab.txt", "nemo128.onnx",
 
 SAMPLE_RATE = 16000
 MAX_TOKENS_PER_FRAME = 10
-BIAS_BONUS = 1.5               # logits added to tokens that continue a preferred word
-BIAS_CANDIDATES = 5            # only the best few tokens can receive it
+TOKENIZER_URL = "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/resolve/main/tokenizer.json"
+BOOST_ALPHA = 1.0              # NeMo's boosting_tree_alpha; tuned on the user's own dictations
 
 
 MODEL_NOTICE = """Parakeet TDT 0.6B v3 by NVIDIA, licensed under CC BY 4.0.
@@ -92,22 +93,19 @@ def export_from_nemo(target: Path) -> None:
     env.run_train(["--export-only", "--model", ORIGINAL_REPO, "--out", str(target)], log.info)
 
 
-class Bias:
-    """Nudges the decoder towards preferred words when it hesitates between similar options."""
-
-    def __init__(self, words):
-        self.prefixes = {word.lower()[:i] for word in words for i in range(1, len(word) + 1)}
-
-    def apply(self, scores: np.ndarray, word: str, model: "Parakeet") -> None:
-        for i in np.argpartition(scores, -BIAS_CANDIDATES)[-BIAS_CANDIDATES:]:
-            if i != model.blank and _extend(word, model.vocab[int(i)]) in self.prefixes:
-                scores[i] += BIAS_BONUS
-
-
-def _extend(word: str, piece: str) -> str:
-    """The word being spelled once ``piece`` is added; a leading space starts a new word."""
-    piece = piece.lower()
-    return piece.strip() if piece.startswith(" ") else word + piece
+def phrase_tokenizer(directory: Path | None = None) -> PhraseTokenizer | None:
+    """The model's tokenizer, fetched the first time; None if it cannot be had."""
+    path = (directory or model_dir()) / "tokenizer.json"
+    if not path.exists():
+        try:
+            tmp = path.with_suffix(".part")
+            with urllib.request.urlopen(TOKENIZER_URL) as r, open(tmp, "wb") as f:
+                f.write(r.read())
+            tmp.replace(path)
+        except OSError as err:
+            log.warning("Could not fetch the tokenizer; no phrase boosting: %s", err)
+            return None
+    return PhraseTokenizer(path)
 
 
 class Parakeet:
@@ -145,7 +143,10 @@ class Parakeet:
             token, index = line.rsplit(" ", 1)
             vocab[int(index)] = token.replace("▁", " ")
         self.vocab = vocab
-        self.bias: Bias | None = None
+        self.boost: BoostingTree | None = None
+        self.boost_alpha = BOOST_ALPHA
+        self._boost_key = None
+        self._tokenizer: PhraseTokenizer | None = None
         self.blank = max(vocab)  # last entry is the blank symbol
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
@@ -168,6 +169,21 @@ class Parakeet:
             return ""
         stream = Stream(self)
         return (stream.feed(audio) + stream.finish()).strip()
+
+    def set_phrases(self, phrases: dict[str, float] | None) -> None:
+        """Boost these phrases, each with its own alpha; None or empty turns boosting off."""
+        key = tuple(sorted(phrases.items())) if phrases else None
+        if key == self._boost_key:
+            return
+        self._boost_key, self.boost = key, None
+        if not key:
+            return
+        self._tokenizer = self._tokenizer or phrase_tokenizer()   # the base model's, also under an adapter
+        if self._tokenizer is None:
+            return
+        items = [(self._tokenizer(phrase), alpha) for phrase, alpha in key]
+        items = [(ids, alpha) for ids, alpha in items if ids]
+        self.boost = BoostingTree([i for i, _ in items], [a for _, a in items], self.blank)
 
     def encode(self, audio: np.ndarray) -> np.ndarray:
         """Encoder output for ``audio``: (1024, frames), one frame per 80 ms."""
@@ -197,16 +213,20 @@ class Parakeet:
             })
             logits = logits.reshape(-1)
             scores = logits[:self.blank + 1]
-            if self.bias:
-                self.bias.apply(scores, state.word, self)
             token = int(np.argmax(scores))
+            if self.boost and token != self.blank:
+                # As NeMo's TDT greedy decoding: blank or not is the model's call; only
+                # which piece is emitted is boosted, over every non-blank token.
+                token = int(np.argmax(scores[:self.blank] + self.boost_alpha * self.boost.scores(state.context)))
             skip = int(np.argmax(logits[self.blank + 1:]))
             if token != self.blank:
                 tokens.append(token)
-                state.word = _extend(state.word, self.vocab[token])
-                if trace is not None:
-                    second, first = np.partition(_softmax(scores), -2)[-2:]
-                    trace.append((self.vocab[token], t, float(first), float(first - second)))
+                if self.boost:
+                    state.context = self.boost.next(state.context, token)
+                if trace is not None:   # how sure the model itself was, without the boost
+                    probs = _softmax(scores)
+                    chosen = probs[token]
+                    trace.append((self.vocab[token], t, float(chosen), float(chosen - np.delete(probs, token).max())))
                 state.last, state.h, state.c = token, new1, new2
                 emitted += 1
             if skip or token == self.blank or emitted >= MAX_TOKENS_PER_FRAME:
@@ -224,7 +244,7 @@ class DecoderState:
         self.c = np.zeros(model.state_shape, np.float32)
         self.last = model.blank
         self.carry = 0
-        self.word = ""             # the word being spelled, for Bias
+        self.context = 0           # state in the boosting tree
 
 
 class Stream:

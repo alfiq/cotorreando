@@ -17,7 +17,7 @@ from .audio import RATE, Player, list_microphones
 from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
 from .keyboard import parse_hotkey
-from .learning import RULE_AFTER
+from .learning import phrase_alpha
 from .mosaic import logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
 from . import vault_legacy
@@ -708,12 +708,10 @@ class DataDialog(Window):
         pairs = self.learner.corrections()
         drop = self.learner.drop_correction
         sections = (
-            (tr("words_rules"), tr("words_rules_note"),
-             [(f"{old}  →  {new}", tr("words_times", n=n), lambda o=old, w=new: drop(o, w))
-              for old, new, n in pairs if n >= RULE_AFTER]),
-            (tr("words_pending"), tr("words_pending_note"),
-             [(f"{old}  →  {new}", tr("words_times", n=n), lambda o=old, w=new: drop(o, w))
-              for old, new, n in pairs if n < RULE_AFTER]),
+            (tr("words_boost"), tr("words_boost_note"),
+             [(f"{old}  →  {new}", tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
+               lambda o=old, w=new: drop(o, w))
+              for old, new, n in pairs]),
             (tr("words_hard"), tr("words_hard_note"),
              [(e["word"], tr("words_hard_times", n=e["count"], read=e["read"]),
                lambda w=e["word"]: self.learner.drop_hard_word(w))

@@ -9,6 +9,7 @@ from __future__ import annotations
 import ctypes
 import difflib
 import logging
+import math
 import re
 import threading
 import time
@@ -32,7 +33,7 @@ MAX_HARD_WORDS = 500
 MIN_KEPT = 0.6               # share of the dictated words that must still be in the field
 MAX_CHANGED_WORDS = 3
 MIN_SOUND_ALIKE = 0.5
-RULE_AFTER = 2               # the same correction this many times becomes a replacement
+MAX_PHRASE_ALPHA = 3.0       # a corrected word's boost grows with each correction, up to this
 MAX_FIELD_WORDS = 300
 WORD = re.compile(r"\w[\w'’-]*")
 SENTENCE_END = (".", "?", "!", "\n", "\r", ":")
@@ -51,6 +52,16 @@ def _sound(text: str) -> str:
                      ("c", "k"), ("z", "s"), ("v", "b"), ("h", ""), ("w", "u")):
         text = text.replace(old, new)
     return "".join(c for i, c in enumerate(text) if i == 0 or c != text[i - 1])
+
+
+def phrase_alpha(times: int) -> float:
+    """NeMo's per-phrase alpha, from how many times you made this correction."""
+    return min(1.0 + math.log2(times), MAX_PHRASE_ALPHA)
+
+
+def _boostable(word: str) -> bool:
+    # Digits are tokenised differently by SentencePiece and by the tokenizer used here.
+    return len(word) >= 4 and not any(c.isdigit() for c in word)
 
 
 def sound_alike(a: str, b: str) -> bool:
@@ -138,8 +149,6 @@ class Learner:
         self.loaded = False          # the word lists can only be read with the password
         self.hard: dict = {}
         self.counts: dict = {}
-        self.rules: dict = {}
-        self.rule_pattern = None
         self.pending: list[Pending] = []
         threading.Thread(target=self._watch, daemon=True, name="corrections").start()
 
@@ -178,7 +187,6 @@ class Learner:
         if events:
             self._save_lists()
         self.vault.clear_events()
-        self._build_rules()
 
     def _apply(self, event: dict) -> None:
         if event["op"] == "correction":
@@ -198,7 +206,6 @@ class Learner:
         if self.loaded:
             self._apply(event)
             self._save_lists()
-            self._build_rules()
         else:
             self.vault.add_event(event)
 
@@ -218,19 +225,24 @@ class Learner:
             return None
         return self.reader.snapshot()
 
-    def bias_words(self, snapshot: Snapshot | None) -> set[str]:
+    def bias_words(self, snapshot: Snapshot | None) -> dict[str, float]:
+        """Words to boost and their alpha: your corrections, plus the words already in the field."""
         words = self.vocabulary()
         if snapshot and snapshot.text and not snapshot.password:
-            words |= {w.lower() for w in WORD.findall(snapshot.text)[-MAX_FIELD_WORDS:] if len(w) >= 4}
+            for w in WORD.findall(snapshot.text)[-MAX_FIELD_WORDS:]:
+                if _boostable(w):
+                    words.setdefault(w, 1.0)
         return words
 
-    def vocabulary(self) -> set[str]:
-        return {w.lower() for rule in self.rules.values() for w in WORD.findall(rule) if len(w) >= 4}
-
-    def apply_rules(self, text: str) -> str:
-        if not self.rule_pattern:
-            return text
-        return self.rule_pattern.sub(lambda m: self.rules[_plain(m.group())], text)
+    def vocabulary(self) -> dict[str, float]:
+        """The corrected words, each boosted more the more times you corrected it."""
+        words: dict[str, float] = {}
+        for _, new, times in self.corrections():
+            alpha = phrase_alpha(times)
+            for w in WORD.findall(new):
+                if _boostable(w):
+                    words[w] = max(words.get(w, 0.0), alpha)
+        return words
 
     def finish(self, typed: str, audio: np.ndarray, trace: list, snapshot: Snapshot | None) -> None:
         """An utterance ended: note its hesitations and start watching for corrections."""
@@ -308,7 +320,6 @@ class Learner:
             if self.counts[key] <= 0:
                 del self.counts[key]
             self.vault.save_private("corrections", self.counts)
-            self._build_rules()
 
     def corrections(self) -> list[tuple[str, str, int]]:
         """(heard, corrected, times), most frequent first."""
@@ -316,10 +327,9 @@ class Learner:
         return sorted(pairs, key=lambda p: -p[2])
 
     def drop_correction(self, old: str, new: str) -> None:
-        """The user deleted it: forget it entirely, replacement included."""
+        """The user deleted it: forget it entirely, its boost included."""
         if self.counts.pop(f"{old}|{new}", None) is not None:
             self.vault.save_private("corrections", self.counts)
-            self._build_rules()
 
     def hard_words(self) -> list[dict]:
         return sorted(self.hard.values(), key=lambda e: -e["count"])
@@ -327,19 +337,6 @@ class Learner:
     def drop_hard_word(self, word: str) -> None:
         if self.hard.pop(_plain(word), None) is not None:
             self._save_hard()
-
-    def _build_rules(self) -> None:
-        rules = {}
-        for key, count in self.counts.items():
-            old, new = key.split("|", 1)
-            if count >= RULE_AFTER:
-                rules[old] = new
-        self.rules = rules
-        if rules:
-            options = "|".join(sorted(map(re.escape, rules), key=len, reverse=True))
-            self.rule_pattern = re.compile(rf"(?<!\w)(?:{options})(?!\w)", re.IGNORECASE)
-        else:
-            self.rule_pattern = None
 
     def words_to_practice(self, limit: int = 5) -> list[str]:
         waiting = [e for e in self.hard.values() if e["count"] >= 3 and e["read"] == 0]

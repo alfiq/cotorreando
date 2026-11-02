@@ -29,6 +29,8 @@ components below, each under its own license. Full license texts are installed i
 | [OpenSSL](https://www.openssl.org) | Cryptography and TLS | [Apache-2.0](https://www.openssl.org/source/license.html) | © The OpenSSL Project Authors |
 | [libffi](https://github.com/libffi/libffi) | Dependency of Python | [MIT](https://github.com/libffi/libffi/blob/master/LICENSE) | © Anthony Green, Red Hat, Inc. and others |
 | [comtypes](https://github.com/enthought/comtypes) | Windows COM access | [MIT](https://github.com/enthought/comtypes/blob/main/LICENSE.txt) | © Thomas Heller and contributors |
+| [NVIDIA NeMo (phrase boosting)](https://github.com/NVIDIA/NeMo) | Boosting tree ported from context_graph_universal.py and boosting_graph_batched.py | [Apache-2.0](https://github.com/NVIDIA/NeMo/blob/main/LICENSE) | © NVIDIA Corporation. Ported to NumPy. |
+| [Hugging Face Tokenizers](https://github.com/huggingface/tokenizers) | Splitting boosted words into the model's pieces | [Apache-2.0](https://github.com/huggingface/tokenizers/blob/main/LICENSE) | © The Hugging Face team |
 | [NumPy](https://numpy.org) | Numerical arrays | [BSD-3-Clause](https://github.com/numpy/numpy/blob/main/LICENSE.txt) | © NumPy Developers |
 | [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS) | Linear algebra library bundled with NumPy | [BSD-3-Clause](https://github.com/OpenMathLib/OpenBLAS/blob/develop/LICENSE) | © The OpenBLAS Project |
 | [Protocol Buffers](https://github.com/protocolbuffers/protobuf) | Dependency of the LiveKit SDK | [BSD-3-Clause](https://github.com/protocolbuffers/protobuf/blob/main/LICENSE) | © Google Inc. |

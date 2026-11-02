@@ -49,6 +49,7 @@ class Settings:
     retention_days: int = 180
     password_offered: bool = False
     vocabulary_on: bool = False        # only ever enabled by a measured improvement
+    boost_alpha: float = 1.0           # strength of the boost, the one that measured best
     training_notice_shown: bool = False
 
     # Blob
