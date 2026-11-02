@@ -179,6 +179,12 @@ STRINGS = {
     "import": ("Importar…", "Import…"),
     "import_password": ("Contraseña del archivo que vas a importar:", "Password of the file to import:"),
     "import_ok": ("Importar", "Import"),
+    "import_add": ("Agregar a mis palabras", "Add to my words"),
+    "import_replace": ("Reemplazar mis palabras", "Replace my words"),
+    "import_mode_note": ("Agregar suma los conteos de tus correcciones; reemplazar deja solo las del archivo. "
+                         "Los dictados siempre se agregan, sin repetirse, y nunca se borran.",
+                         "Add sums the counts of your corrections; replace keeps only the file's. "
+                         "Dictations are always added, never twice, and never deleted."),
     "import_settings": ("Aplicar también los ajustes", "Also apply the settings"),
     "import_not_ours": ("Este archivo no es una exportación de Cotorreando o es de una versión más nueva.",
                         "This file is not a Cotorreando export, or it comes from a newer version."),

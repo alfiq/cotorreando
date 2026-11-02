@@ -16,7 +16,8 @@ and then the audio of the records:
 ``records`` is empty and nothing follows the newline unless dictations were included.
 Each record's audio is the next ``samples`` floats after the previous one's.
 
-Importing merges into what this install already has and never replaces it. Everything is
+Importing adds the words to what this install already has (counts are summed), or replaces
+its word lists with the file's when asked. Dictations are only ever added. Everything is
 written through the vault, so it ends up sealed with this install's key, and the file's
 password is not kept. A record remembers the id it had in the file as ``imported_from``
 (or the one it was imported from before), so importing the same file twice, or a file
@@ -84,16 +85,19 @@ def read(path: Path, password: str) -> tuple[dict, bytes]:
     return head, audio
 
 
-def merge(vault, head: dict, audio: bytes) -> tuple[int, int, int]:
-    """The vault must be unlocked. Returns how many words, corrections and dictations came in."""
-    custom = vault.load_private("custom_words", [])
+def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, int, int]:
+    """The vault must be unlocked. Returns how many words, corrections and dictations came in.
+
+    ``replace`` starts the word lists from nothing instead of adding to them.
+    """
+    custom = [] if replace else vault.load_private("custom_words", [])
     words = [w for w in dict.fromkeys(head.get("custom_words", [])) if w not in custom]
     vault.save_private("custom_words", custom + words)
-    counts = vault.load_private("corrections", {})
+    counts = {} if replace else vault.load_private("corrections", {})
     for key, count in head.get("corrections", {}).items():
         counts[key] = counts.get(key, 0) + count
     vault.save_private("corrections", counts)
-    hard = vault.load_private("hard_words", {})
+    hard = {} if replace else vault.load_private("hard_words", {})
     for plain, entry in head.get("hard_words", {}).items():
         mine = hard.setdefault(plain, {"word": entry["word"], "count": 0, "read": 0})
         mine["count"] += entry.get("count", 0)

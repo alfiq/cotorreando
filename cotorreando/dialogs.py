@@ -616,7 +616,8 @@ class SettingsDialog(Window):
         if dialog and dialog.exec():
             learner = self.learner
             try:
-                words, corrections, records = transfer.merge(learner.vault, dialog.head, dialog.audio)
+                words, corrections, records = transfer.merge(learner.vault, dialog.head, dialog.audio,
+                                                              dialog.mode.currentData())
                 if learner.loaded:
                     learner.hard = learner.vault.load_private("hard_words", {})
                     learner.counts = learner.vault.load_private("corrections", {})
@@ -716,7 +717,12 @@ class _Import(_Form):
         self.path, self.head, self.audio = path, None, b""
         self.field = QLineEdit(echoMode=QLineEdit.Password)
         self.settings = QCheckBox(tr("import_settings"), checked=True)
+        self.mode = QComboBox()
+        self.mode.addItem(tr("import_add"), False)
+        self.mode.addItem(tr("import_replace"), True)
         self.body.addWidget(self.field)
+        self.body.addWidget(self.mode)
+        self.body.addWidget(QLabel(tr("import_mode_note"), objectName="note", wordWrap=True))
         self.body.addWidget(self.settings)
         self._finish_layout()
         self.field.setFocus()
