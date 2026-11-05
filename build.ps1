@@ -33,8 +33,8 @@ Copy-Item "$livekit\resources\livekit_ffi.dll" $resources -Force
 python scripts\collect_licenses.py dist\cotorreando.dist\licenses
 if ($LASTEXITCODE -ne 0) { throw "Could not collect the license texts" }
 
-# Self-signed code-signing certificate, created once in the user's store and reused.
-# Clients only trust it after importing dist\Cotorreando.cer (see README).
+# Self-signed code-signing cert, created once in the user store and reused; Windows does not
+# treat it as a trusted publisher, so users will see SmartScreen (see README).
 $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
     Where-Object Subject -eq "CN=Alfiq" | Select-Object -First 1
 if (-not $cert) {

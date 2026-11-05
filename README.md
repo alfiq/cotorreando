@@ -131,13 +131,13 @@ El resto de componentes y sus licencias están en [THIRD_PARTY_NOTICES.md](THIRD
 
 El código de Cotorreando tiene licencia MIT.
 
-## Firma del instalador
+## Aviso de Windows al instalar
 
-`build.ps1` firma el ejecutable y el instalador con un certificado autofirmado (`CN=Alfiq`)
-y lo exporta a `dist\Cotorreando.cer`. Para que Windows confíe en la firma, en la PC
-destino (PowerShell como administrador):
+Cotorreando no tiene un certificado de firma emitido por una autoridad reconocida, así que Windows
+SmartScreen puede mostrar «Windows protegió su PC». Para continuar, pulsa **Más información** y luego
+**Ejecutar de todos modos**.
 
-```powershell
-Import-Certificate -FilePath Cotorreando.cer -CertStoreLocation Cert:\LocalMachine\Root
-Import-Certificate -FilePath Cotorreando.cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher
-```
+El ejecutable y el instalador van firmados con un certificado autofirmado (`CN=Alfiq`). Windows no lo
+reconoce como editor de confianza, así que no evita el aviso. No hace falta instalar ningún certificado,
+y no conviene importarlo en «Entidades de certificación raíz de confianza»: cualquier programa firmado
+con esa clave pasaría a ser de confianza en tu PC sin ningún aviso.
