@@ -43,6 +43,7 @@ from .learning import Learner, fit_start
 from .listener import Listener
 from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
+from .residency import ModelHolder
 from . import __version__, updates
 
 log = logging.getLogger(__name__)
@@ -109,7 +110,11 @@ class Cotorreando(QObject):
         self.s = Settings.load()
         set_language(self.s.ui_language)
         self.enabled = True
-        self.model: asr.Parakeet | None = None
+        self.holder = ModelHolder(self._build_model, self.s.model_unload_min * 60,
+                                  on_load_start=self._on_load_start, on_load_done=self._on_load_done)
+        self._announce = False          # the next successful load emits ``loaded``
+        self._queued_uid = None
+        self._pinned = None             # the model the calibration window holds
         self.audio: AudioInput | None = None
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
@@ -154,6 +159,9 @@ class Cotorreando(QObject):
         QTimer.singleShot(0, self._prepare_model)   # its dialogs need the event loop running
         self.update_found.connect(self._offer_update)
         QTimer.singleShot(UPDATE_DELAY_MS, self._check_updates)
+        self._collector = QTimer(self, interval=30_000)
+        self._collector.timeout.connect(self.holder.collect)   # frees the model when idle
+        self._collector.start()
 
     # -- model & audio --------------------------------------------------------
 
@@ -165,7 +173,7 @@ class Cotorreando(QObject):
 
     def _prepare_model(self) -> None:
         """Main thread: download the model if needed (with its own window), then load it."""
-        self.model = None
+        self.holder.unload(force=True)
         while not self.s.custom_model and not asr.is_downloaded():
             self.status.emit(tr("loading"))
             dialog = DownloadDialog(asr.download)
@@ -174,7 +182,8 @@ class Cotorreando(QObject):
             log.warning("Model download failed: %r", dialog.error)
             if not self._resolve_model_problem(model_error_text(dialog.error), "retry", tr("retry")):
                 return
-        threading.Thread(target=self._load_model, daemon=True).start()
+        self._announce = True
+        self.holder.invalidate()
 
     def _resolve_model_problem(self, text: str, fix: str, fix_label: str) -> bool:
         """Offer ``fix``, the user's own model (or back to the stock one) and quitting.
@@ -208,29 +217,37 @@ class Cotorreando(QObject):
         if again:
             self._prepare_model()
 
-    def _load_model(self) -> None:
-        self.status.emit(tr("loading"))
-        self.loading.emit(-1)
+    def _build_model(self) -> asr.Parakeet:
+        """Loading thread: the holder's factory."""
         custom = bool(self.s.custom_model)
         try:
-            try:
-                self.model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu, custom=custom)
-            except Exception:
-                if not self.s.use_gpu:
-                    raise
-                log.exception("GPU model load failed; retrying on the CPU")
-                self.model = asr.Parakeet(self._model_dir(), use_gpu=False, custom=custom)
-            self.model.boost_alpha = self.s.boost_alpha
-        except Exception as err:
-            log.exception("Model load failed")
+            model = asr.Parakeet(self._model_dir(), use_gpu=self.s.use_gpu, custom=custom)
+        except Exception:
+            if not self.s.use_gpu:
+                raise
+            log.exception("GPU model load failed; retrying on the CPU")
+            model = asr.Parakeet(self._model_dir(), use_gpu=False, custom=custom)
+        model.boost_alpha = self.s.boost_alpha
+        log.info("Model loaded (%s)", "GPU" if model.on_gpu else "CPU")
+        return model
+
+    def _on_load_start(self) -> None:
+        self.status.emit(tr("loading"))
+        self.loading.emit(-1)
+
+    def _on_load_done(self, err: Exception | None, discarded: bool) -> None:
+        self.loading.emit(-2)
+        if discarded:
+            return
+        if err is not None:
+            log.error("Model load failed", exc_info=err)
             self.status.emit(tr("load_failed", error=err))
-            self.loading.emit(-2)
             self.model_failed.emit(err)
             return
-        log.info("Model loaded (%s)", "GPU" if self.model.on_gpu else "CPU")
-        self.status.emit(tr("ready"))
-        self.loading.emit(-2)
-        self.loaded.emit()
+        self.status.emit(tr("ready") if self.enabled else tr("disabled"))
+        if self._announce:              # reloads after an idle unload stay silent
+            self._announce = False
+            self.loaded.emit()
 
     def _on_loaded(self) -> None:
         vault = self.learner.vault
@@ -293,10 +310,10 @@ class Cotorreando(QObject):
 
     def start_audio(self) -> None:
         self.stop_audio()
-        if not self.enabled or self.model is None:
-            log.info("Not listening (enabled=%s, model=%s)", self.enabled, self.model is not None)
+        if not self.enabled or not self.holder.available:
+            log.info("Not listening (enabled=%s, model=%s)", self.enabled, self.holder.available)
             return
-        self.listener = Listener(self.s, lambda uid, audio: self.jobs.put(("audio", uid, audio)),
+        self.listener = Listener(self.s, lambda uid, audio: self._queue("audio", uid, audio),
                                  lambda uid: self.jobs.put(("end", uid, None)), self.level.emit)
         self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
                                 self.s.echo_cancellation, self.s.auto_gain)
@@ -304,6 +321,13 @@ class Cotorreando(QObject):
         log.info("Listening on %s (mode %s)", self.s.microphone or "default microphone", self.s.mode)
         self.audio.start()
         self.blob.set_enabled(True)
+
+    def _queue(self, kind: str, uid, audio) -> None:
+        if uid != self._queued_uid:     # a new utterance: start loading the model if it was freed
+            self._queued_uid = uid
+            if not self.holder.failed:
+                self.holder.ensure_loading()
+        self.jobs.put((kind, uid, audio))
 
     def stop_audio(self) -> None:
         if self.audio:
@@ -329,41 +353,47 @@ class Cotorreando(QObject):
     def _recognizer(self) -> None:
         """Consume listener events; stream text out as soon as it is final."""
         uid, stream, buffered, cancelled, heard, field = 0, None, [], False, [], None
+        bound = None                            # the model this utterance started on
         while True:
             kind, job_uid, audio = self.jobs.get()
-            if self.model is None or not self.enabled:
-                continue
-            if job_uid != uid:                  # a new utterance (an unfinished one was cancelled)
-                uid, buffered, cancelled, heard = job_uid, [], False, []
-                stream = asr.Stream(self.model) if self._should_stream() else None
-                self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
-                self._typed, self._started = "", False
-                field = self.learner.begin(self._tail_window)
-                self._before = field.before if field and not field.password else None
-                boost = self.s.boost_mode == "on" or (self.s.boost_mode == "auto" and self.s.vocabulary_on)
-                self.model.set_phrases(self.learner.bias_words(field) if boost else None)
-            if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
-                cancelled = True                # you are typing; never write over it
-            if ours_in_front():
-                cancelled = True                # never into our own windows, such as the password
-            if cancelled:
+            if not self.enabled:
                 continue
             try:
-                if kind == "audio":
-                    heard.append(audio)
-                    if stream:
-                        self._rewrite(stream.feed(audio), stream.tail)
-                    else:
-                        buffered.append(audio)
-                elif stream:
-                    self._rewrite(stream.finish(), "", end=True)
-                    self._finish_utterance(heard, stream.trace, field)
-                elif buffered:
-                    whole = asr.Stream(self.model)
-                    text = (whole.feed(np.concatenate(buffered)) + whole.finish()).strip()
-                    self._type(self._apply_activation(text), end=True)
-                    self._finish_utterance(heard, whole.trace, field)
+                with self.holder.using() as model:   # waits while a freed model loads again
+                    if job_uid != uid:          # a new utterance (an unfinished one was cancelled)
+                        uid, buffered, cancelled, heard, bound = job_uid, [], False, [], model
+                        stream = asr.Stream(model) if self._should_stream() else None
+                        self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
+                        self._typed, self._started = "", False
+                        field = self.learner.begin(self._tail_window)
+                        self._before = field.before if field and not field.password else None
+                        boost = self.s.boost_mode == "on" or (self.s.boost_mode == "auto" and self.s.vocabulary_on)
+                        model.set_phrases(self.learner.bias_words(field) if boost else None)
+                    elif model is not bound or model.closed:
+                        cancelled = True        # the model was replaced mid-utterance
+                    if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
+                        cancelled = True        # you are typing; never write over it
+                    if ours_in_front():
+                        cancelled = True        # never into our own windows, such as the password
+                    if cancelled:
+                        continue
+                    if kind == "audio":
+                        heard.append(audio)
+                        if stream:
+                            self._rewrite(stream.feed(audio), stream.tail)
+                        else:
+                            buffered.append(audio)
+                    elif stream:
+                        self._rewrite(stream.finish(), "", end=True)
+                        self._finish_utterance(heard, stream.trace, field)
+                    elif buffered:
+                        whole = asr.Stream(model)
+                        text = (whole.feed(np.concatenate(buffered)) + whole.finish()).strip()
+                        self._type(self._apply_activation(text), end=True)
+                        self._finish_utterance(heard, whole.trace, field)
             except Exception:
+                if self.holder.failed or not self.holder.available:
+                    continue                    # no model: drop the job (model_failed says why)
                 log.exception("Transcription failed")
 
     def _finish_utterance(self, heard: list, trace: list, field) -> None:
@@ -431,6 +461,8 @@ class Cotorreando(QObject):
     # -- hotkey ---------------------------------------------------------------
 
     def _hotkey_down(self) -> None:
+        if self.enabled and not self.holder.failed:
+            self.holder.ensure_loading()        # you are about to speak
         if self.s.mode == "ptt":
             if self.listener:
                 self.listener.push_to_talk(True)
@@ -445,8 +477,10 @@ class Cotorreando(QObject):
 
     def toggle_enabled(self) -> None:
         self.enabled = not self.enabled
-        if self.enabled and self.model is None:   # an earlier load failed: try again
-            threading.Thread(target=self._load_model, daemon=True).start()
+        if self.enabled:
+            if self.holder.failed:      # an earlier load failed: try again, then start listening
+                self._announce = True
+            self.holder.ensure_loading()
         self.blob.set_enabled(self.enabled)
         self.start_audio() if self.enabled else self.stop_audio()
         self.tray.setIcon(self._tray_icon())
@@ -470,6 +504,7 @@ class Cotorreando(QObject):
         self.keyboard.set_hotkey(self.s.hotkey)
         self.blob.set_size(self.s.blob_size)
         set_autostart(self.s.autostart)
+        self.holder.idle_s = self.s.model_unload_min * 60
         self.s.save()
         if (self.s.use_gpu, self.s.lora_adapter, self.s.custom_model) != old:
             self._reload_model()
@@ -482,14 +517,17 @@ class Cotorreando(QObject):
 
     def open_training(self) -> None:
         from .lora.ui import CalibrationDialog   # rarely used, load lazily
-        if self.model is None:
-            self.warning.emit(tr("loading"))
-            return
         if self.calibration is not None:
             self.calibration.show()
             self.calibration.raise_()
             return
-        dialog = self.calibration = CalibrationDialog(self.s, self.model, self.learner)
+        model = self.holder.pin()       # kept loaded while the window is open
+        if model is None:
+            self.holder.ensure_loading()
+            self.warning.emit(tr("loading"))
+            return
+        self._pinned = model
+        dialog = self.calibration = CalibrationDialog(self.s, model, self.learner)
         dialog.skipped.connect(self._calibration_skipped)
         dialog.reading_started.connect(self.stop_audio)         # free the microphone
         dialog.reading_finished.connect(self.start_audio)
@@ -520,6 +558,9 @@ class Cotorreando(QObject):
         if not dialog.training:
             self.calibration = None
             dialog.deleteLater()
+            if self._pinned is not None:
+                self.holder.unpin(self._pinned)
+                self._pinned = None
         self.s.save()
         if not self.audio:
             self.start_audio()
@@ -555,7 +596,7 @@ class Cotorreando(QObject):
     def _train_then(self, action: str | None) -> None:
         from .lora.screen import TrainingScreen
         self.stop_audio()
-        self.model = None               # free the GPU for training
+        self.holder.suspend()           # free the GPU for training, and keep it free
         self.screen = TrainingScreen(self.learner, self.s)
         self.screen.ended.connect(lambda result: self._training_over(result, action))
         self.screen.begin()
@@ -566,6 +607,7 @@ class Cotorreando(QObject):
         self.s.save()
         self.learner.vault.lock()
         self.screen = None
+        self.holder.resume()
         if action:
             self._power(action)
         else:

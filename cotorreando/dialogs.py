@@ -697,6 +697,9 @@ class SettingsDialog(Window):
         line.addWidget(choose)
         self._set_model(self.custom_model)
         own_help = QLabel(tr("own_model_help"), objectName="note", wordWrap=True)
+        self.unload = QSpinBox(minimum=0, maximum=240, singleStep=5, value=min(self.s.model_unload_min, 240),
+                               specialValueText=tr("unload_never"))
+        unload_help = QLabel(tr("unload_help"), objectName="note", wordWrap=True)
         self.adapter =self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
         self.boost = self._combo([("auto", tr("boost_auto")), ("on", tr("boost_on")), ("off", tr("boost_off"))],
                                  self.s.boost_mode)
@@ -711,7 +714,8 @@ class SettingsDialog(Window):
         line.addWidget(help_text, 1)
         line.addWidget(calibrate)
         return self._groups((tr("own_model"), [own, own_help]),
-                            (None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]))
+                            (None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]),
+                            (None, [(tr("unload_after"), self.unload), unload_help]))
 
     def _set_model(self, path: str) -> None:
         self.custom_model = path
@@ -844,6 +848,7 @@ class SettingsDialog(Window):
         s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
         s.custom_model = self.custom_model
+        s.model_unload_min = self.unload.value()
         s.boost_mode = self.boost.currentData()
         s.learning, s.excluded_apps = self.learning.isChecked(), self.excluded.text().strip()
         s.retention_days = self.retention.value()

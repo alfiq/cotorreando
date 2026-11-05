@@ -102,6 +102,12 @@ STRINGS = {
     "medium": ("Mediano", "Medium"),
     "large": ("Grande", "Large"),
     "use_gpu": ("Usar GPU si está disponible", "Use GPU when available"),
+    "unload_after": ("Liberar el modelo tras (minutos sin dictar)", "Free the model after (idle minutes)"),
+    "unload_never": ("Nunca", "Never"),
+    "unload_help": ("Libera memoria cuando no dictas; se vuelve a cargar al hablar. En modo palabra clave "
+                    "sigue cargado mientras se detecta voz.",
+                    "Frees memory while you are not dictating; it loads again when you speak. In keyword mode "
+                    "it stays loaded while speech is detected."),
     "autostart": ("Iniciar con Windows", "Start with Windows"),
     "microphone": ("Micrófono", "Microphone"),
     "default": ("Predeterminado", "Default"),

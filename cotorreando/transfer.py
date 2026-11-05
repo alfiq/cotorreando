@@ -41,7 +41,7 @@ RECORD_KINDS = {"correction", "panel"}   # what the data screen and training kno
 
 # What belongs to this computer rather than to the user: devices, where the blob sits,
 # files that are not exported (adapters, calibration readings) and notices already shown.
-MACHINE_FIELDS = {"microphone", "use_gpu", "autostart", "blob_x", "blob_y", "hidden",
+MACHINE_FIELDS = {"microphone", "use_gpu", "model_unload_min", "autostart", "blob_x", "blob_y", "hidden",
                   "lora_adapter", "custom_model", "calibrated", "password_offered", "training_notice_shown",
                   "welcome_accepted", "update_last_check", "update_skipped"}
 

@@ -9,6 +9,7 @@ how many frames to skip.
 from __future__ import annotations
 
 import copy
+import gc
 import hashlib
 import logging
 import urllib.request
@@ -143,7 +144,15 @@ class Parakeet:
         self.blank = max(vocab)  # last entry is the blank symbol
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
+        self.closed = False
         self.transcribe(np.zeros(SAMPLE_RATE, np.float32))   # compile the window shape now
+
+    def close(self) -> None:
+        """Free the ONNX sessions; the object is unusable afterwards."""
+        self.preprocessor = self.encoder = self.decoder = None
+        self.boost, self._boost_key, self._tokenizer = None, None, None
+        self.closed = True
+        gc.collect()
 
     @staticmethod
     def _pick(directory: Path, stem: str) -> str:

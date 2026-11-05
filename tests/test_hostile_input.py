@@ -27,6 +27,8 @@ def test_retention_below_one_day_never_deletes(unlocked_vault, days):
     ("retention_days", 10 ** 9), ("mode", "rm -rf"), ("ui_language", "xx"), ("silence_ms", -5),
     ("vad_threshold", float("nan")), ("vad_threshold", 7.0), ("boost_alpha", float("inf")),
     ("keyword", 123), ("hotkey", None), ("blob_size", ["large"]),
+    ("model_unload_min", -1), ("model_unload_min", 10 ** 9), ("model_unload_min", "10"),
+    ("model_unload_min", True),
 ])
 def test_bad_values_in_settings_file_fall_back_to_defaults(isolated_data, field, value):
     config.CONFIG_FILE.write_text(json.dumps({field: value}), encoding="utf-8")

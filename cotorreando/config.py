@@ -18,7 +18,8 @@ CHOICES = {"ui_language": {"es", "en"}, "mode": {"open", "ptt", "activation"},
            "boost_mode": {"auto", "on", "off"}, "blob_size": {"small", "medium", "large"}}
 RANGES = {"retention_days": (1, 3650), "silence_ms": (100, 10000), "typing_holdoff_ms": (0, 10000),
           "session_timeout_s": (1.0, 600.0), "vad_threshold": (0.0, 1.0),
-          "energy_threshold_db": (-100.0, 0.0), "boost_alpha": (0.0, 10.0)}
+          "energy_threshold_db": (-100.0, 0.0), "boost_alpha": (0.0, 10.0),
+          "model_unload_min": (0, 1440)}
 
 
 @dataclass
@@ -31,6 +32,7 @@ class Settings:
     keyword: str = "oye cotorro"
     hotkey: str = "ctrl+win"
     use_gpu: bool = True
+    model_unload_min: int = 10         # free the model after this many idle minutes; 0 = never
     autostart: bool = False
 
     # Audio
