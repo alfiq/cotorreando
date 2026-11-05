@@ -1,5 +1,13 @@
 # Cambios
 
+## 0.1.1 — 2026-11-05
+
+- El modelo de voz se libera de la memoria tras 10 minutos sin dictar y vuelve a cargarse solo al
+  hablar, sin perder lo que dijiste. El tiempo se cambia en Opciones; 0 lo deja siempre cargado.
+- El atajo ya no se escribe a mano: haces clic en el campo y pulsas la combinación. Esc cancela y
+  «Restaurar» vuelve a Ctrl+Win.
+- El README explica cómo pasar el aviso de SmartScreen y ya no pide instalar el certificado.
+
 ## 0.1.0 — 2026-11-02
 
 - Seguridad: todo lo que se descarga (el modelo de voz, el detector de voz, las herramientas y
