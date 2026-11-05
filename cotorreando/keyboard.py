@@ -1,8 +1,9 @@
 """Windows keyboard plumbing: a global hotkey, typing detection and text injection.
 
 No keyboard hook, on purpose: this process never receives what is being typed.
-The hotkey is found by asking only about its own keys. Typing is inferred from the
-time of the last input (which says nothing about the key): input that neither the
+The hotkey is found by asking only about its own keys, and while the Settings field
+records a new one it asks about the keys a hotkey can use (down_keys), still with no hook.
+Typing is inferred from the time of the last input (which says nothing about the key): input that neither the
 mouse hook nor our own injection explains came from the keyboard. Moving the mouse
 while typing can hide keystrokes, a price accepted to stay out of the key stream.
 """
@@ -36,6 +37,16 @@ MODIFIERS = {
 }
 NAMED = {"space": 0x20, "tab": 0x09, "esc": 0x1B, "capslock": 0x14, "pause": 0x13,
          **{f"f{i}": 0x6F + i for i in range(1, 25)}}
+VK_ESCAPE = 0x1B
+LONE_KEYS = {f"f{i}" for i in range(1, 25)} | {"pause"}   # allowed without a modifier
+_ORDER = ["ctrl", "alt", "shift", "win"]
+_NAME_OF = {vk: name for name, vk in NAMED.items()}
+WIN_VKS = MODIFIERS["win"]
+HOTKEY_VKS = (set().union(*MODIFIERS.values()) | set(NAMED.values())
+              | set(range(ord("A"), ord("Z") + 1)) | set(range(ord("0"), ord("9") + 1)))
+
+# While set, the monitor ignores the hotkey (the Settings field is recording a new one).
+hotkey_paused = threading.Event()
 
 
 def parse_hotkey(text: str) -> list[set[int]]:
@@ -51,6 +62,90 @@ def parse_hotkey(text: str) -> list[set[int]]:
         else:
             raise ValueError(f"Unknown key: {part}")
     return groups
+
+
+def hotkey_from_vks(vks) -> str:
+    """The hotkey text for a set of pressed keys: ctrl, alt, shift, win, then one key.
+
+    Left and right modifiers are the same, keys a hotkey cannot use are ignored and,
+    if several plain keys are down, the lowest virtual-key code stays.
+    """
+    parts = [name for name in _ORDER if MODIFIERS[name] & set(vks)]
+    keys = sorted(vk for vk in vks if vk in HOTKEY_VKS and not any(vk in g for g in MODIFIERS.values()))
+    if keys:
+        vk = keys[0]
+        parts.append(_NAME_OF.get(vk) or chr(vk).lower())
+    return "+".join(parts)
+
+
+def hotkey_label(text: str) -> str:
+    """'ctrl+win' -> 'Ctrl+Win', 'f5' -> 'F5'. Text that is not a hotkey is shown as it is."""
+    try:
+        parse_hotkey(text)
+    except ValueError:
+        return text
+    parts = text.lower().replace(" ", "").split("+")
+    return "+".join(p.upper() if len(p) == 1 or p in LONE_KEYS and p != "pause" else p.capitalize()
+                    for p in parts)
+
+
+def hotkey_valid(text: str) -> bool:
+    """A lone key only if it is an F key or Pause; otherwise Ctrl, Alt or Win plus something else."""
+    try:
+        parse_hotkey(text)
+    except ValueError:
+        return False
+    parts = text.lower().replace(" ", "").split("+")
+    if len(parts) == 1:
+        return parts[0] in LONE_KEYS
+    return any(p in ("ctrl", "alt", "win") for p in parts)
+
+
+def down_keys() -> set[int]:
+    """Which of the keys a hotkey can use are down. The only place that polls all of them."""
+    return {vk for vk in HOTKEY_VKS if _is_down(vk)}
+
+
+def cancel_start_menu() -> None:
+    """Stops a lone Win release from opening the Start menu."""
+    _tap(VK_UNASSIGNED)
+
+
+class HotkeyRecorder:
+    """Turns successive snapshots of the pressed keys into one hotkey (pure logic).
+
+    Recording starts once nothing is down, so keys held on arrival are not part of it.
+    The most keys seen at once wins (the first on a tie) and the hotkey ends when all
+    are released. Esc cancels. feed() answers: "idle", "live" (see ``text``), "done"
+    (see ``result``), "invalid" (released with something unusable; it listens again)
+    or "cancel".
+    """
+
+    def __init__(self):
+        self.armed = False
+        self.peak: set[int] = set()
+        self.text = ""
+        self.result = ""
+
+    def feed(self, down) -> str:
+        down = set(down) & HOTKEY_VKS
+        if not self.armed:
+            self.armed = not down
+            return "idle"
+        if VK_ESCAPE in down:
+            return "cancel"
+        if down:
+            self.text = hotkey_from_vks(down)
+            if self.text.count("+") > hotkey_from_vks(self.peak).count("+") or not self.peak:
+                self.peak = down
+            return "live"
+        if not self.peak:
+            return "idle"
+        text, self.peak = hotkey_from_vks(self.peak), set()
+        if hotkey_valid(text):
+            self.result = text
+            return "done"
+        return "invalid"
 
 
 class MSLLHOOKSTRUCT(ctypes.Structure):
@@ -172,14 +267,18 @@ class KeyboardMonitor:
             self._check_typing()
 
     def _check_hotkey(self) -> None:
+        if hotkey_paused.is_set():
+            if self._active:
+                self._active = False
+                self.on_up()
+            return
         states = [[_is_down(vk) for vk in group] for group in self.groups]
         if any(map(any, states)):
             self._hotkey_seen = time.monotonic()
         combo = all(map(any, states))
         if combo and not self._active:
             self._active = True
-            # Stops a lone Win release from opening the Start menu.
-            _tap(VK_UNASSIGNED)
+            cancel_start_menu()
             self.on_down()
         elif not combo and self._active:
             self._active = False

@@ -129,9 +129,61 @@ def test_settings_dialog_applies_edits(settings_dialog):
 
 def test_settings_dialog_rejects_a_bad_hotkey(settings_dialog):
     settings, dialog = settings_dialog
-    dialog.hotkey.setText("not+a+hotkey+at+all")
+    dialog.hotkey.setValue("not+a+hotkey+at+all")
     dialog._accept()
     assert settings.hotkey == "ctrl+win" and dialog.result() == 0
+
+
+def test_settings_dialog_saves_a_recorded_hotkey(settings_dialog, monkeypatch):
+    settings, dialog = settings_dialog
+    snapshots = iter([set(), {0xA2, 0x5B, 0x70}, set()])      # ctrl+win+f1, then released
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: next(snapshots))
+    dialog.hotkey.start()
+    for _ in range(3):
+        dialog.hotkey._tick()
+    assert not dialog.hotkey.recording() and dialog.hotkey.text() == "Ctrl+Win+F1"
+    dialog._accept()
+    assert settings.hotkey == "ctrl+win+f1"
+
+
+def test_hotkey_reset_button_restores_the_default(settings_dialog):
+    settings, dialog = settings_dialog
+    dialog.hotkey.setValue("ctrl+alt+a")
+    reset = next(b for b in dialog.findChildren(dialogs.QPushButton) if b.text() == dialogs.tr("hotkey_reset"))
+    reset.click()
+    assert dialog.hotkey.value() == "ctrl+win" and dialog.hotkey.text() == "Ctrl+Win"
+
+
+def test_hotkey_recording_pauses_and_always_resumes_the_real_hotkey(settings_dialog, monkeypatch):
+    settings, dialog = settings_dialog
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: set())
+    edit = dialog.hotkey
+    edit.start()
+    assert dialogs.keyboard.hotkey_paused.is_set()
+    edit.stop()
+    assert not dialogs.keyboard.hotkey_paused.is_set() and not edit.recording()
+
+
+@pytest.mark.parametrize("close", ["reject", "accept", "close", "hide"])
+def test_closing_the_dialog_mid_recording_resumes_the_real_hotkey(settings_dialog, monkeypatch, close):
+    settings, dialog = settings_dialog
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: set())
+    dialog.show()                   # close and hide only mean something on a shown window
+    dialog.hotkey.start()
+    assert dialogs.keyboard.hotkey_paused.is_set()
+    getattr(dialog, close)()
+    assert not dialogs.keyboard.hotkey_paused.is_set() and not dialog.hotkey.recording()
+
+
+def test_escape_cancels_a_recording_and_keeps_the_old_hotkey(settings_dialog, monkeypatch):
+    settings, dialog = settings_dialog
+    snapshots = iter([set(), {0x1B}])
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: next(snapshots))
+    dialog.hotkey.start()
+    dialog.hotkey._tick()
+    dialog.hotkey._tick()
+    assert not dialog.hotkey.recording() and dialog.hotkey.value() == "ctrl+win"
+    assert not dialogs.keyboard.hotkey_paused.is_set()
 
 
 @pytest.mark.parametrize("locked, idle, closes", [(True, 0, True), (False, 10 ** 9, True), (False, 1000, False)])

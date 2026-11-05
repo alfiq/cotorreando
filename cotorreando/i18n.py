@@ -97,6 +97,14 @@ STRINGS = {
     "act_keyword": ("Palabra clave", "Keyword"),
     "keyword": ("Palabra clave", "Keyword"),
     "hotkey": ("Atajo", "Hotkey"),
+    "hotkey_press": ("Pulsa la combinación…", "Press the combination…"),
+    "hotkey_invalid": ("Combinación no válida: usa Ctrl, Alt o Win con otra tecla, o una tecla F",
+                       "Invalid combination: use Ctrl, Alt or Win with another key, or an F key"),
+    "hotkey_reset": ("Restaurar", "Reset"),
+    "hotkey_hint": ("Haz clic y pulsa las teclas; Esc cancela. Windows se reserva algunas combinaciones, "
+                    "como Win+L.",
+                    "Click and press the keys; Esc cancels. Windows keeps some combinations for itself, "
+                    "like Win+L."),
     "blob_size": ("Tamaño del blob", "Blob size"),
     "small": ("Pequeño", "Small"),
     "medium": ("Mediano", "Medium"),

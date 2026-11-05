@@ -12,14 +12,15 @@ from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
-                               QStackedWidget, QTabBar, QTextBrowser, QVBoxLayout, QWidget)
+                               QStackedWidget, QTabBar, QTextBrowser, QToolTip, QVBoxLayout, QWidget)
 
 from . import AUTHOR_URL, REPO_URL, __author__, __version__
 from .audio import RATE, Player, list_microphones
 from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
 from . import keyboard
-from .keyboard import parse_hotkey
+from .config import Settings
+from .keyboard import HotkeyRecorder, hotkey_label, parse_hotkey
 from .learning import phrase_alpha
 from . import model_store
 from .mosaic import Mosaic, logo_pixmap
@@ -68,6 +69,7 @@ QLabel, QCheckBox { color: #e8e9ec; background: transparent; }
 QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
         background: #25272d; color: #e8e9ec; border: 1px solid #33353d; border-radius: 8px;
         padding: 6px 10px; min-height: 18px; selection-background-color: #3f9d78; }
+QLineEdit[recording="true"] { border-color: #3f9d78; color: #a9dcc2; }
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #3f9d78; }
 QLineEdit:disabled, QDoubleSpinBox:disabled { color: #6d717b; background: #1f2126; }
 QComboBox::drop-down { border: none; width: 26px; }
@@ -531,6 +533,113 @@ def adapters() -> list[str]:
     return sorted(p.name for p in root.iterdir() if p.is_dir()) if root.exists() else []
 
 
+class HotkeyEdit(QLineEdit):
+    """Shows a hotkey and records a new one: click, press the combination, release.
+
+    Recording polls the keys (see keyboard.down_keys) and pauses the real hotkey; it
+    ends on its own, with Esc, or when the field loses focus or hides.
+    """
+    changed = Signal(str)
+
+    def __init__(self, value: str):
+        self.recorder = None        # set first: Qt may call event() during construction
+        self._value, self._win_down = "", False
+        super().__init__(readOnly=True)
+        self._timer = QTimer(self, interval=15, timeout=self._tick)
+        self.setToolTip(tr("hotkey_hint"))
+        self.setCursor(Qt.PointingHandCursor)
+        self.setValue(value)
+
+    def value(self) -> str:
+        return self._value
+
+    def setValue(self, text: str) -> None:
+        self.stop()
+        self._value = text.strip().lower()
+        self.setText(hotkey_label(self._value))
+
+    def recording(self) -> bool:
+        return self.recorder is not None
+
+    def start(self) -> None:
+        if self.recording():
+            return
+        self.recorder, self._win_down = HotkeyRecorder(), False
+        keyboard.hotkey_paused.set()
+        self.setText(tr("hotkey_press"))
+        self.setProperty("recording", True)
+        self.style().polish(self)
+        self._timer.start()
+
+    def stop(self) -> None:
+        """Ends the recording (if any) and always lets the real hotkey work again."""
+        self._timer.stop()
+        keyboard.hotkey_paused.clear()
+        if self.recording():
+            self.recorder = None
+            self.setProperty("recording", False)
+            self.style().polish(self)
+            self.setText(hotkey_label(self._value))
+
+    def _tick(self) -> None:
+        down = keyboard.down_keys()
+        win = bool(down & keyboard.WIN_VKS)
+        if win and not self._win_down:
+            keyboard.cancel_start_menu()    # releasing Win would open the Start menu
+        self._win_down = win
+        state = self.recorder.feed(down)
+        if state == "live":
+            self.setText(hotkey_label(self.recorder.text))
+        elif state == "idle":
+            self.setText(tr("hotkey_press"))
+        elif state == "invalid":
+            self.setText(tr("hotkey_press"))
+            QToolTip.showText(self.mapToGlobal(self.rect().bottomLeft()), tr("hotkey_invalid"), self)
+        elif state == "cancel":
+            self.stop()
+        elif state == "done":
+            result = self.recorder.result
+            self.setValue(result)
+            self.changed.emit(result)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            self.start()
+
+    def keyPressEvent(self, event):
+        if self.recording():
+            event.accept()      # Esc and Enter belong to the recording, not to the dialog
+        elif event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            event.accept()
+            self.start()
+        else:
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if self.recording():
+            event.accept()
+        else:
+            super().keyReleaseEvent(event)
+
+    def event(self, event):
+        if self.recording() and event.type() == QEvent.ShortcutOverride:
+            event.accept()
+            return True
+        return super().event(event)
+
+    def focusNextPrevChild(self, next_):
+        return False if self.recording() else super().focusNextPrevChild(next_)
+
+    def focusOutEvent(self, event):
+        self.stop()
+        super().focusOutEvent(event)
+
+    def hideEvent(self, event):
+        self.stop()
+        super().hideEvent(event)
+
+
 class SettingsDialog(Window):
     def __init__(self, settings, listener=None, learner=None, parent=None):
         super().__init__(parent)
@@ -640,13 +749,20 @@ class SettingsDialog(Window):
         self.activation = self._combo([("voice", tr("act_voice")), ("keyword", tr("act_keyword"))],
                                       self.s.activation)
         self.keyword = QLineEdit(self.s.keyword)
-        self.hotkey = QLineEdit(self.s.hotkey)
+        self.hotkey = HotkeyEdit(self.s.hotkey)
+        reset = QPushButton(tr("hotkey_reset"), objectName="ghost",
+                            clicked=lambda: self.hotkey.setValue(Settings().hotkey))
+        hotkey_row = QWidget()
+        line = QHBoxLayout(hotkey_row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.addWidget(self.hotkey, 1)
+        line.addWidget(reset)
         self.blob_size = self._combo([(k, tr(k)) for k in ("small", "medium", "large")], self.s.blob_size)
         self.use_gpu = QCheckBox(tr("use_gpu"), checked=self.s.use_gpu)
         self.autostart = QCheckBox(tr("autostart"), checked=self.s.autostart)
         return self._groups(
             (tr("listening"), [(tr("mode"), self.mode), (tr("activation"), self.activation),
-                               (tr("keyword"), self.keyword), (tr("hotkey"), self.hotkey)]),
+                               (tr("keyword"), self.keyword), (tr("hotkey"), hotkey_row)]),
             (tr("appearance"), [(tr("language"), self.language), (tr("blob_size"), self.blob_size)]),
             (tr("system"), [self.use_gpu, self.autostart]))
 
@@ -825,17 +941,21 @@ class SettingsDialog(Window):
         lvl = getattr(self.listener, "last_level", -90.0)
         self.meter.setText(tr("level", lvl=lvl, thr=self.listener.threshold_db))
 
+    def done(self, result):
+        self.hotkey.stop()      # the real hotkey must never stay paused
+        super().done(result)
+
     def _accept(self):
+        self.hotkey.stop()
         try:
-            parse_hotkey(self.hotkey.text())
+            parse_hotkey(self.hotkey.value())
         except ValueError:
             self.hotkey.setFocus()
-            self.hotkey.selectAll()
             return
         s = self.s
         s.ui_language, s.mode, s.activation = (self.language.currentData(), self.mode.currentData(),
                                                self.activation.currentData())
-        s.keyword, s.hotkey = self.keyword.text().strip().lower(), self.hotkey.text().strip().lower()
+        s.keyword, s.hotkey = self.keyword.text().strip().lower(), self.hotkey.value()
         s.use_gpu, s.autostart = self.use_gpu.isChecked(), self.autostart.isChecked()
         s.blob_size = self.blob_size.currentData()
         s.microphone = self.mic.currentData()
