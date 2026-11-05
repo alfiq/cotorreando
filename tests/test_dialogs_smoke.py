@@ -201,3 +201,55 @@ def test_data_window_closes_when_the_computer_is_left_alone(unlocked_vault, monk
     window._check_away()
     assert bool(rejected) == closes
     window.done(0)
+
+
+def _esc(kind, auto=False):
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+    typ = QEvent.KeyPress if kind == "press" else QEvent.KeyRelease
+    return QKeyEvent(typ, Qt.Key_Escape, Qt.NoModifier, "", auto)
+
+
+def test_escape_key_event_cancels_a_recording_without_closing_the_dialog(settings_dialog, monkeypatch):
+    settings, dialog = settings_dialog
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: set())
+    dialog.show()
+    dialog.hotkey.start()
+    event = _esc("press")
+    event.ignore()
+    dialog.hotkey.keyPressEvent(event)
+    assert event.isAccepted() and dialog.isVisible()
+    assert not dialog.hotkey.recording() and not dialogs.keyboard.hotkey_paused.is_set()
+    dialog.hide()
+
+
+def test_late_escape_after_cancel_by_polling_does_not_close_the_dialog(settings_dialog, monkeypatch):
+    settings, dialog = settings_dialog
+    snapshots = iter([set(), {0x1B}])
+    monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: next(snapshots))
+    dialog.show()
+    edit = dialog.hotkey
+    edit.start()
+    edit._tick()
+    edit._tick()
+    assert not edit.recording()
+    for event in (_esc("press"), _esc("press", auto=True)):
+        event.ignore()
+        edit.keyPressEvent(event)
+        assert event.isAccepted()
+    release = _esc("release")
+    release.ignore()
+    edit.keyReleaseEvent(release)
+    assert release.isAccepted() and dialog.isVisible()
+    edit._cancel_at -= 0.3
+    assert not edit._owns_escape(_esc("press"))
+    dialog.hide()
+
+
+def test_escape_without_recording_is_not_taken_by_the_field(settings_dialog):
+    settings, dialog = settings_dialog
+    event = _esc("press")
+    event.ignore()
+    dialog.hotkey.keyPressEvent(event)
+    assert not event.isAccepted()
+    assert not dialog.hotkey._owns_escape(_esc("press"))

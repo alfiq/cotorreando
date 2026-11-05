@@ -112,3 +112,62 @@ def test_hotkey_paused_stops_the_monitor_and_releases_the_hotkey(monkeypatch):
     finally:
         keyboard.hotkey_paused.clear()
     assert events == ["down", "up"]
+
+
+@pytest.fixture
+def held(monkeypatch):
+    """A fake keyboard: ``held`` is the set of virtual keys currently down."""
+    keys = set()
+    monkeypatch.setattr(keyboard, "_is_down", lambda vk: vk in keys)
+    monkeypatch.setattr(keyboard, "cancel_start_menu", lambda: None)
+    keyboard.hotkey_paused.clear()
+    yield keys
+    keyboard.hotkey_paused.clear()
+
+
+CTRL, WIN, F1 = 0x11, 0x5B, 0x70
+
+
+def test_hotkey_held_through_a_pause_does_not_fire_until_released(held):
+    events = []
+    monitor = keyboard.KeyboardMonitor("ctrl+win", lambda: events.append("down"), lambda: events.append("up"))
+    held.update({CTRL, WIN})
+    keyboard.hotkey_paused.set()
+    monitor._check_hotkey()
+    keyboard.hotkey_paused.clear()
+    monitor._check_hotkey()
+    monitor._check_hotkey()
+    assert events == []
+    held.clear()
+    monitor._check_hotkey()
+    held.update({CTRL, WIN})
+    monitor._check_hotkey()
+    assert events == ["down"]
+
+
+def test_set_hotkey_with_its_keys_held_does_not_fire(held):
+    events = []
+    monitor = keyboard.KeyboardMonitor("ctrl+win", lambda: events.append("down"), lambda: events.append("up"))
+    held.update({CTRL, 0x70})
+    monitor.set_hotkey("ctrl+f1")
+    monitor._check_hotkey()
+    assert events == []
+    held.clear()
+    monitor._check_hotkey()
+    held.update({CTRL, F1})
+    monitor._check_hotkey()
+    assert events == ["down"]
+
+
+def test_push_to_talk_held_across_a_pause_gives_one_down_and_one_up(held):
+    events = []
+    monitor = keyboard.KeyboardMonitor("ctrl+win", lambda: events.append("down"), lambda: events.append("up"))
+    held.update({CTRL, WIN})
+    monitor._check_hotkey()
+    keyboard.hotkey_paused.set()
+    monitor._check_hotkey()
+    keyboard.hotkey_paused.clear()
+    monitor._check_hotkey()
+    held.clear()
+    monitor._check_hotkey()
+    assert events == ["down", "up"]

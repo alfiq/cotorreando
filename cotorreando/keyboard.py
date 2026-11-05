@@ -227,6 +227,7 @@ class KeyboardMonitor:
         self.last_typed = 0.0
         self.last_click = 0.0
         self._active = False
+        self._rearm = False   # keys already held when the hotkey comes back must be released first
         self._thread_id = 0
         self._stopped = threading.Event()
         self._hotkey_seen = 0.0
@@ -236,6 +237,7 @@ class KeyboardMonitor:
 
     def set_hotkey(self, hotkey: str) -> None:
         self.groups = parse_hotkey(hotkey)
+        self._rearm = True
 
     def start(self) -> None:
         threading.Thread(target=self._run, daemon=True, name="mouse").start()
@@ -268,6 +270,7 @@ class KeyboardMonitor:
 
     def _check_hotkey(self) -> None:
         if hotkey_paused.is_set():
+            self._rearm = True
             if self._active:
                 self._active = False
                 self.on_up()
@@ -276,6 +279,10 @@ class KeyboardMonitor:
         if any(map(any, states)):
             self._hotkey_seen = time.monotonic()
         combo = all(map(any, states))
+        if self._rearm:
+            if combo:
+                return
+            self._rearm = False
         if combo and not self._active:
             self._active = True
             cancel_start_menu()

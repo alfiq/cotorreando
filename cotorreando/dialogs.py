@@ -544,6 +544,7 @@ class HotkeyEdit(QLineEdit):
     def __init__(self, value: str):
         self.recorder = None        # set first: Qt may call event() during construction
         self._value, self._win_down = "", False
+        self._esc_swallow, self._cancel_at = False, 0.0
         super().__init__(readOnly=True)
         self._timer = QTimer(self, interval=15, timeout=self._tick)
         self.setToolTip(tr("hotkey_hint"))
@@ -596,7 +597,7 @@ class HotkeyEdit(QLineEdit):
             self.setText(tr("hotkey_press"))
             QToolTip.showText(self.mapToGlobal(self.rect().bottomLeft()), tr("hotkey_invalid"), self)
         elif state == "cancel":
-            self.stop()
+            self._cancel()
         elif state == "done":
             result = self.recorder.result
             self.setValue(result)
@@ -607,9 +608,25 @@ class HotkeyEdit(QLineEdit):
         if event.button() == Qt.LeftButton:
             self.start()
 
-    def keyPressEvent(self, event):
+    def _cancel(self) -> None:
+        """Esc ended the recording: its key events must not reach the dialog and close it."""
+        self._esc_swallow, self._cancel_at = True, time.monotonic()
+        self.stop()
+
+    def _owns_escape(self, event) -> bool:
         if self.recording():
-            event.accept()      # Esc and Enter belong to the recording, not to the dialog
+            return True
+        if not self._esc_swallow:
+            return False
+        return event.isAutoRepeat() or time.monotonic() - self._cancel_at < 0.2
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape and self._owns_escape(event):
+            event.accept()
+            if self.recording():
+                self._cancel()
+        elif self.recording():
+            event.accept()      # Enter belongs to the recording, not to the dialog
         elif event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
             event.accept()
             self.start()
@@ -617,15 +634,20 @@ class HotkeyEdit(QLineEdit):
             super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
-        if self.recording():
+        esc = event.key() == Qt.Key_Escape
+        owned = esc and self._owns_escape(event)
+        if esc and not event.isAutoRepeat():
+            self._esc_swallow = False
+        if self.recording() or owned:
             event.accept()
         else:
             super().keyReleaseEvent(event)
 
     def event(self, event):
-        if self.recording() and event.type() == QEvent.ShortcutOverride:
-            event.accept()
-            return True
+        if event.type() == QEvent.ShortcutOverride:
+            if self.recording() or (event.key() == Qt.Key_Escape and self._owns_escape(event)):
+                event.accept()
+                return True
         return super().event(event)
 
     def focusNextPrevChild(self, next_):
