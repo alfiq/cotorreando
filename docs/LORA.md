@@ -7,15 +7,42 @@
 2. Se leen paneles breves. Parakeet sigue la lectura en vivo (`lora/align.py`): las palabras
    se iluminan y el panel termina solo tras las últimas palabras y 1,2 s de silencio;
    si no, se pulsa **Terminado**. Se asume que el audio coincide con el texto.
-3. Una de cada seis grabaciones se reserva. Se añaden adaptadores LoRA (rango 8, alfa 16) a
-   las proyecciones `q`, `k`, `v` y `out` de la atención de las 24 capas del codificador.
+3. Una de cada seis grabaciones se reserva. Se añaden adaptadores LoRA (rango 4, alfa 8) a
+   las proyecciones `q`, `k`, `v` y `out` de la atención y a las dos `feed_forward` de las 24
+   capas del codificador.
    Solo se entrenan los adaptadores; el modelo base queda congelado.
+   Los adaptadores no se fusionan en los pesos: se injertan como ramas fp32 en paralelo
+   (`y = W·x + (α/r)·B·A·x`) sobre el mismo `encoder-model.int8.onnx` que usa la app. Fusionarlos
+   y volver a cuantizar los borraba (el cambio es un 2 % de un escalón int8) y una exportación
+   nueva desde NeMo salía peor que el modelo original. El injerto añade ~11 MB y deja
+   el modelo base intacto. Para comparar diseños: `scripts/lora_sweep.py`.
+   Se entrena sobre el modelo que usa la app, no sobre el fp32 de NeMo: los pesos que la app
+   cuantiza se sustituyen por su valor int8 (desplegando la BatchNorm que el exportador fusionó en
+   las convoluciones depthwise) y sus entradas pasan por la misma cuantización uint8 dinámica
+   (`AppWeights` en `train.py`). Entrenado sobre fp32, el LoRA corregía errores que solo comete
+   NeMo y empeoraba la app.
 4. Se compara el WER sobre lo reservado, primero en NeMo y luego con el ONNX en streaming, que
    es lo que se usa al dictar. Si no mejora, se conserva el modelo original. Si mejora, queda en
    `%LOCALAPPDATA%\Cotorreando\models\adapters\<nombre>` y se activa.
 
 La descarga arranca al empezar a leer y el entrenamiento sigue en segundo plano; mientras tanto
 se dicta con el modelo actual.
+
+## Por qué este diseño
+
+Barrido con `scripts/lora_sweep.py` (validación cruzada en 6 grupos, medido como en la app:
+int8 con injerto y en streaming; WER del modelo base 3,1 %):
+
+| Diseño | WER | Grupos que mejoran / empeoran |
+|---|---|---|
+| Solo atención, entrenado en fp32 (lo anterior) | 4,7 % | 0 / 2 |
+| Solo atención, entrenado en int8 | 2,8 % | 1 / 0 |
+| Atención + FFN, rango 8 | 1,5 % | 2 / 0 |
+| **Atención + FFN, rango 4** | **1,5 %** | **2 / 0** |
+| Coseno, LR más alto o dropout | 2,3–3,1 % | empeoran en algunos |
+
+El rango 4 rinde igual que el 8 con la mitad de parámetros. Hay pocas grabaciones, así que
+es una señal, no una prueba: por eso el paso 4 sigue descartando el adaptador si no mejora.
 
 ## Paneles
 
