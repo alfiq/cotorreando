@@ -25,6 +25,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e ".[test]"
       - run: python -m ruff check .
+      - run: python -m ruff format --check .
       - run: python -m pytest -q
         env:
           LOCALAPPDATA: ${{ runner.temp }}   # the runner context is not available at job level
