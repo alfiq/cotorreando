@@ -115,6 +115,20 @@ gh workflow run instalador-fijo.yml -f tag=vX.Y.Z
 No hay que renombrar el instalador de `installer.iss` ni subir la copia a mano: el nombre con
 versión lo usan las personas que bajan una versión concreta, y el fijo solo existe para el botón.
 
+## Sumas de verificación
+
+Cada Release trae también `SHA256SUMS.txt`, que el mismo workflow sube con las sumas del
+instalador con versión y del fijo, en el formato `<sha256>  <archivo>`. Para comprobar una
+descarga, en PowerShell:
+
+```powershell
+Get-FileHash Cotorreando-setup.exe -Algorithm SHA256
+```
+
+Compara el valor `Hash` (en minúsculas o mayúsculas, da igual) con la línea de
+`SHA256SUMS.txt` que termina en `Cotorreando-setup.exe`. Si no coinciden, no ejecutes el
+instalador y vuelve a bajarlo.
+
 ## Búsqueda de actualizaciones
 
 La app, si está activado en Opciones › Privacidad, consulta una vez al día

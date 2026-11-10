@@ -30,3 +30,14 @@ jobs:
         run: |
           cp dist/Cotorreando-*-setup.exe Cotorreando-setup.exe
           gh release upload "$TAG" Cotorreando-setup.exe --clobber
+      - name: Publicar las sumas SHA-256
+        shell: pwsh
+        run: |
+          $versionado = Get-ChildItem -Path dist -Filter 'Cotorreando-*-setup.exe' | Select-Object -First 1
+          $fijo = Get-Item -Path Cotorreando-setup.exe
+          $lineas = foreach ($f in @($versionado, $fijo)) {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower(), $f.Name
+          }
+          $ruta = Join-Path (Get-Location) 'SHA256SUMS.txt'
+          [System.IO.File]::WriteAllText($ruta, (($lineas -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
+          gh release upload "$env:TAG" SHA256SUMS.txt --clobber

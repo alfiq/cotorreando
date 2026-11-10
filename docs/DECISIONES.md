@@ -35,7 +35,8 @@
 | Licencia | **MIT**. |
 | Repositorio | [`github.com/alfiq/cotorreando`](https://github.com/alfiq/cotorreando), privado al principio. |
 | Distribución | Ejecutable con **Nuitka** (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
-| Reportes de seguridad y de conducta | Por el canal privado de GitHub, sin correo público en el repositorio: un solo canal que no hay que mantener ni que se filtre. Ver [SECURITY.md](../SECURITY.md) y [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md). |
+| Reportes de seguridad y de conducta | Por el canal privado de GitHub, sin correo público en el repositorio: un solo canal que no hay que mantener ni que se filtre. Ver [SECURITY.md](https://github.com/alfiq/cotorreando/blob/main/SECURITY.md) y [CODE_OF_CONDUCT.md](https://github.com/alfiq/cotorreando/blob/main/CODE_OF_CONDUCT.md). |
+| Sumas de verificación de los instaladores | Cada Release publica `SHA256SUMS.txt` con el SHA-256 del instalador con versión y del fijo. GitHub también muestra los digests, pero un archivo se puede comprobar sin conexión y winget lo usará. |
 
 ## Cambios sobre la marcha
 
