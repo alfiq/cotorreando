@@ -128,6 +128,7 @@ instala aparte, solo si lo pides. Detalles en [docs/LORA.md](docs/LORA.md).
 - [docs/IDEAS.md](docs/IDEAS.md) — ideas y pendientes.
 - [docs/VERSIONES.md](docs/VERSIONES.md) — numeración de versiones y cómo publicar una.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licencias y créditos.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — cómo reportar fallos, proponer ideas y contribuir código.
 
 ## Créditos
 

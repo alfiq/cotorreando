@@ -1,0 +1,66 @@
+name: Reportar un fallo
+description: Algo no funciona como debería.
+labels: ["fallo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportarlo. No adjuntes grabaciones ni texto dictado salvo que quieras hacerlo; revisa el registro antes de pegarlo. Más en [Privacidad](https://github.com/alfiq/cotorreando/blob/main/docs/PRIVACIDAD.md).
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Cotorreando
+      description: Aparece en Acerca de.
+      placeholder: "0.1.1"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Versión de Windows
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      description: Modelo de tarjeta, o "solo CPU".
+    validations:
+      required: true
+  - type: input
+    id: microfono
+    attributes:
+      label: Micrófono
+  - type: dropdown
+    id: modo
+    attributes:
+      label: Modo de escucha
+      options:
+        - Micrófono abierto
+        - Pulsar para hablar
+        - Activación por voz
+        - Activación por palabra clave
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: resultado
+    attributes:
+      label: Qué pasó y qué esperabas
+    validations:
+      required: true
+  - type: textarea
+    id: registro
+    attributes:
+      label: Registro
+      description: 'Contenido relevante de %LOCALAPPDATA%\Cotorreando\cotorreando.log. Se sobrescribe en cada arranque: cópialo antes de volver a abrir la app.'
+      render: text

@@ -1,0 +1,25 @@
+name: Proponer una idea
+description: Una mejora o una función nueva.
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de proponer, echa un vistazo a [IDEAS](https://github.com/alfiq/cotorreando/blob/main/docs/IDEAS.md) y [DECISIONES](https://github.com/alfiq/cotorreando/blob/main/docs/DECISIONES.md), por si ya está pensada o descartada.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qué problema resuelve
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+      description: Cómo te imaginas que funcionaría.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
