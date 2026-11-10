@@ -72,6 +72,10 @@ versión pequeña que funciona que una grande a medias.
    gh release create v0.0.9 dist\Cotorreando-0.0.9-setup.exe --title "0.0.9" --notes-file notas.md
    ```
 
+   Al publicarse, el workflow `instalador-fijo.yml` sube una copia con el nombre fijo
+   `Cotorreando-setup.exe`, que es a lo que apunta el botón de descarga del sitio
+   (`releases/latest/download/Cotorreando-setup.exe`). No hay que subirla a mano.
+
    No lo marques como borrador ni como pre-release: la búsqueda de actualizaciones de la app
    pregunta por `releases/latest`, que ignora ambos, y compara su etiqueta (sin la `v`) con la
    versión instalada. Una etiqueta que no sea `vX.Y.Z` se ignora.

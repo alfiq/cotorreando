@@ -77,6 +77,11 @@ y pasa a ser la cotorra. Las reglas están en [IDENTIDAD.md](IDENTIDAD.md).
 #### Tamaño del blob
 Configurable: pequeño, mediano o grande.
 
+#### Descarga directa en el sitio
+La portada del sitio abre con un botón que baja el instalador más reciente. Apunta a
+`releases/latest/download/Cotorreando-setup.exe`, y al publicar cada Release un workflow le sube una
+copia del instalador con ese nombre fijo. No usa la API de GitHub ni JavaScript.
+
 ## Pendientes
 
 - [ ] Hacer público el repositorio.

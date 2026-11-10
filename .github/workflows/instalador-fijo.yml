@@ -1,0 +1,32 @@
+# Al publicar una Release, sube una copia de Cotorreando-X.Y.Z-setup.exe con el nombre fijo
+# Cotorreando-setup.exe. El botón de descarga del sitio apunta a
+# releases/latest/download/Cotorreando-setup.exe, que así siempre da la versión más reciente.
+# También se puede lanzar a mano con una etiqueta, para Releases que ya existían.
+name: Instalador con nombre fijo
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Etiqueta de la Release (por ejemplo v0.1.2)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  copiar:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Descargar el instalador con versión
+        run: gh release download "$TAG" --pattern 'Cotorreando-*-setup.exe' --dir dist
+      - name: Subirlo con el nombre fijo
+        run: |
+          cp dist/Cotorreando-*-setup.exe Cotorreando-setup.exe
+          gh release upload "$TAG" Cotorreando-setup.exe --clobber

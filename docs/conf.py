@@ -75,12 +75,32 @@ html[data-theme="light"] {
 }
 .navbar-brand img, link[rel="icon"] { image-rendering: pixelated; }
 h1, h2, h3, h4, .navbar-brand { font-weight: 600; }
+.descarga {
+  margin: 1.5rem 0 2rem; padding: 1.25rem 1.5rem; border-radius: 12px;
+  border: 1px solid var(--pst-color-border); background: var(--pst-color-surface);
+}
+.descarga p { margin: 0 0 .75rem; }
+.descarga .boton {
+  display: inline-block; padding: .6rem 1.4rem; border-radius: 8px; font-weight: 600;
+  background: var(--pst-color-primary); color: var(--pst-color-background); text-decoration: none;
+}
+.descarga .boton:hover { background: var(--pst-color-primary-bg); color: var(--pst-color-background); }
+.descarga .resto { margin: .75rem 0 0; color: var(--pst-color-text-muted); }
 """
 
 _static = Path(tempfile.mkdtemp(prefix="cotorreando-docs-"))
 (_static / "cotorra.css").write_text(CSS, encoding="utf-8")
 html_static_path = [str(_static)]
 html_css_files = ["cotorra.css"]
+
+
+DESCARGA = """
+<div class="descarga">
+<p>¿Vienes por la descarga? Aquí está, cotorro.</p>
+<a class="boton" href="https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe">Descargar Cotorreando para Windows</a>
+<p class="resto">¡Luego me cuentas cómo te fue! Y ahora, para los demás:</p>
+</div>
+"""
 
 
 def _portada():
@@ -93,7 +113,7 @@ def _portada():
                     else f"](https://github.com/alfiq/cotorreando/blob/main/{m.group(1)})",
                     cuerpo)
     indice = "\n".join(p.stem for p in sorted(DOCS.glob("*.md")) if p.stem != "index")
-    return ("![Cotorreando](assets/banner.png)\n\n" + cuerpo
+    return ("![Cotorreando](assets/banner.png)\n" + DESCARGA + "\n" + cuerpo
             + "\n\n```{toctree}\n:hidden:\n:maxdepth: 1\n\n" + indice + "\n```\n")
 
 
