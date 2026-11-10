@@ -9,6 +9,7 @@ import threading
 import time
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
                                QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
@@ -38,71 +39,80 @@ DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND = 33, 2
 _ASSETS = (PACKAGE_DIR / "assets").as_posix()
 STYLE = """
 * { font-family: "Segoe UI"; font-size: 10pt; }
-QMenu { background: rgba(26,27,31,240); color: #e8e9ec; border: 1px solid #30323a;
+QMenu { background: rgba(26,31,27,240); color: #e8ece9; border: 1px solid #303a32;
         border-radius: 12px; padding: 6px; }
 QMenu::item { padding: 8px 28px 8px 14px; border-radius: 8px; }
-QMenu::item:selected { background: #2a2d34; }
-QMenu::separator { height: 1px; background: #2c2e35; margin: 5px 10px; }
-QDialog, QStackedWidget, QStackedWidget > QWidget, QScrollArea, #content { background: #16171b; color: #e8e9ec; }
-QDialog { border: 1px solid #30323a; }
-#titleBar { background: #16171b; }
-#titleText { color: #8b8f99; font-size: 9pt; }
-QPushButton#titleClose { background: transparent; color: #a4a7b0; border-radius: 0; padding: 0; font-weight: 400; }
-QPushButton#titleClose:hover { background: #c42b1c; color: #ffffff; }
-QPushButton#titleClose:pressed { background: #a32417; color: #ffffff; }
-QLabel, QCheckBox { color: #e8e9ec; background: transparent; }
-#sidebar { background: #16171b; border: none; border-right: 1px solid #26282e; outline: 0; padding: 8px; }
-#sidebar::item { color: #a4a7b0; padding: 9px 12px; border-radius: 8px; margin: 1px 0; }
-#sidebar::item:hover { background: #22242a; }
-#sidebar::item:selected { background: #2a2d34; color: #f3f4f6; }
-#sideLogo { background: #16171b; border-right: 1px solid #26282e; padding: 18px 0 8px 0; }
-#pageTitle { font-size: 16pt; font-weight: 600; color: #f3f4f6; }
-#groupTitle { color: #8b8f99; font-size: 9pt; font-weight: 600; }
-#card { background: #1d1f24; border: 1px solid #292b32; border-radius: 12px; }
-#rowLine { background: #292b32; border: none; max-height: 1px; }
-#footer { background: #16171b; border-top: 1px solid #26282e; }
-#title { font-size: 18pt; font-weight: 600; color: #f3f4f6; }
-#body { color: #b6b9c2; font-size: 11pt; }
-#note, #caption { color: #8b8f99; font-size: 9pt; }
-#cheer { color: #a9dcc2; font-size: 12pt; font-weight: 600; }
+QMenu::item:selected { background: #2a342d; }
+QMenu::separator { height: 1px; background: #2c352e; margin: 5px 10px; }
+QDialog, QStackedWidget, QStackedWidget > QWidget, QScrollArea, #content { background: #161b17; color: #e8ece9; }
+QDialog { border: 1px solid #303a32; }
+#titleBar { background: #161b17; }
+#titleText { color: #8b998e; font-size: 9pt; }
+QPushButton#titleClose { background: transparent; color: #a4b0a7; border-radius: 0; padding: 0; font-weight: 400; }
+QPushButton#titleClose:hover { background: #cb4426; color: #ffffff; }
+QPushButton#titleClose:pressed { background: #9f1d29; color: #ffffff; }
+QLabel, QCheckBox { color: #e8ece9; background: transparent; }
+#sidebar { background: #161b17; border: none; border-right: 1px solid #262e28; outline: 0; padding: 8px; }
+#sidebar::item { color: #a4b0a7; padding: 9px 12px; border-radius: 8px; margin: 1px 0; }
+#sidebar::item:hover { background: #222a24; }
+#sidebar::item:selected { background: #2a342d; color: #f3f6f4; }
+#sideLogo { background: #161b17; border-right: 1px solid #262e28; padding: 18px 0 8px 0; }
+#pageTitle { font-size: 16pt; font-weight: 600; color: #f3f6f4; }
+#groupTitle { color: #8b998e; font-size: 9pt; font-weight: 600; }
+#card { background: #1d241f; border: 1px solid #29322b; border-radius: 12px; }
+#rowLine { background: #29322b; border: none; max-height: 1px; }
+#footer { background: #161b17; border-top: 1px solid #262e28; }
+#title { font-size: 18pt; font-weight: 600; color: #f3f6f4; }
+#body { color: #b6c2b9; font-size: 11pt; }
+#note, #caption { color: #8b998e; font-size: 9pt; }
+#cheer { color: #b5e61d; font-size: 12pt; font-weight: 600; }
 #panel { font-size: 18pt; padding: 8px 12px; }
 QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
-        background: #25272d; color: #e8e9ec; border: 1px solid #33353d; border-radius: 8px;
-        padding: 6px 10px; min-height: 18px; selection-background-color: #3f9d78; }
-QLineEdit[recording="true"] { border-color: #3f9d78; color: #a9dcc2; }
-QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #3f9d78; }
-QLineEdit:disabled, QDoubleSpinBox:disabled { color: #6d717b; background: #1f2126; }
+        background: #252d27; color: #e8ece9; border: 1px solid #333d36; border-radius: 8px;
+        padding: 6px 10px; min-height: 18px; selection-background-color: #22b14c; selection-color: #0b1a10; }
+QLineEdit[recording="true"] { border-color: #ff7f27; color: #ffb27a; }
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #22b14c; }
+QLineEdit:disabled, QDoubleSpinBox:disabled { color: #6d7b71; background: #1f2621; }
 QComboBox::drop-down { border: none; width: 26px; }
 QComboBox::down-arrow { image: url(%(assets)s/chevron.png); width: 12px; height: 12px; }
-QComboBox QAbstractItemView { background: #25272d; color: #e8e9ec; border: 1px solid #33353d;
-        selection-background-color: #33363e; outline: 0; padding: 4px; }
+QComboBox QAbstractItemView { background: #252d27; color: #e8ece9; border: 1px solid #333d36;
+        selection-background-color: #333e36; outline: 0; padding: 4px; }
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button { width: 0; border: none; }
 QCheckBox { spacing: 10px; }
-QCheckBox::indicator { width: 18px; height: 18px; border-radius: 6px; background: #25272d; border: 1px solid #3a3c45; }
-QCheckBox::indicator:checked { background: #3f9d78; border-color: #3f9d78; image: url(%(assets)s/check.png); }
-QPushButton { background: #3f9d78; color: #ffffff; border: none; border-radius: 8px; padding: 8px 18px; font-weight: 600; }
-QPushButton:hover { background: #4aae87; }
-QPushButton:pressed { background: #378a69; }
-QPushButton:disabled { background: #33353d; color: #7b7f88; }
-QPushButton#ghost { background: transparent; color: #b6b9c2; border: 1px solid #383a43; font-weight: 400; }
-QPushButton#ghost:hover { background: #24262c; color: #e8e9ec; }
-QProgressBar#meter { background: #25272d; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
-QProgressBar#meter::chunk { background: #3f9d78; border-radius: 3px; }
-QPlainTextEdit { background: #25272d; color: #e8e9ec; border: 1px solid #33353d; border-radius: 8px;
-        padding: 6px; selection-background-color: #3f9d78; }
-QPlainTextEdit:focus { border-color: #3f9d78; }
-QTextBrowser { background: #1d1f24; color: #e8e9ec; border: 1px solid #292b32; border-radius: 12px; padding: 12px; }
+QCheckBox::indicator { width: 18px; height: 18px; border-radius: 6px; background: #252d27; border: 1px solid #6b7a6f; }
+QCheckBox::indicator:checked { background: #22b14c; border-color: #22b14c; image: url(%(assets)s/check.png); }
+QPushButton { background: #22b14c; color: #0b1a10; border: none; border-radius: 8px; padding: 8px 18px; font-weight: 600; }
+QPushButton:hover { background: #2cc45a; }
+QPushButton:pressed { background: #1d9a42; }
+QPushButton:disabled { background: #333d36; color: #7b887e; }
+QPushButton#ghost { background: transparent; color: #b6c2b9; border: 1px solid #38433b; font-weight: 400; }
+QPushButton#ghost:hover { background: #242c26; color: #e8ece9; }
+QProgressBar#meter { background: #252d27; border: none; border-radius: 3px; max-height: 6px; min-height: 6px; }
+QProgressBar#meter::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #22b14c, stop:1 #b5e61d); border-radius: 3px; }
+QPlainTextEdit { background: #252d27; color: #e8ece9; border: 1px solid #333d36; border-radius: 8px;
+        padding: 6px; selection-background-color: #22b14c; selection-color: #0b1a10; }
+QPlainTextEdit:focus { border-color: #22b14c; }
+QTextBrowser { background: #1d241f; color: #e8ece9; border: 1px solid #29322b; border-radius: 12px; padding: 12px; }
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
-QScrollBar::handle:vertical { background: #3a3c45; border-radius: 3px; min-height: 28px; }
+QScrollBar::handle:vertical { background: #3a453d; border-radius: 3px; min-height: 28px; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
-QTabBar { background: #16171b; }
-QTabBar::tab { background: transparent; color: #a4a7b0; padding: 8px 16px; border: none;
+QTabBar { background: #161b17; }
+QTabBar::tab { background: transparent; color: #a4b0a7; padding: 8px 16px; border: none;
         border-bottom: 2px solid transparent; }
-QTabBar::tab:hover { color: #e8e9ec; }
-QTabBar::tab:selected { color: #f3f4f6; border-bottom-color: #3f9d78; }
-a { color: #7fd1a8; }
+QTabBar::tab:hover { color: #e8ece9; }
+QTabBar::tab:selected { color: #f3f6f4; border-bottom-color: #22b14c; }
+a { color: #54d7a3; }
 """ % {"assets": _ASSETS}
+
+
+def apply_theme(app) -> None:
+    """The style sheet, plus the link colour: rich-text labels take it from the palette, not from CSS."""
+    app.setStyleSheet(STYLE)
+    palette = app.palette()
+    palette.setColor(QPalette.Link, QColor("#54d7a3"))
+    palette.setColor(QPalette.LinkVisited, QColor("#54d7a3"))
+    app.setPalette(palette)
 
 
 def styled_menu() -> QMenu:
@@ -353,7 +363,7 @@ class Notice(QWidget):
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setObjectName("notice")
-        self.setStyleSheet("#notice { background: #16171b; border: 1px solid #30323a; }")
+        self.setStyleSheet("#notice { background: #161b17; border: 1px solid #303a32; }")
         self.setAttribute(Qt.WA_StyledBackground)
         button = QPushButton(action, clicked=lambda: (self.close(), on_action()))
         button.setFocusPolicy(Qt.NoFocus)
@@ -1367,7 +1377,7 @@ class AboutDialog(Window):
         self.resize(560, 520)
         rows = "".join(
             f"<p><b><a href='{url}'>{name}</a></b> — {purpose}<br>"
-            f"<a href='{lic_url}'>{lic}</a> · <span style='color:#999'>{note}</span></p>"
+            f"<a href='{lic_url}'>{lic}</a> · <span style='color:#8b998e'>{note}</span></p>"
             for name, purpose, lic, url, lic_url, note in CREDITS + TRAINING_CREDITS)
         html = (
             f"<h2>Cotorreando {__version__}</h2><p>{tr('tagline')}</p>"

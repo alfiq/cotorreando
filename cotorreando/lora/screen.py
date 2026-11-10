@@ -74,7 +74,7 @@ class TrainingScreen(QWidget):
         self.panels: list[dict] = []
         self.setObjectName("screen")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setStyleSheet("#screen, #screen QWidget { background: #0d0e11; }")
+        self.setStyleSheet("#screen, #screen QWidget { background: #0d110e; }")
         self.setAttribute(Qt.WA_StyledBackground)
 
         self.mosaic = Mosaic(12, 0.0)

@@ -30,9 +30,10 @@ SIZES = {"small": (110, 13), "medium": (170, 20), "large": (250, 30)}
 GOO_STIFFNESS, GOO_DAMPING = 60.0, 7.0   # the sticky tail: softer than the drag spring
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
-ACCENT = QColor(64, 196, 255)
-# (hue, orbit radius, feather size) relative to the radius, drifting inside the orb.
-CLOUDS = ((320, 0.45, 0.75), (200, 0.35, 0.85), (140, 0.5, 0.7), (265, 0.3, 0.6), (45, 0.55, 0.45))
+# The parrot's own colours (assets/parrot.png), in the order they run along its plumage.
+PLUMAGE = tuple(QColor(c) for c in ("#54d7a3", "#22b14c", "#b5e61d", "#fff200", "#ff7f27", "#ed1c24"))
+# (place in PLUMAGE, orbit radius, feather size) relative to the radius, drifting inside the orb.
+CLOUDS = ((0, 0.45, 0.75), (1, 0.35, 0.85), (2, 0.5, 0.7), (4, 0.3, 0.6), (5, 0.55, 0.45))
 GREY = QColor(128, 128, 134)
 EDGE_FADE = 0.8      # share of the way from the outline to the centre spent fading in
 MIN_RINGS = 24
@@ -209,7 +210,7 @@ class Blob(QWidget):
 
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
-            color = QColor.fromHsv(int(200 + self._hue + age * 120) % 360, 220, 255)
+            color = plumage(self._hue / 60 + age * 2)
             color.setAlphaF(max(0.0, 0.55 * math.sin(math.pi * age)))   # born and gone invisible
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
@@ -262,7 +263,7 @@ class Blob(QWidget):
         p.setBrush(Qt.NoBrush)
         p.setPen(QPen(track, 3))
         p.drawEllipse(rect)
-        pen = QPen(QColor.fromHsv(int(t * 60) % 360, 200, 255), 3)
+        pen = QPen(plumage(t), 3)
         pen.setCapStyle(Qt.RoundCap)
         p.setPen(pen)
         if self.loading >= 0:
@@ -274,16 +275,16 @@ class Blob(QWidget):
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
         # An even fill: _fade_edges gives it its shape, sticky tail included.
-        layer.fill(QColor.fromHsv(int(220 + shift) % 360, 215, 200, 170))
+        layer.fill(QColor(16, 92, 62, 170))   # deep parrot green
         p = QPainter(layer)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
         p.setCompositionMode(QPainter.CompositionMode_Plus)
         glow = 0.75 + 0.25 * self.level
-        for i, (hue, orbit, size) in enumerate(CLOUDS):
+        for i, (place, orbit, size) in enumerate(CLOUDS):
             a = self._drift * (0.6 + 0.17 * i) + i * 2.1
             pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * self.radius * orbit
-            color = QColor.fromHsv(int(hue + shift) % 360, 255, 255)
+            color = plumage(place + shift / 60)
             g = QRadialGradient(pos, self.radius * size)
             color.setAlphaF(glow * 0.45)   # a faint halo behind each feather
             g.setColorAt(0, color)
@@ -343,6 +344,17 @@ class Blob(QWidget):
         if e.button() == Qt.LeftButton and self._drag_offset is not None:
             self._drag_offset = None
             self.moved.emit(round(self._target.x()), round(self._target.y()))
+
+
+def plumage(place: float) -> QColor:
+    """A colour along PLUMAGE, blended between neighbours; it runs back and forth, never jumping."""
+    last = len(PLUMAGE) - 1
+    x = place % (2 * last)
+    x = 2 * last - x if x > last else x
+    i = min(int(x), last - 1)
+    a, b, f = PLUMAGE[i], PLUMAGE[i + 1], x - i
+    return QColor.fromRgbF(a.redF() + (b.redF() - a.redF()) * f, a.greenF() + (b.greenF() - a.greenF()) * f,
+                           a.blueF() + (b.blueF() - a.blueF()) * f)
 
 
 def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QColor) -> None:

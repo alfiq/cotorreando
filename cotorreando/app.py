@@ -34,7 +34,7 @@ from . import asr, model_store
 from .audio import AudioInput
 from .blob import Blob
 from .config import Settings
-from .dialogs import (STYLE, AboutDialog, DownloadDialog, ModelErrorDialog, Notice, SettingsDialog,
+from .dialogs import (AboutDialog, apply_theme, DownloadDialog, ModelErrorDialog, Notice, SettingsDialog,
                       SetupDialog, UnlockDialog, WelcomeDialog, choose_model_folder, model_error_text,
                       styled_menu)
 from .i18n import set_language, tr
@@ -667,7 +667,7 @@ class Cotorreando(QObject):
         p = QPainter(pix)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(64, 196, 255) if self.enabled else QColor(128, 128, 134))
+        p.setBrush(QColor(34, 177, 76) if self.enabled else QColor(128, 128, 134))
         p.drawEllipse(6, 6, 52, 52)
         p.end()
         return QIcon(pix)
@@ -707,7 +707,7 @@ def main() -> int:
         "Unhandled exception", exc_info=exc)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    app.setStyleSheet(STYLE)
+    apply_theme(app)
     settings = Settings.load()
     if not settings.welcome_accepted:   # before anything is downloaded or recorded
         set_language(settings.ui_language)

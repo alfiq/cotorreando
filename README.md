@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="Cotorreando: dictado por voz para todo Windows" width="720">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="Licencia MIT" src="https://img.shields.io/badge/licencia-MIT-157f35"></a>
+  <img alt="Windows 10 y 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0f6b4a">
+  <img alt="Sin nube" src="https://img.shields.io/badge/privacidad-sin%20nube-5a7d0e">
+  <a href="https://github.com/alfiq/cotorreando/releases"><img alt="Versión" src="https://img.shields.io/github/v/release/alfiq/cotorreando?label=versi%C3%B3n&color=cb4426"></a>
+</p>
+
 # Cotorreando
 
 Dictado por voz para todo Windows. Hablas, y el texto aparece donde esté el cursor:
@@ -15,9 +26,9 @@ Un círculo flotante, siempre encima de todo, que muestra lo que está pasando:
 | Estado | Aspecto |
 |---|---|
 | Desactivado | Gris y quieto. No consume CPU en animación. |
-| Escuchando | Azul, respira suavemente. |
+| Escuchando | Verde cotorra, respira suavemente. |
 | Hablando | Se deforma con tu voz y suelta ondas a su alrededor. |
-| Escribiendo | Colores tornasol que giran. |
+| Escribiendo | Recorre los colores del plumaje: menta, verde, lima, amarillo, naranja y rojo. |
 
 Hablar y escribir se combinan: el texto aparece mientras hablas (≈0,8 s de retraso con GPU,
 ≈1,1 s solo con CPU), sin

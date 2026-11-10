@@ -228,7 +228,7 @@ class CalibrationDialog(Window):
         words = split_words(self.items[self.index][2])
         html = []
         for i, word in enumerate(words):
-            color = "#f3f4f6" if i < self.position else "#7fd1a8" if i == self.position else "#6d717b"
+            color = "#f3f6f4" if i < self.position else "#54d7a3" if i == self.position else "#8b998e"
             html.append(f"<span style='color:{color}'>{escape(word)}</span>")
         self.panel_text.setText(" ".join(html))
 

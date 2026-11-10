@@ -1,5 +1,13 @@
 # Cambios
 
+## Sin publicar
+
+- Los colores de la interfaz, el blob y el icono de la bandeja salen ahora de la cotorra: verde,
+  menta, lima, amarillo, naranja y rojo, con contraste AA en todos los textos.
+- El entrenamiento de voz (LoRA) mejora el modelo que usa la app: los adaptadores ya no se pierden
+  al exportar y se entrenan sobre los mismos pesos int8. Ahora también adaptan la parte FFN.
+- El README tiene cabecera con la cotorra.
+
 ## 0.1.1 — 2026-11-05
 
 - El modelo de voz se libera de la memoria tras 10 minutos sin dictar y vuelve a cargarse solo al
