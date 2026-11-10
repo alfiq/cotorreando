@@ -6,3 +6,5 @@ build/
 *.egg-info/
 graft/
 .ignore
+_site/
+docs/index.md
