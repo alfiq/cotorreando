@@ -38,10 +38,14 @@ Registro de lo que se preguntó durante el diseño y lo que se eligió.
 - **Sin modelo fp32.** Pesa 2,4 GB y no aporta velocidad frente al int8 con forma fija.
 - **Tamaño del blob** configurable: pequeño, mediano o grande.
 - **sounddevice descartado.** Su PortAudio no expone dispositivos de loopback WASAPI.
-
 - **Pérdida TDT propia.** La de NeMo exige numba CUDA (`nvvm.dll`), que pip no instala en Windows.
 
-## Pendientes de confirmar
+- **LoRA injertado, no fusionado.** Fusionar y recuantizar a int8 borraba el adaptador, y entrenar
+  sobre el fp32 de NeMo empeoraba la app. Se entrena sobre los pesos int8 de la app y se injerta
+  como rama fp32; por defecto, atención + FFN con rango 4 (ver `LORA.md`).
 
-- Crear el repositorio privado en GitHub y subir el código (falta tu visto bueno).
-- Medir la mejora del LoRA con voces y micrófonos reales: con voz sintética no hubo ganancia.
+## Pendientes
+
+- Hacer público el repositorio.
+- Confirmar con más grabaciones reales que el LoRA mejora: en el barrido mejoró 2 de 6 grupos
+  y no empeoró ninguno, con pocas grabaciones.
