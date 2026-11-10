@@ -3,7 +3,7 @@
 La portada (index.md) y la hoja de estilos se generan al compilar, a partir del README y de la
 paleta de docs/IDENTIDAD.md, para no mantener copias en el repositorio.
 
-    pip install sphinx pydata-sphinx-theme myst-parser
+    pip install sphinx pydata-sphinx-theme myst-parser sphinx-sitemap sphinxext-opengraph
     sphinx-build docs _site
 """
 
@@ -18,7 +18,7 @@ project = "Cotorreando"
 author = "Alfiq"
 language = "es"
 
-extensions = ["myst_parser"]
+extensions = ["myst_parser", "sphinx_sitemap", "sphinxext.opengraph"]
 source_suffix = {".md": "markdown"}
 myst_heading_anchors = 3
 exclude_patterns = ["_build"]
@@ -29,6 +29,18 @@ html_title = "Cotorreando"
 html_logo = str(ROOT / "cotorreando" / "assets" / "parrot.png")
 html_favicon = html_logo
 html_show_sourcelink = False
+
+# Buscadores: URL canónica, sitemap.xml y archivos de verificación de Google y Bing (docs/_extra,
+# que se copian tal cual a la raíz del sitio).
+SITIO = "https://alfiq.github.io/cotorreando/"
+html_baseurl = SITIO
+sitemap_url_scheme = "{link}"
+html_extra_path = ["_extra"]
+ogp_site_url = SITIO
+ogp_site_name = "Cotorreando"
+ogp_image = SITIO + "_images/banner.png"
+ogp_description_length = 200
+ogp_social_cards = {"enable": False}
 html_context = {"default_mode": "dark"}
 html_theme_options = {
     "github_url": "https://github.com/alfiq/cotorreando",
