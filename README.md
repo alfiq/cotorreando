@@ -125,6 +125,7 @@ instala aparte, solo si lo pides. Detalles en [docs/LORA.md](docs/LORA.md).
 - [docs/DISENO.md](docs/DISENO.md) — arquitectura y decisiones.
 - [docs/LORA.md](docs/LORA.md) — entrenamiento del adaptador.
 - [docs/DECISIONES.md](docs/DECISIONES.md) — preguntas resueltas durante el diseño.
+- [docs/IDENTIDAD.md](docs/IDENTIDAD.md) — identidad visual: logo, paleta, tipografía y tono.
 - [docs/IDEAS.md](docs/IDEAS.md) — ideas y pendientes.
 - [docs/VERSIONES.md](docs/VERSIONES.md) — numeración de versiones y cómo publicar una.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — licencias y créditos.

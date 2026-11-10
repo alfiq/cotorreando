@@ -39,5 +39,6 @@ python -m pytest -q
 
 Antes de enviar, comprueba que las pruebas pasan y que el código sigue el estilo del que ya existe.
 Para cambios de arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo encaja todo.
+Si tocas la interfaz, los colores o las imágenes, sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md).
 
 Al contribuir aceptas que tu aporte se publique bajo la [licencia MIT](LICENSE) del proyecto.
