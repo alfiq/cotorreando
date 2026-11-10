@@ -1,6 +1,6 @@
 # Cambios
 
-## Sin publicar
+## 0.1.2 — 2026-11-09
 
 - Los colores de la interfaz, el blob y el icono de la bandeja salen ahora de la cotorra: verde,
   menta, lima, amarillo, naranja y rojo, con contraste AA en todos los textos.
