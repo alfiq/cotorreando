@@ -1,10 +1,10 @@
-# 💡 Ideas
+# Ideas
 
 > Lo que podría venir después. Nada de esto hace falta para que Cotorreando funcione.
 
 ## Por hacer
 
-### ✍️ Escritura
+### Escritura
 
 | Idea | Qué haría |
 |---|---|
@@ -13,19 +13,19 @@
 | **Pegar en vez de teclear** | Opción para textos muy largos, donde teclear carácter a carácter es lento. |
 | **Historial** | Las últimas frases dictadas, a mano para copiarlas otra vez. |
 
-### 🫧 Interfaz
+### Interfaz
 
 | Idea | Qué haría |
 |---|---|
 | **Aviso en el blob** | Un destello breve cuando se descarta una frase porque estabas tecleando. |
 
-### ⚡ Modelo
+### Modelo
 
 | Idea | Qué haría |
 |---|---|
 | **Streaming nativo** | Si NVIDIA publica un Parakeet multilingüe *cache-aware*, la latencia bajaría de 0,5 s. |
 
-## ✅ Ya hechas
+## Ya hechas
 
 | Idea | Cómo quedó |
 |---|---|

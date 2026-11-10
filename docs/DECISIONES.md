@@ -1,11 +1,11 @@
-# 🧭 Decisiones
+# Decisiones
 
 > Qué se eligió durante el diseño y por qué. El código cuenta *qué* hace; esto cuenta *por qué*,
 > para no deshacer sin querer algo que ya se probó.
 
 ## Punto de partida
 
-### 🧠 Reconocimiento
+### Reconocimiento
 
 | Tema | Decisión |
 |---|---|
@@ -16,7 +16,7 @@
 | Palabra clave | Detectada con el propio Parakeet: openWakeWord trae modelos no comerciales. |
 | Calibración | Obligatoria salvo omisión explícita: 12 paneles por idioma, y solo se activa si mejora el WER. |
 
-### 🖥️ Aplicación
+### Aplicación
 
 | Tema | Decisión |
 |---|---|
@@ -28,7 +28,7 @@
 | Atajo | `Ctrl+Win`. |
 | Logo | La cotorra dibujada a mano, azulejada y sin fondo; el icono actual queda como mascota. |
 
-### 📦 Proyecto
+### Proyecto
 
 | Tema | Decisión |
 |---|---|
@@ -36,7 +36,7 @@
 | Repositorio | [`github.com/alfiq/cotorreando`](https://github.com/alfiq/cotorreando), privado al principio. |
 | Distribución | Ejecutable con **Nuitka** (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
 
-## 🔄 Cambios sobre la marcha
+## Cambios sobre la marcha
 
 Lo que se decidió distinto al chocar con la realidad.
 
@@ -72,7 +72,7 @@ fp32; por defecto, atención + FFN con rango 4. Detalles en [LORA.md](LORA.md).
 #### Tamaño del blob
 Configurable: pequeño, mediano o grande.
 
-## ⏳ Pendientes
+## Pendientes
 
 - [ ] Hacer público el repositorio.
 - [ ] Confirmar con más grabaciones reales que el LoRA mejora. En el barrido mejoró en 2 de 6
