@@ -21,10 +21,10 @@ from pathlib import Path
 
 import numpy as np
 
-CONTEXT_SCORE = 1.0      # NeMo default
-DEPTH_SCALING = 2.0      # NeMo's recommendation for CTC, RNN-T and TDT
-UNK_SCORE = 0.0          # NeMo default
-MAX_CACHED = 256         # score vectors kept, 32 KB each
+CONTEXT_SCORE = 1.0  # NeMo default
+DEPTH_SCALING = 2.0  # NeMo's recommendation for CTC, RNN-T and TDT
+UNK_SCORE = 0.0  # NeMo default
+MAX_CACHED = 256  # score vectors kept, 32 KB each
 
 
 class _Node:
@@ -106,8 +106,8 @@ class BoostingTree:
                 break
             acc += self.backoff_w[s]
             s = self.backoff_to[s]
-        out = np.full(self.vocab_size, acc + UNK_SCORE, np.float32)   # tokens matching nothing
-        for s, acc_s in reversed(chain):       # nearer states override farther ones
+        out = np.full(self.vocab_size, acc + UNK_SCORE, np.float32)  # tokens matching nothing
+        for s, acc_s in reversed(chain):  # nearer states override farther ones
             for token, (_, weight) in self.arcs[s].items():
                 out[token] = acc_s + weight
         if len(self._scores) >= MAX_CACHED:
@@ -152,6 +152,7 @@ class PhraseTokenizer:
 
     def __init__(self, path: Path):
         from tokenizers import Tokenizer
+
         self.tokenizer = Tokenizer.from_file(str(path))
 
     def __call__(self, phrase: str) -> list[int]:

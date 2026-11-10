@@ -6,7 +6,7 @@ import difflib
 import re
 import unicodedata
 
-WINDOW = 8   # how far ahead a heard word may jump (the reader skipped or it was misheard)
+WINDOW = 8  # how far ahead a heard word may jump (the reader skipped or it was misheard)
 
 
 def normalize(word: str) -> str:

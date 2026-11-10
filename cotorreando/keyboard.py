@@ -19,11 +19,11 @@ user32 = ctypes.WinDLL("user32", use_last_error=True)
 kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
 WH_MOUSE_LL = 14
-MOUSE_DOWN = {0x201, 0x204, 0x207}   # left, right and middle button
+MOUSE_DOWN = {0x201, 0x204, 0x207}  # left, right and middle button
 WM_QUIT = 0x12
 POLL_S = 0.01
-SETTLE_MS = 20        # the mouse hook may report an event just after it shows up as input
-SAME_EVENT_MS = 30    # input this close to a mouse event or our own typing is explained by it
+SETTLE_MS = 20  # the mouse hook may report an event just after it shows up as input
+SAME_EVENT_MS = 30  # input this close to a mouse event or our own typing is explained by it
 HOTKEY_GRACE_S = 0.1  # releasing the hotkey is input too, and it is not typing
 INPUT_KEYBOARD = 1
 KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x2, 0x4
@@ -35,15 +35,25 @@ MODIFIERS = {
     "alt": {0x12, 0xA4, 0xA5},
     "win": {0x5B, 0x5C},
 }
-NAMED = {"space": 0x20, "tab": 0x09, "esc": 0x1B, "capslock": 0x14, "pause": 0x13,
-         **{f"f{i}": 0x6F + i for i in range(1, 25)}}
+NAMED = {
+    "space": 0x20,
+    "tab": 0x09,
+    "esc": 0x1B,
+    "capslock": 0x14,
+    "pause": 0x13,
+    **{f"f{i}": 0x6F + i for i in range(1, 25)},
+}
 VK_ESCAPE = 0x1B
-LONE_KEYS = {f"f{i}" for i in range(1, 25)} | {"pause"}   # allowed without a modifier
+LONE_KEYS = {f"f{i}" for i in range(1, 25)} | {"pause"}  # allowed without a modifier
 _ORDER = ["ctrl", "alt", "shift", "win"]
 _NAME_OF = {vk: name for name, vk in NAMED.items()}
 WIN_VKS = MODIFIERS["win"]
-HOTKEY_VKS = (set().union(*MODIFIERS.values()) | set(NAMED.values())
-              | set(range(ord("A"), ord("Z") + 1)) | set(range(ord("0"), ord("9") + 1)))
+HOTKEY_VKS = (
+    set().union(*MODIFIERS.values())
+    | set(NAMED.values())
+    | set(range(ord("A"), ord("Z") + 1))
+    | set(range(ord("0"), ord("9") + 1))
+)
 
 # While set, the monitor ignores the hotkey (the Settings field is recording a new one).
 hotkey_paused = threading.Event()
@@ -85,8 +95,7 @@ def hotkey_label(text: str) -> str:
     except ValueError:
         return text
     parts = text.lower().replace(" ", "").split("+")
-    return "+".join(p.upper() if len(p) == 1 or p in LONE_KEYS and p != "pause" else p.capitalize()
-                    for p in parts)
+    return "+".join(p.upper() if len(p) == 1 or p in LONE_KEYS and p != "pause" else p.capitalize() for p in parts)
 
 
 def hotkey_valid(text: str) -> bool:
@@ -149,8 +158,13 @@ class HotkeyRecorder:
 
 
 class MSLLHOOKSTRUCT(ctypes.Structure):
-    _fields_ = [("pt", wintypes.POINT), ("mouseData", wintypes.DWORD), ("flags", wintypes.DWORD),
-                ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+    _fields_ = [
+        ("pt", wintypes.POINT),
+        ("mouseData", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
 
 
 class LASTINPUTINFO(ctypes.Structure):
@@ -158,14 +172,20 @@ class LASTINPUTINFO(ctypes.Structure):
 
 
 class KEYBDINPUT(ctypes.Structure):
-    _fields_ = [("wVk", wintypes.WORD), ("wScan", wintypes.WORD), ("dwFlags", wintypes.DWORD),
-                ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t)]
+    _fields_ = [
+        ("wVk", wintypes.WORD),
+        ("wScan", wintypes.WORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
 
 
 class INPUT(ctypes.Structure):
     class _U(ctypes.Union):
         # MOUSEINPUT is the largest member; pad so sizeof(INPUT) matches Windows.
         _fields_ = [("ki", KEYBDINPUT), ("_pad", ctypes.c_byte * 32)]
+
     _anonymous_ = ("u",)
     _fields_ = [("type", wintypes.DWORD), ("u", _U)]
 
@@ -185,7 +205,7 @@ user32.OpenInputDesktop.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWOR
 user32.OpenInputDesktop.restype = wintypes.HANDLE
 user32.CloseDesktop.argtypes = (wintypes.HANDLE,)
 
-_injected_at = 0      # GetTickCount of our last SendInput
+_injected_at = 0  # GetTickCount of our last SendInput
 
 
 def _is_down(vk: int) -> bool:
@@ -205,7 +225,7 @@ def idle_ms() -> int:
 
 def session_locked() -> bool:
     """True while Windows shows the lock screen: the input desktop is then out of reach."""
-    desktop = user32.OpenInputDesktop(0, False, 0x0100)    # DESKTOP_SWITCHDESKTOP
+    desktop = user32.OpenInputDesktop(0, False, 0x0100)  # DESKTOP_SWITCHDESKTOP
     if not desktop:
         return True
     user32.CloseDesktop(desktop)
@@ -227,7 +247,7 @@ class KeyboardMonitor:
         self.last_typed = 0.0
         self.last_click = 0.0
         self._active = False
-        self._rearm = False   # keys already held when the hotkey comes back must be released first
+        self._rearm = False  # keys already held when the hotkey comes back must be released first
         self._thread_id = 0
         self._stopped = threading.Event()
         self._hotkey_seen = 0.0
@@ -259,7 +279,7 @@ class KeyboardMonitor:
     def _mouse_hook(self, code, wparam, lparam):
         if code >= 0:
             self._mouse_at = ctypes.cast(lparam, ctypes.POINTER(MSLLHOOKSTRUCT)).contents.time
-            if wparam in MOUSE_DOWN:   # the caret may have moved
+            if wparam in MOUSE_DOWN:  # the caret may have moved
                 self.last_click = time.monotonic()
         return user32.CallNextHookEx(None, code, wparam, lparam)
 
@@ -337,7 +357,7 @@ def _chars(text: str) -> list[INPUT]:
             inputs += [_key(VK_RETURN, 0, 0), _key(VK_RETURN, 0, KEYEVENTF_KEYUP)]
         else:
             data = ch.encode("utf-16-le")
-            units = [int.from_bytes(data[i:i + 2], "little") for i in range(0, len(data), 2)]
+            units = [int.from_bytes(data[i : i + 2], "little") for i in range(0, len(data), 2)]
             inputs += [_key(0, u, KEYEVENTF_UNICODE | f) for f in (0, KEYEVENTF_KEYUP) for u in units]
     return inputs
 
@@ -364,7 +384,6 @@ def type_text(text: str, delay: float = 0.004) -> None:
             send([_key(VK_RETURN, 0, 0), _key(VK_RETURN, 0, KEYEVENTF_KEYUP)])
         else:
             data = ch.encode("utf-16-le")
-            units = [int.from_bytes(data[i:i + 2], "little") for i in range(0, len(data), 2)]
+            units = [int.from_bytes(data[i : i + 2], "little") for i in range(0, len(data), 2)]
             send([_key(0, u, KEYEVENTF_UNICODE | f) for f in (0, KEYEVENTF_KEYUP) for u in units])
         time.sleep(delay)
-

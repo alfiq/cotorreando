@@ -24,9 +24,9 @@ class ModelHolder:
         self._cond = threading.Condition()
         self._model = None
         self._users = self._pins = 0
-        self._retired: dict[int, list] = {}   # id -> [model, users, pins]: replaced but still in use
+        self._retired: dict[int, list] = {}  # id -> [model, users, pins]: replaced but still in use
         self._loading = False
-        self._gen = self._load_gen = 0        # a load whose generation is old is thrown away
+        self._gen = self._load_gen = 0  # a load whose generation is old is thrown away
         self._restart = False
         self._suspended = False
         self._error: Exception | None = None
@@ -81,7 +81,7 @@ class ModelHolder:
             error = err
         stale, restarted, discarded = None, False, False
         with self._cond:
-            if gen != self._gen:              # unloaded or invalidated meanwhile
+            if gen != self._gen:  # unloaded or invalidated meanwhile
                 stale, model, discarded = model, None, True
                 self._loading = False
                 if self._restart and not self._suspended:
@@ -157,8 +157,13 @@ class ModelHolder:
     def collect(self) -> bool:
         """Free the model if it has gone unused for ``idle_s`` (0 = never). True if freed."""
         with self._cond:
-            if (self.idle_s <= 0 or self._model is None or self._users or self._pins
-                    or self.clock() - self.last_used < self.idle_s):
+            if (
+                self.idle_s <= 0
+                or self._model is None
+                or self._users
+                or self._pins
+                or self.clock() - self.last_used < self.idle_s
+            ):
                 return False
             model = self._detach_locked()
         log.info("Model freed after %.0f s idle", self.idle_s)

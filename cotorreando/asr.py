@@ -30,10 +30,11 @@ ORIGINAL_REPO = "nvidia/parakeet-tdt-0.6b-v3"
 
 SAMPLE_RATE = 16000
 MAX_TOKENS_PER_FRAME = 10
-TOKENIZER_URL = ("https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/resolve/"
-                 "541d1f99c6b0c3cd0b11a95167540bb8edefd82b/tokenizer.json")
+TOKENIZER_URL = (
+    "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/resolve/541d1f99c6b0c3cd0b11a95167540bb8edefd82b/tokenizer.json"
+)
 TOKENIZER_SHA256 = "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91"
-BOOST_ALPHA = 1.0              # NeMo's boosting_tree_alpha; tuned on the user's own dictations
+BOOST_ALPHA = 1.0  # NeMo's boosting_tree_alpha; tuned on the user's own dictations
 
 
 MODEL_NOTICE = """Parakeet TDT 0.6B v3 by NVIDIA, licensed under CC BY 4.0.
@@ -72,6 +73,7 @@ def download(progress=lambda done, total: None, cancelled=lambda: False) -> Path
 def export_from_nemo(target: Path) -> None:
     """Export the original NeMo checkpoint. Needs the optional training environment."""
     from .lora import env
+
     if not env.installed():
         env.install(log.info)
     env.run_train(["--export-only", "--model", ORIGINAL_REPO, "--out", str(target)], log.info)
@@ -122,7 +124,7 @@ class Parakeet:
             if threads or not spin:
                 opts.add_session_config_entry("session.intra_op.allow_spinning", "0")
             if providers is not cpu:
-                opts.enable_mem_pattern = False   # required by DirectML
+                opts.enable_mem_pattern = False  # required by DirectML
             return ort.InferenceSession(str(directory / name), opts, providers=providers)
 
         self.on_gpu = use_gpu and "DmlExecutionProvider" in ort.get_available_providers()
@@ -145,7 +147,7 @@ class Parakeet:
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
         self.closed = False
-        self.transcribe(np.zeros(SAMPLE_RATE, np.float32))   # compile the window shape now
+        self.transcribe(np.zeros(SAMPLE_RATE, np.float32))  # compile the window shape now
 
     def close(self) -> None:
         """Free the ONNX sessions; the object is unusable afterwards."""
@@ -180,7 +182,9 @@ class Parakeet:
         self._boost_key, self.boost = key, None
         if not key:
             return
-        self._tokenizer = self._tokenizer or phrase_tokenizer(self.tokenizer_dir, self.fetch_tokenizer)   # the base model's, also under an adapter
+        self._tokenizer = self._tokenizer or phrase_tokenizer(
+            self.tokenizer_dir, self.fetch_tokenizer
+        )  # the base model's, also under an adapter
         if self._tokenizer is None:
             return
         items = [(self._tokenizer(phrase), alpha) for phrase, alpha in key]
@@ -191,12 +195,12 @@ class Parakeet:
         """Encoder output for ``audio``: (1024, frames), one frame per 80 ms."""
         wave = audio.astype(np.float32)[None, :]
         features, lengths = self.preprocessor.run(
-            None, {"waveforms": wave, "waveforms_lens": np.array([wave.shape[1]], np.int64)})
+            None, {"waveforms": wave, "waveforms_lens": np.array([wave.shape[1]], np.int64)}
+        )
         encoded, enc_len = self.encoder.run(None, {"audio_signal": features, "length": lengths})
-        return encoded[0, :, :int(enc_len[0])]
+        return encoded[0, :, : int(enc_len[0])]
 
-    def decode(self, encoded: np.ndarray, start: int, end: int, state: DecoderState,
-               trace: list | None = None) -> str:
+    def decode(self, encoded: np.ndarray, start: int, end: int, state: DecoderState, trace: list | None = None) -> str:
         """Greedy TDT over frames ``start..end``, continuing from ``state``.
 
         Returns the new text. A duration that jumps past ``end`` is remembered
@@ -206,26 +210,29 @@ class Parakeet:
         tokens: list[int] = []
         t, emitted = start + state.carry, 0
         while t < end:
-            logits, _, new1, new2 = self.decoder.run(None, {
-                "encoder_outputs": encoded[None, :, t:t + 1],
-                "targets": np.array([[state.last]], np.int32),
-                "target_length": np.array([1], np.int32),
-                "input_states_1": state.h,
-                "input_states_2": state.c,
-            })
+            logits, _, new1, new2 = self.decoder.run(
+                None,
+                {
+                    "encoder_outputs": encoded[None, :, t : t + 1],
+                    "targets": np.array([[state.last]], np.int32),
+                    "target_length": np.array([1], np.int32),
+                    "input_states_1": state.h,
+                    "input_states_2": state.c,
+                },
+            )
             logits = logits.reshape(-1)
-            scores = logits[:self.blank + 1]
+            scores = logits[: self.blank + 1]
             token = int(np.argmax(scores))
             if self.boost and token != self.blank:
                 # As NeMo's TDT greedy decoding: blank or not is the model's call; only
                 # which piece is emitted is boosted, over every non-blank token.
-                token = int(np.argmax(scores[:self.blank] + self.boost_alpha * self.boost.scores(state.context)))
-            skip = int(np.argmax(logits[self.blank + 1:]))
+                token = int(np.argmax(scores[: self.blank] + self.boost_alpha * self.boost.scores(state.context)))
+            skip = int(np.argmax(logits[self.blank + 1 :]))
             if token != self.blank:
                 tokens.append(token)
                 if self.boost:
                     state.context = self.boost.next(state.context, token)
-                if trace is not None:   # how sure the model itself was, without the boost
+                if trace is not None:  # how sure the model itself was, without the boost
                     probs = _softmax(scores)
                     chosen = probs[token]
                     trace.append((self.vocab[token], t, float(chosen), float(chosen - np.delete(probs, token).max())))
@@ -246,7 +253,7 @@ class DecoderState:
         self.c = np.zeros(model.state_shape, np.float32)
         self.last = model.blank
         self.carry = 0
-        self.context = 0           # state in the boosting tree
+        self.context = 0  # state in the boosting tree
 
 
 class Stream:
@@ -258,9 +265,9 @@ class Stream:
     The cost per step is constant, so utterances can be arbitrarily long.
     """
 
-    FRAME = 1280                   # samples per encoder frame (80 ms)
-    LEFT = 32 * FRAME              # 2.6 s of context already decoded
-    RIGHT = 12 * FRAME             # 0.96 s of look-ahead: with 0.48 s whole phrases get lost
+    FRAME = 1280  # samples per encoder frame (80 ms)
+    LEFT = 32 * FRAME  # 2.6 s of context already decoded
+    RIGHT = 12 * FRAME  # 0.96 s of look-ahead: with 0.48 s whole phrases get lost
     # New audio per step: 0.32 s on a GPU (~55 ms per step), 0.64 s on a CPU (~250 ms).
     GPU_CHUNK, CPU_CHUNK = 4 * FRAME, 8 * FRAME
 
@@ -269,11 +276,11 @@ class Stream:
         self.CHUNK = self.GPU_CHUNK if model.on_gpu else self.CPU_CHUNK
         self.state = DecoderState(model)
         self.audio = np.zeros(0, np.float32)
-        self.offset = 0            # absolute sample index of self.audio[0]
-        self.done = 0              # absolute sample index decoded so far
+        self.offset = 0  # absolute sample index of self.audio[0]
+        self.done = 0  # absolute sample index decoded so far
         self.started = False
-        self.tail = ""             # tentative text of the look-ahead, replaced on every step
-        self.trace: list[tuple[str, float, float, float]] = []   # piece, seconds, probability, margin
+        self.tail = ""  # tentative text of the look-ahead, replaced on every step
+        self.trace: list[tuple[str, float, float, float]] = []  # piece, seconds, probability, margin
 
     def feed(self, audio: np.ndarray) -> str:
         """Add audio; return any text that became final. ``tail`` holds what may still change."""
@@ -299,7 +306,7 @@ class Stream:
         start = self.done - self.LEFT
         size = self.LEFT + self.CHUNK + self.RIGHT
         lo = max(start, self.offset)
-        piece = self.audio[lo - self.offset:start + size - self.offset]
+        piece = self.audio[lo - self.offset : start + size - self.offset]
         before, after = lo - start, size - (lo - start) - piece.size
         window = np.concatenate([_mirror(piece[::-1], before)[::-1], piece, _mirror(piece, after)])
         encoded = self.model.encode(window)
@@ -316,9 +323,8 @@ class Stream:
             carry = self.state.carry
             self.state = DecoderState(self.model)
             self.state.carry = carry
-        if preview:   # on a copy: the look-ahead is decoded again once it becomes final
-            self.tail = self.model.decode(encoded, min(last, encoded.shape[1]), encoded.shape[1],
-                                          copy.copy(self.state))
+        if preview:  # on a copy: the look-ahead is decoded again once it becomes final
+            self.tail = self.model.decode(encoded, min(last, encoded.shape[1]), encoded.shape[1], copy.copy(self.state))
         # Keep only the left context needed for the next window.
         drop = max(0, self.done - self.LEFT - self.offset)
         self.audio, self.offset = self.audio[drop:], self.offset + drop

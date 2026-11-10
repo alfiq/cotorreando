@@ -64,8 +64,9 @@ def _old_key(password: str | None) -> X25519PrivateKey:
     if "salt" in file:
         if not password:
             raise WrongPassword
-        key = Argon2id(salt=bytes.fromhex(file["salt"]), length=32, iterations=3, lanes=4,
-                       memory_cost=65536).derive(password.encode("utf-8"))
+        key = Argon2id(salt=bytes.fromhex(file["salt"]), length=32, iterations=3, lanes=4, memory_cost=65536).derive(
+            password.encode("utf-8")
+        )
         try:
             raw = AESGCM(key).decrypt(raw[:12], raw[12:], None)
         except InvalidTag as err:
@@ -86,7 +87,7 @@ def migrate(vault: Vault, old_password: str | None = None) -> None:
     resealed, unreadable = {}, []
     for path in sealed:
         data = path.read_bytes()
-        if data.startswith(AGE_HEADER):   # sealed to the new key already
+        if data.startswith(AGE_HEADER):  # sealed to the new key already
             continue
         try:
             resealed[path] = vault.seal(_open(key, data))
@@ -105,13 +106,13 @@ def migrate(vault: Vault, old_password: str | None = None) -> None:
         except (OSError, ValueError):
             unreadable.append(path)
             continue
-        if name == "training":   # the ids stay readable; the checkpoint they belonged to does not survive
+        if name == "training":  # the ids stay readable; the checkpoint they belonged to does not survive
             vault.set_trained_ids(data.get("trained", []))
         else:
             vault.save_private(name, data)
         path.unlink()
     (VAULT_DIR / "checkpoint.sealed").unlink(missing_ok=True)
-    if unreadable:               # set aside with the old key: nothing is destroyed, and nothing blocks the rest
+    if unreadable:  # set aside with the old key: nothing is destroyed, and nothing blocks the rest
         UNREADABLE_DIR.mkdir(parents=True, exist_ok=True)
         for path in unreadable:
             log.warning("Could not read %s; moved to %s", path.name, UNREADABLE_DIR)

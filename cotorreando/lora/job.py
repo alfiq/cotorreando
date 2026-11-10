@@ -25,14 +25,14 @@ HOLDOUT_EVERY = 6
 BASE_STEPS, STEPS_PER_RECORD, MAX_STEPS = 150, 5, 400
 MIN_NEW_RECORDS = 5
 MIN_NEW_WORDS = 5
-MIN_JOURNAL = 30             # sealed events; what they hold is unknown until the password is given
+MIN_JOURNAL = 30  # sealed events; what they hold is unknown until the password is given
 MAX_PANELS = 5
-BOOST_ALPHAS = (0.5, 1.0, 2.0, 3.0)   # boosting_tree_alpha values tried; NeMo gives none, only "tune it"
+BOOST_ALPHAS = (0.5, 1.0, 2.0, 3.0)  # boosting_tree_alpha values tried; NeMo gives none, only "tune it"
 
 
 @dataclass
 class Result:
-    adapter: str = ""            # the new model, if it beat the current one
+    adapter: str = ""  # the new model, if it beat the current one
     paused: bool = False
     before: float | None = None
     after: float | None = None
@@ -53,14 +53,23 @@ def _readings(vault) -> list[dict]:
     for language in ("es", "en"):
         for index, text in enumerate(read_panels(language)):
             if reading_path(language, index).exists():
-                rows.append({"id": f"{language}/{index:03d}", "kind": "reading", "text": text,
-                             "held": _holds_out(index), "language": language, "index": index})
+                rows.append(
+                    {
+                        "id": f"{language}/{index:03d}",
+                        "kind": "reading",
+                        "text": text,
+                        "held": _holds_out(index),
+                        "language": language,
+                        "index": index,
+                    }
+                )
     return rows
 
 
 def has_evaluation_set() -> bool:
-    return any(reading_path(lang, i).exists() and _holds_out(i)
-               for lang in ("es", "en") for i in range(len(read_panels(lang))))
+    return any(
+        reading_path(lang, i).exists() and _holds_out(i) for lang in ("es", "en") for i in range(len(read_panels(lang)))
+    )
 
 
 def is_pending(learner) -> bool:
@@ -81,8 +90,16 @@ def _gather(vault) -> tuple[list[dict], list[np.ndarray]]:
         audio.append(vault.read_reading(row["language"], row["index"]))
     for rid in vault.record_ids():
         meta, samples = vault.read_record(rid)
-        rows.append({"id": rid, "kind": meta["kind"], "text": meta["text"], "old": meta.get("old"),
-                     "verified": meta.get("verified"), "held": False})
+        rows.append(
+            {
+                "id": rid,
+                "kind": meta["kind"],
+                "text": meta["text"],
+                "old": meta.get("old"),
+                "verified": meta.get("verified"),
+                "held": False,
+            }
+        )
         audio.append(samples)
     for row, samples in zip(rows, audio):
         row["samples"] = int(samples.size)
@@ -101,8 +118,9 @@ def _evaluator(directory) -> Parakeet:
     return Parakeet(directory, use_gpu=False)
 
 
-def error_rate(model: Parakeet, rows: list[dict], audio: dict[str, np.ndarray], words=None,
-               alpha: float = 1.0) -> float:
+def error_rate(
+    model: Parakeet, rows: list[dict], audio: dict[str, np.ndarray], words=None, alpha: float = 1.0
+) -> float:
     """Error rate of a loaded model the way the app really uses it: streaming ONNX."""
     model.set_phrases(words)
     model.boost_alpha = alpha
@@ -137,12 +155,24 @@ def run(learner, settings, log_line=log.info) -> Result:
         log_line(line)
 
     try:
-        env.run_train(["--base-onnx", str(model_dir()), "--checkpoint", str(CHECKPOINT), "--out", str(out),
-                       "--steps", str(steps)], on_line, payload)
-    except RuntimeError:         # NeMo can crash on its way out, after the work is done
+        env.run_train(
+            [
+                "--base-onnx",
+                str(model_dir()),
+                "--checkpoint",
+                str(CHECKPOINT),
+                "--out",
+                str(out),
+                "--steps",
+                str(steps),
+            ],
+            on_line,
+            payload,
+        )
+    except RuntimeError:  # NeMo can crash on its way out, after the work is done
         if not any(ended):
             raise
-    finally:                     # verdicts stand even if the run failed later on
+    finally:  # verdicts stand even if the run failed later on
         for rid in accepted:
             vault.update_record(rid, {"verified": True})
         for rid in rejected:
@@ -161,7 +191,7 @@ def run(learner, settings, log_line=log.info) -> Result:
     held = [row for row in kept if row["held"]]
     current = MODELS_DIR / "adapters" / settings.lora_adapter
     current = current if settings.lora_adapter and current.exists() else model_dir()
-    best, model, plain = current, None, None     # plain: best's rate without vocabulary, once known
+    best, model, plain = current, None, None  # plain: best's rate without vocabulary, once known
     if out.exists():
         # One model in memory at a time, each near 0.8 GB; the current one is reloaded only if the vocabulary needs it.
         result.before = error_rate(_evaluator(current), held, by_id)
@@ -170,7 +200,7 @@ def run(learner, settings, log_line=log.info) -> Result:
         if result.after < result.before:
             result.adapter, best, plain = name, out, result.after
         else:
-            model, plain = None, result.before   # the loser is not used again
+            model, plain = None, result.before  # the loser is not used again
             shutil.rmtree(out)
     # The boost's strength is tuned on your own held-out readings, as NeMo advises for boosting_tree_alpha.
     words = learner.vocabulary()
@@ -189,6 +219,7 @@ def run(learner, settings, log_line=log.info) -> Result:
 
 def _changed_words(row: dict) -> list[tuple[str, str]]:
     from ..learning import find_corrections
+
     found = find_corrections(row.get("old") or "", row["text"])
     return found[1] if found else []
 

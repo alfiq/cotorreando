@@ -43,7 +43,7 @@ def test_set_language_switches_and_defaults_to_spanish():
     assert tr("quit") == "Quit"
     set_language("es")
     assert tr("quit") == "Salir"
-    set_language("fr")          # anything but "en" is Spanish
+    set_language("fr")  # anything but "en" is Spanish
     assert tr("quit") == "Salir"
 
 
@@ -60,9 +60,14 @@ def literal_keys() -> dict[str, list[str]]:
     for path in PACKAGE.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "tr"
-                    and node.args and isinstance(node.args[0], ast.Constant)
-                    and isinstance(node.args[0].value, str)):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "tr"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            ):
                 found.setdefault(node.args[0].value, []).append(f"{path.name}:{node.lineno}")
     return found
 

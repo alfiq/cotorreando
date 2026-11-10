@@ -25,7 +25,7 @@ class Snapshot:
     element: Any = None
     password: bool = False
     text: str = ""
-    before: str | None = None    # text before the caret; None when the caret is unknown
+    before: str | None = None  # text before the caret; None when the caret is unknown
 
 
 class FieldReader:
@@ -35,7 +35,7 @@ class FieldReader:
         threading.Thread(target=self._run, daemon=True, name="field").start()
 
     def _submit(self, work) -> Future | None:
-        if self.busy or self.jobs.qsize():   # the application is not answering; never pile up
+        if self.busy or self.jobs.qsize():  # the application is not answering; never pile up
             return None
         future: Future = Future()
         self.jobs.put((work, future))
@@ -71,9 +71,11 @@ class FieldReader:
         try:
             import comtypes
             import comtypes.client
+
             comtypes.CoInitialize()
             comtypes.client.GetModule("UIAutomationCore.dll")
             from comtypes.gen import UIAutomationClient as uia
+
             self.uia = uia
             self.automation = comtypes.client.CreateObject(uia.CUIAutomation, interface=uia.IUIAutomation)
         except Exception:
@@ -85,7 +87,7 @@ class FieldReader:
             self.busy = True
             try:
                 future.set_result(work())
-            except Exception:      # a closed window, an application that exposes nothing...
+            except Exception:  # a closed window, an application that exposes nothing...
                 future.set_result(None)
             self.busy = False
 

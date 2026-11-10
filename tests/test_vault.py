@@ -27,6 +27,7 @@ def _write_wav(path, audio, rate=RATE):
 
 # -- password ------------------------------------------------------------------
 
+
 def test_create_makes_vault_ready_and_unlocked(vault):
     assert not vault.ready
     code = vault.create("a fine password")
@@ -101,6 +102,7 @@ def test_create_twice_orphans_old_records(vault, fake_audio):
 
 # -- records -------------------------------------------------------------------
 
+
 def test_record_roundtrip(unlocked_vault, fake_audio):
     rid = unlocked_vault.add_record({"kind": "correction", "text": "canción ñandú 日本"}, fake_audio)
     meta, audio = unlocked_vault.read_record(rid)
@@ -132,7 +134,7 @@ def test_record_bytes_do_not_contain_text(unlocked_vault, fake_audio):
 def test_seal_works_locked_open_raises(unlocked_vault):
     blob = unlocked_vault.seal(b"data")
     unlocked_vault.lock()
-    assert unlocked_vault.seal(b"more")        # sealing needs only the public key
+    assert unlocked_vault.seal(b"more")  # sealing needs only the public key
     with pytest.raises(Locked):
         unlocked_vault.open(blob)
 
@@ -185,6 +187,7 @@ def test_no_tmp_files_left(unlocked_vault, fake_audio):
 
 # -- private lists and journal ---------------------------------------------------
 
+
 def test_private_roundtrip(unlocked_vault):
     unlocked_vault.save_private("words", {"ñu": [1, 2], "日本": "x"})
     assert unlocked_vault.load_private("words", None) == {"ñu": [1, 2], "日本": "x"}
@@ -228,6 +231,7 @@ def test_journal_empty_without_folder(vault):
 
 # -- trained ids and readings --------------------------------------------------------
 
+
 def test_trained_ids(vault):
     assert vault.trained_ids() == []
     vault.set_trained_ids(["a", "b"])
@@ -257,19 +261,31 @@ def test_migrate_readings(unlocked_vault, fake_audio, caplog):
         unlocked_vault.migrate_readings()
     assert not good.exists() and v.reading_path("es", 1).exists()
     assert len(unlocked_vault.read_reading("es", 1)) == len(fake_audio)
-    assert slow.exists() and not v.reading_path("es", 2).exists()     # 44.1 kHz is left alone
-    assert bad.exists() and "003.wav" in caplog.text                  # logged, not fatal
-    assert odd.exists()                                               # non-numeric stem survives
+    assert slow.exists() and not v.reading_path("es", 2).exists()  # 44.1 kHz is left alone
+    assert bad.exists() and "003.wav" in caplog.text  # logged, not fatal
+    assert odd.exists()  # non-numeric stem survives
     assert not (v.RECORDINGS_DIR / "manifest.jsonl").exists()
 
 
 # -- password policy -------------------------------------------------------------------
 
-@pytest.mark.parametrize("password,expected", [
-    ("", "password_short"), ("1234567", "password_short"), ("abc", "password_short"),
-    ("password", "password_weak"), ("PASSWORD", "password_weak"), ("cotorreando", "password_weak"),
-    ("aaaaaaaa", "password_weak"), ("abababab", "password_weak"), ("01234567", "password_weak"),
-    ("98765432", "password_weak"), ("correct horse", None), ("13572468", None),
-])
+
+@pytest.mark.parametrize(
+    "password,expected",
+    [
+        ("", "password_short"),
+        ("1234567", "password_short"),
+        ("abc", "password_short"),
+        ("password", "password_weak"),
+        ("PASSWORD", "password_weak"),
+        ("cotorreando", "password_weak"),
+        ("aaaaaaaa", "password_weak"),
+        ("abababab", "password_weak"),
+        ("01234567", "password_weak"),
+        ("98765432", "password_weak"),
+        ("correct horse", None),
+        ("13572468", None),
+    ],
+)
 def test_password_problem(password, expected):
     assert v.password_problem(password) == expected

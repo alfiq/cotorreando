@@ -11,8 +11,9 @@ import cotorreando
 EXCLUDED = {"cotorreando.__main__", "cotorreando.lora.train"}
 HEAVY = {"torch", "torchaudio", "nemo", "huggingface_hub", "lightning", "omegaconf"}
 
-MODULES = sorted(info.name for info in pkgutil.walk_packages(cotorreando.__path__, "cotorreando.")
-                 if info.name not in EXCLUDED)
+MODULES = sorted(
+    info.name for info in pkgutil.walk_packages(cotorreando.__path__, "cotorreando.") if info.name not in EXCLUDED
+)
 
 
 def test_modules_were_found():

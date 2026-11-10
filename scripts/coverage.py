@@ -14,8 +14,7 @@ from pathlib import Path
 
 DATASETS = Path(__file__).parent.parent / "cotorreando" / "lora" / "datasets"
 ES = set("a e i o u p b t d k g m n ɲ f s x ʝ tʃ l ɾ r w j".split())
-EN = set("AA AE AH AO AW AY B CH D DH EH ER EY F G HH IH IY JH K L M N NG OW OY P R S SH T TH UH UW "
-         "V W Y Z ZH".split())
+EN = set("AA AE AH AO AW AY B CH D DH EH ER EY F G HH IH IY JH K L M N NG OW OY P R S SH T TH UH UW V W Y Z ZH".split())
 
 
 def panels(name: str) -> list[str]:
@@ -25,12 +24,32 @@ def panels(name: str) -> list[str]:
 
 def es_phones(word: str) -> list[str]:
     w = word.lower()
-    for a, b in (("ch", "C"), ("ll", "J"), ("rr", "R"), ("qu", "k"), ("gue", "ge"), ("gui", "gi"),
-                 ("güe", "we"), ("güi", "wi"), ("ge", "xe"), ("gi", "xi"), ("gé", "xé"), ("gí", "xí"),
-                 ("ce", "se"), ("ci", "si"), ("cé", "sé"), ("cí", "sí"), ("c", "k"), ("z", "s"),
-                 ("h", ""), ("v", "b"), ("j", "x"), ("y", "J")):
+    for a, b in (
+        ("ch", "C"),
+        ("ll", "J"),
+        ("rr", "R"),
+        ("qu", "k"),
+        ("gue", "ge"),
+        ("gui", "gi"),
+        ("güe", "we"),
+        ("güi", "wi"),
+        ("ge", "xe"),
+        ("gi", "xi"),
+        ("gé", "xé"),
+        ("gí", "xí"),
+        ("ce", "se"),
+        ("ci", "si"),
+        ("cé", "sé"),
+        ("cí", "sí"),
+        ("c", "k"),
+        ("z", "s"),
+        ("h", ""),
+        ("v", "b"),
+        ("j", "x"),
+        ("y", "J"),
+    ):
         w = w.replace(a, b)
-    w = re.sub(r"^x(?=[oi])", "s", w)   # Xochimilco, Ximena
+    w = re.sub(r"^x(?=[oi])", "s", w)  # Xochimilco, Ximena
     w = re.sub(r"(?<=[aeiouáéíóú])x(?=[aeiouáéíóú])", "ks", w) if "méxi" not in w else w
     out, table = [], {"C": "tʃ", "J": "ʝ", "R": "r", "ñ": "ɲ", "r": "ɾ"}
     for i, c in enumerate(w):
@@ -50,8 +69,10 @@ def report(label: str, words: list[list[str]], inventory: set[str]) -> None:
     for phones in words:
         seen.update(phones)
         pairs.update(zip(phones, phones[1:]))
-    print(f"{label}: {len(seen & inventory)}/{len(inventory)} phones, {len(pairs)} distinct within-word "
-          f"diphones. Missing: {sorted(inventory - seen) or 'none'}")
+    print(
+        f"{label}: {len(seen & inventory)}/{len(inventory)} phones, {len(pairs)} distinct within-word "
+        f"diphones. Missing: {sorted(inventory - seen) or 'none'}"
+    )
 
 
 def main() -> None:

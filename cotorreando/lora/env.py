@@ -44,8 +44,9 @@ def has_nvidia() -> bool:
 def installed() -> bool:
     if not PYTHON.exists():
         return False
-    probe = subprocess.run([str(PYTHON), "-c", "import nemo.collections.asr, torch"],
-                           capture_output=True, creationflags=NO_WINDOW)
+    probe = subprocess.run(
+        [str(PYTHON), "-c", "import nemo.collections.asr, torch"], capture_output=True, creationflags=NO_WINDOW
+    )
     return probe.returncode == 0
 
 
@@ -66,15 +67,20 @@ def _stream(cmd: list[str], log, payload: bytes | None = None, extra_env: dict |
     """Run ``cmd``, passing each output line to ``log``. ``payload`` goes in through stdin,
     which then stays open so that ``pause`` can talk to the process."""
     global _process
-    proc = _process = subprocess.Popen(cmd, stdin=subprocess.PIPE if payload is not None else None,
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                       creationflags=NO_WINDOW, env={**os.environ, "PYTHONUTF8": "1", **(extra_env or {})})
+    proc = _process = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE if payload is not None else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        creationflags=NO_WINDOW,
+        env={**os.environ, "PYTHONUTF8": "1", **(extra_env or {})},
+    )
 
     def feed():
         try:
             proc.stdin.write(payload)
             proc.stdin.flush()
-        except OSError:            # the process ended first; its exit code tells why
+        except OSError:  # the process ended first; its exit code tells why
             pass
 
     if payload is not None:
@@ -88,10 +94,23 @@ def _stream(cmd: list[str], log, payload: bytes | None = None, extra_env: dict |
 
 def _install_locked(log) -> None:
     gpu = has_nvidia()
-    _stream([str(_uv()), "pip", "install", "--python", str(PYTHON), "--require-hashes",
-             "-r", str(LOCK if gpu else LOCK_CPU),
-             "--extra-index-url", TORCH_INDEX if gpu else TORCH_INDEX_CPU,
-             "--index-strategy", "unsafe-best-match"], log)
+    _stream(
+        [
+            str(_uv()),
+            "pip",
+            "install",
+            "--python",
+            str(PYTHON),
+            "--require-hashes",
+            "-r",
+            str(LOCK if gpu else LOCK_CPU),
+            "--extra-index-url",
+            TORCH_INDEX if gpu else TORCH_INDEX_CPU,
+            "--index-strategy",
+            "unsafe-best-match",
+        ],
+        log,
+    )
 
 
 def install(log=print) -> None:
@@ -101,15 +120,14 @@ def install(log=print) -> None:
 
 def _has_extras() -> bool:
     code = "import cryptography, bitsandbytes, accelerate"
-    return subprocess.run([str(PYTHON), "-c", code], capture_output=True,
-                          creationflags=NO_WINDOW).returncode == 0
+    return subprocess.run([str(PYTHON), "-c", code], capture_output=True, creationflags=NO_WINDOW).returncode == 0
 
 
 def ensure_installed(log=print) -> None:
     with _install_lock:
         if not installed():
             install(log)
-        elif not _has_extras():    # an environment from before these were needed
+        elif not _has_extras():  # an environment from before these were needed
             _install_locked(log)
 
 

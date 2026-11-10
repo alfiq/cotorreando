@@ -9,6 +9,7 @@ from cotorreando import vad
 
 # -- ensure_model --------------------------------------------------------------------
 
+
 @pytest.fixture
 def downloads(isolated_data, monkeypatch):
     calls = []
@@ -35,7 +36,7 @@ def test_ensure_model_downloads_once(downloads):
     vad.ensure_model()
     assert vad.PATH.read_bytes() == b"onnx" and len(downloads) == 1
     assert downloads[0][0] == vad.URL
-    vad.ensure_model()              # already there: no second download
+    vad.ensure_model()  # already there: no second download
     assert len(downloads) == 1
 
 
@@ -67,6 +68,7 @@ def test_interrupted_download_is_fetched_again(isolated_data, monkeypatch):
 
 # -- SileroVAD.__call__ ------------------------------------------------------------------
 
+
 class StubSession:
     def __init__(self, probability=0.75):
         self.probability = probability
@@ -96,12 +98,12 @@ def test_call_returns_probability_and_feeds_context(detector):
     assert detector(chunk) == pytest.approx(0.75)
     first = detector.session.feeds[0]
     assert first["input"].shape == (1, vad.CONTEXT + vad.CHUNK) and first["input"].dtype == np.float32
-    assert not first["input"][0, :vad.CONTEXT].any()
+    assert not first["input"][0, : vad.CONTEXT].any()
     assert int(first["sr"]) == 16000
     # the next call carries the tail of this chunk and the state the model returned
     detector(chunk * 0)
     second = detector.session.feeds[1]
-    np.testing.assert_array_equal(second["input"][0, :vad.CONTEXT], chunk[-vad.CONTEXT:])
+    np.testing.assert_array_equal(second["input"][0, : vad.CONTEXT], chunk[-vad.CONTEXT :])
     assert second["state"].all()
 
 

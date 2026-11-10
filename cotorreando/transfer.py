@@ -37,13 +37,27 @@ from pyrage import passphrase
 from .vault import WrongPassword
 
 FORMAT, VERSION = "cotorreando-export", 1
-RECORD_KINDS = {"correction", "panel"}   # what the data screen and training know how to read
+RECORD_KINDS = {"correction", "panel"}  # what the data screen and training know how to read
 
 # What belongs to this computer rather than to the user: devices, where the blob sits,
 # files that are not exported (adapters, calibration readings) and notices already shown.
-MACHINE_FIELDS = {"microphone", "use_gpu", "model_unload_min", "autostart", "blob_x", "blob_y", "hidden",
-                  "lora_adapter", "custom_model", "calibrated", "password_offered", "training_notice_shown",
-                  "welcome_accepted", "update_last_check", "update_skipped"}
+MACHINE_FIELDS = {
+    "microphone",
+    "use_gpu",
+    "model_unload_min",
+    "autostart",
+    "blob_x",
+    "blob_y",
+    "hidden",
+    "lora_adapter",
+    "custom_model",
+    "calibrated",
+    "password_offered",
+    "training_notice_shown",
+    "welcome_accepted",
+    "update_last_check",
+    "update_skipped",
+}
 
 
 class NotAnExport(Exception):
@@ -58,12 +72,15 @@ def export(vault, settings, path: Path, password: str, include_dictations: bool)
             meta, samples = vault.read_record(rid)
             records.append({"id": rid, "meta": meta, "samples": len(samples)})
             audio.append(samples.astype("<f4").tobytes())
-    head = {"format": FORMAT, "version": VERSION,
-            "settings": {k: v for k, v in asdict(settings).items() if k not in MACHINE_FIELDS},
-            "custom_words": vault.load_private("custom_words", []),
-            "corrections": vault.load_private("corrections", {}),
-            "hard_words": vault.load_private("hard_words", {}),
-            "records": records}
+    head = {
+        "format": FORMAT,
+        "version": VERSION,
+        "settings": {k: v for k, v in asdict(settings).items() if k not in MACHINE_FIELDS},
+        "custom_words": vault.load_private("custom_words", []),
+        "corrections": vault.load_private("corrections", {}),
+        "hard_words": vault.load_private("hard_words", {}),
+        "records": records,
+    }
     payload = json.dumps(head, ensure_ascii=False).encode("utf-8") + b"\n" + b"".join(audio)
     path = Path(path)
     temp = path.with_name(path.name + ".tmp")
@@ -82,8 +99,12 @@ def read(path: Path, password: str) -> tuple[dict, bytes]:
         head = json.loads(line.decode("utf-8"))
     except ValueError as err:
         raise NotAnExport from err
-    if (not isinstance(head, dict) or head.get("format") != FORMAT
-            or not isinstance(head.get("version", 0), int) or head.get("version", 0) > VERSION):
+    if (
+        not isinstance(head, dict)
+        or head.get("format") != FORMAT
+        or not isinstance(head.get("version", 0), int)
+        or head.get("version", 0) > VERSION
+    ):
         raise NotAnExport
     return head, audio
 
@@ -98,24 +119,36 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
         corrections = head.get("corrections", {})
         hard_in = head.get("hard_words", {})
         records = head.get("records", [])
-        if not (isinstance(incoming, list) and all(isinstance(w, str) for w in incoming)
-                and isinstance(corrections, dict) and isinstance(hard_in, dict)
-                and isinstance(records, list)):
+        if not (
+            isinstance(incoming, list)
+            and all(isinstance(w, str) for w in incoming)
+            and isinstance(corrections, dict)
+            and isinstance(hard_in, dict)
+            and isinstance(records, list)
+        ):
             raise NotAnExport
         if not all(isinstance(c, int) for c in corrections.values()):
             raise NotAnExport
         for entry in hard_in.values():
-            if not (isinstance(entry, dict) and isinstance(entry.get("word"), str)
-                    and all(isinstance(entry.get(k, 0), int) for k in ("count", "read"))):
+            if not (
+                isinstance(entry, dict)
+                and isinstance(entry.get("word"), str)
+                and all(isinstance(entry.get(k, 0), int) for k in ("count", "read"))
+            ):
                 raise NotAnExport
         total = 0
         for record in records:
             samples = record["samples"]
             meta = record["meta"]
-            if not (isinstance(record["id"], str) and isinstance(meta, dict)
-                    and isinstance(samples, int) and samples >= 0
-                    and meta.get("kind") in RECORD_KINDS and isinstance(meta.get("text"), str)
-                    and isinstance(meta.get("old", ""), (str, type(None)))):
+            if not (
+                isinstance(record["id"], str)
+                and isinstance(meta, dict)
+                and isinstance(samples, int)
+                and samples >= 0
+                and meta.get("kind") in RECORD_KINDS
+                and isinstance(meta.get("text"), str)
+                and isinstance(meta.get("old", ""), (str, type(None)))
+            ):
                 raise NotAnExport
             total += samples
         if total * 4 > len(audio):
@@ -126,7 +159,7 @@ def merge(vault, head: dict, audio: bytes, replace: bool = False) -> tuple[int, 
     words = [w for w in dict.fromkeys(incoming) if w not in custom]
     counts = {} if replace else vault.load_private("corrections", {})
     for key, count in corrections.items():
-        counts[key] = counts.get(key, 0) + max(count, 1)     # a count below 1 means nothing
+        counts[key] = counts.get(key, 0) + max(count, 1)  # a count below 1 means nothing
     hard = {} if replace else vault.load_private("hard_words", {})
     for plain, entry in hard_in.items():
         mine = hard.setdefault(plain, {"word": entry["word"], "count": 0, "read": 0})

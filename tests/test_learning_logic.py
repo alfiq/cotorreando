@@ -20,6 +20,7 @@ from cotorreando.vault import WrongPassword
 
 # -- pure text helpers --------------------------------------------------------------
 
+
 def test_plain_drops_accents_case_and_punctuation():
     assert _plain("Canción, ÑU!") == "cancion nu"
 
@@ -42,36 +43,51 @@ def test_phrase_alpha_grows_and_caps():
     assert phrase_alpha(1000) == learning.MAX_PHRASE_ALPHA
 
 
-@pytest.mark.parametrize("phrase,ok", [
-    ("ab", True), ("a", False), ("", False), ("a1", False), ("hola mundo", True),
-    ("...", False), ("¿¿", False), ("ñu", True), ("x y", True), ("route66", False),
-])
+@pytest.mark.parametrize(
+    "phrase,ok",
+    [
+        ("ab", True),
+        ("a", False),
+        ("", False),
+        ("a1", False),
+        ("hola mundo", True),
+        ("...", False),
+        ("¿¿", False),
+        ("ñu", True),
+        ("x y", True),
+        ("route66", False),
+    ],
+)
 def test_custom_word_ok(phrase, ok):
     assert custom_word_ok(phrase) is ok
 
 
-@pytest.mark.parametrize("text,before,expected", [
-    ("Hola", None, "Hola"),
-    ("", "", ""),
-    ("hola", "", "Hola"),
-    ("hola", "  ", "Hola"),
-    ("hola", "Fin.", " Hola"),
-    ("hola", "Fin. ", "Hola"),
-    ("hola", "Fin.\n", "Hola"),
-    ("hola", "fin?", " Hola"),
-    ("Hola", "x", " hola"),
-    ("Hola", "hola mundo", " hola"),
-    ("Hola", "hola mundo ", "hola"),
-    ("NASA", "hola", " NASA"),          # acronyms keep their capitals
-    ("Nasa", "hola", " nasa"),
-    ("hola", "(", "hola"),
-    ("hola", "¿", "hola"),
-])
+@pytest.mark.parametrize(
+    "text,before,expected",
+    [
+        ("Hola", None, "Hola"),
+        ("", "", ""),
+        ("hola", "", "Hola"),
+        ("hola", "  ", "Hola"),
+        ("hola", "Fin.", " Hola"),
+        ("hola", "Fin. ", "Hola"),
+        ("hola", "Fin.\n", "Hola"),
+        ("hola", "fin?", " Hola"),
+        ("Hola", "x", " hola"),
+        ("Hola", "hola mundo", " hola"),
+        ("Hola", "hola mundo ", "hola"),
+        ("NASA", "hola", " NASA"),  # acronyms keep their capitals
+        ("Nasa", "hola", " nasa"),
+        ("hola", "(", "hola"),
+        ("hola", "¿", "hola"),
+    ],
+)
 def test_fit_start(text, before, expected):
     assert fit_start(text, before) == expected
 
 
 # -- find_corrections ---------------------------------------------------------------------
+
 
 def test_identical_text_has_no_pairs():
     assert find_corrections("hola mundo", "hola mundo") == ("hola mundo", [])
@@ -130,6 +146,7 @@ def test_case_only_difference_is_not_a_change():
 
 
 # -- Learner ----------------------------------------------------------------------------------
+
 
 class StubReader:
     def __init__(self):
@@ -198,7 +215,7 @@ def test_activate_merges_journal_once(learner):
     assert set(learner.hard) == {"baca", "palabra"}
     assert learner.vault.journal_size() == 0
     assert learner.vault.load_private("corrections", None) == {"vaca|baca": 1}
-    learner.activate()          # idempotent
+    learner.activate()  # idempotent
     assert learner.counts == {"vaca|baca": 1} and learner.hard["baca"]["count"] == 1
 
 
@@ -211,7 +228,7 @@ def test_activate_loads_saved_lists(unlocked_vault, learner):
 
 def test_activate_with_malformed_event_can_be_retried(learner):
     unlock = lock_and_unlock(learner.vault)
-    learner.vault.add_event({"op": "correction"})           # no 'old' / 'new'
+    learner.vault.add_event({"op": "correction"})  # no 'old' / 'new'
     unlock()
     try:
         learner.activate()
@@ -227,7 +244,7 @@ def test_forget_correction(loaded):
     assert loaded.counts == {"vaca|baca": 1}
     loaded.forget_correction("Vaca", "baca")
     assert loaded.counts == {}
-    loaded.forget_correction("Vaca", "baca")        # unknown: no-op
+    loaded.forget_correction("Vaca", "baca")  # unknown: no-op
 
 
 def test_drop_correction(loaded):
@@ -245,7 +262,7 @@ def test_corrections_sorted_by_count(loaded):
 def test_add_and_drop_custom_words(loaded):
     assert loaded.add_custom_word("  Cotorro   loco ")
     assert loaded.custom == ["Cotorro loco"]
-    assert not loaded.add_custom_word("Cotorro loco")       # already there
+    assert not loaded.add_custom_word("Cotorro loco")  # already there
     assert not loaded.add_custom_word("abc123") and not loaded.add_custom_word("x")
     assert loaded.vault.load_private("custom_words", None) == ["Cotorro loco"]
     loaded.drop_custom_word("Cotorro loco")
@@ -257,8 +274,8 @@ def test_hard_words_practice(loaded):
     loaded.hard = {
         "alpha": {"word": "alpha", "count": 5, "read": 0},
         "beta": {"word": "beta", "count": 3, "read": 0},
-        "gamma": {"word": "gamma", "count": 9, "read": 1},     # already practiced
-        "delta": {"word": "delta", "count": 2, "read": 0},     # not often enough
+        "gamma": {"word": "gamma", "count": 9, "read": 1},  # already practiced
+        "delta": {"word": "delta", "count": 2, "read": 0},  # not often enough
     }
     assert [e["word"] for e in loaded.hard_words()][:2] == ["gamma", "alpha"]
     assert loaded.words_to_practice() == ["alpha", "beta"]
@@ -272,8 +289,9 @@ def test_hard_words_practice(loaded):
 
 
 def test_hard_words_are_capped(loaded):
-    loaded.hard = {f"w{i:04d}": {"word": f"w{i:04d}", "count": i, "read": 0}
-                   for i in range(learning.MAX_HARD_WORDS + 20)}
+    loaded.hard = {
+        f"w{i:04d}": {"word": f"w{i:04d}", "count": i, "read": 0} for i in range(learning.MAX_HARD_WORDS + 20)
+    }
     loaded._save_hard()
     assert len(loaded.hard) == learning.MAX_HARD_WORDS
     assert "w0000" not in loaded.hard and f"w{learning.MAX_HARD_WORDS + 19:04d}" in loaded.hard
@@ -285,11 +303,11 @@ def test_vocabulary_and_bias_words(loaded):
     words = loaded.vocabulary()
     assert words["Cotorro"] == learning.CUSTOM_ALPHA
     assert words["baca"] == 1.0 and words["cosas"] == 2.0
-    assert "ab" not in words and "room42" not in words      # too short / digits
+    assert "ab" not in words and "room42" not in words  # too short / digits
     snapshot = learning.Snapshot(text="hola mundo grande cosas", password=False)
     bias = loaded.bias_words(snapshot)
     assert bias["mundo"] == 1.0 and bias["grande"] == 1.0 and "hola" in bias
-    assert bias["cosas"] == 2.0                                # corrections win over field words
+    assert bias["cosas"] == 2.0  # corrections win over field words
     assert loaded.bias_words(learning.Snapshot(text="secreto", password=True)) == loaded.vocabulary()
     assert loaded.bias_words(None) == loaded.vocabulary()
 
@@ -337,7 +355,7 @@ def test_finish_queues_a_pending_check(loaded):
 def test_hesitation_is_noted_for_a_piece_without_leading_space(loaded):
     trace = [("mun", 0, 0.4, 0.9), ("dial", 0, 0.9, 0.9), (" yo", 0, 0.1, 0.9), (" firme", 0, 0.99, 0.99)]
     loaded._note_hesitations(trace)
-    assert set(loaded.hard) == {"mundial"}                  # "yo" is too short, "firme" was sure
+    assert set(loaded.hard) == {"mundial"}  # "yo" is too short, "firme" was sure
 
 
 def test_hesitation_is_noted_for_a_realistic_trace(loaded):
@@ -365,15 +383,16 @@ def test_settle_without_corrections_saves_nothing(loaded):
 
 def test_look_follows_focus_and_text(loaded):
     item = Pending(object(), "tengo vaca hoy", np.zeros(1, np.float32), 0.0)
-    loaded.reader.text = None                       # not focused: nothing read, keep waiting
+    loaded.reader.text = None  # not focused: nothing read, keep waiting
     assert loaded._look(item) is False and item.latest is None
     loaded.reader.text = "tengo baca hoy"
     assert loaded._look(item) is False and item.latest[1] == [("vaca", "baca")]
-    loaded.reader.text = "something else entirely"      # sent or cleared: stop, keep the last version
+    loaded.reader.text = "something else entirely"  # sent or cleared: stop, keep the last version
     assert loaded._look(item) is True and item.latest[1] == [("vaca", "baca")]
 
 
 # -- unlocking and old data --------------------------------------------------------------------
+
 
 def test_unlock_with_wrong_password_stays_unloaded(learner):
     learner.vault.lock()
@@ -396,7 +415,7 @@ def test_finish_migration_paths(learner, monkeypatch, caplog):
     monkeypatch.setattr(learning.vault_legacy, "pending", lambda: True)
     monkeypatch.setattr(learning.vault_legacy, "needs_old_password", lambda: True)
     learner._finish_migration()
-    assert calls == []                                      # nothing pending, or it needs the old password
+    assert calls == []  # nothing pending, or it needs the old password
     monkeypatch.setattr(learning.vault_legacy, "needs_old_password", lambda: False)
     learner._finish_migration()
     assert calls == [learner.vault]
@@ -405,5 +424,5 @@ def test_finish_migration_paths(learner, monkeypatch, caplog):
         raise OSError("disk full")
 
     monkeypatch.setattr(learning.vault_legacy, "migrate", boom)
-    learner._finish_migration()                             # logged, never fatal
+    learner._finish_migration()  # logged, never fatal
     assert "Could not move the old data" in caplog.text

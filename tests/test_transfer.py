@@ -42,6 +42,7 @@ def fast_decrypt(monkeypatch):
 
 # -- export / read ---------------------------------------------------------------------
 
+
 def test_export_import_roundtrip_without_dictations(unlocked_vault, tmp_path):
     seed(unlocked_vault, ["Cotorro"], {"a|b": 2}, {"hola": {"word": "hola", "count": 1, "read": 0}})
     settings = Settings(mode="ptt", keyword="hey loro", boost_alpha=2.5)
@@ -103,14 +104,17 @@ def test_read_wrong_password_and_garbage(tmp_path):
             transfer.read(file, PW)
 
 
-@pytest.mark.parametrize("payload", [
-    b"not json at all\n",
-    b"",
-    json.dumps({"format": "other", "version": 1}).encode() + b"\n",
-    json.dumps({"version": 1}).encode() + b"\n",
-    json.dumps([1, 2]).encode() + b"\n",
-    json.dumps(head_of(version=2)).encode() + b"\n",
-])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b"not json at all\n",
+        b"",
+        json.dumps({"format": "other", "version": 1}).encode() + b"\n",
+        json.dumps({"version": 1}).encode() + b"\n",
+        json.dumps([1, 2]).encode() + b"\n",
+        json.dumps(head_of(version=2)).encode() + b"\n",
+    ],
+)
 def test_read_not_an_export(tmp_path, fast_decrypt, payload):
     file = tmp_path / "x"
     file.write_bytes(payload)
@@ -134,12 +138,14 @@ def test_read_non_int_version_is_not_an_export(tmp_path, fast_decrypt):
 
 # -- merge ---------------------------------------------------------------------------------
 
+
 def test_merge_adds_to_existing(unlocked_vault):
-    seed(unlocked_vault, ["uno"], {"k": 1},
-         {"hola": {"word": "hola", "count": 2, "read": 1}})
-    head = head_of(custom_words=["uno", "dos", "dos"], corrections={"k": 2, "j": 1},
-                   hard_words={"hola": {"word": "hola", "count": 3, "read": 2},
-                               "nuevo": {"word": "nuevo", "count": 1}})
+    seed(unlocked_vault, ["uno"], {"k": 1}, {"hola": {"word": "hola", "count": 2, "read": 1}})
+    head = head_of(
+        custom_words=["uno", "dos", "dos"],
+        corrections={"k": 2, "j": 1},
+        hard_words={"hola": {"word": "hola", "count": 3, "read": 2}, "nuevo": {"word": "nuevo", "count": 1}},
+    )
     assert transfer.merge(unlocked_vault, head, b"") == (1, 2, 0)
     assert unlocked_vault.load_private("custom_words", None) == ["uno", "dos"]
     assert unlocked_vault.load_private("corrections", None) == {"k": 3, "j": 1}
@@ -152,8 +158,12 @@ def test_merge_replace_replaces_lists_but_only_adds_dictations(unlocked_vault):
     seed(unlocked_vault, ["viejo"], {"x|y": 9}, {"w": {"word": "w", "count": 9, "read": 0}})
     unlocked_vault.add_record({"kind": "correction", "text": "mine"}, np.zeros(10, np.float32))
     audio = np.ones(5, "<f4").tobytes()
-    head = head_of(custom_words=["nuevo"], corrections={"a|b": 1}, hard_words={},
-                   records=[{"id": "R1", "meta": {"kind": "correction", "text": "theirs"}, "samples": 5}])
+    head = head_of(
+        custom_words=["nuevo"],
+        corrections={"a|b": 1},
+        hard_words={},
+        records=[{"id": "R1", "meta": {"kind": "correction", "text": "theirs"}, "samples": 5}],
+    )
     assert transfer.merge(unlocked_vault, head, audio, replace=True) == (1, 1, 1)
     assert unlocked_vault.load_private("custom_words", None) == ["nuevo"]
     assert unlocked_vault.load_private("corrections", None) == {"a|b": 1}
@@ -163,8 +173,12 @@ def test_merge_replace_replaces_lists_but_only_adds_dictations(unlocked_vault):
 
 def test_merge_dedups_and_reimport_adds_nothing(unlocked_vault):
     audio = np.ones(8, "<f4").tobytes()
-    head = head_of(records=[{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
-                            {"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4}])
+    head = head_of(
+        records=[
+            {"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
+            {"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
+        ]
+    )
     assert transfer.merge(unlocked_vault, head, audio)[2] == 1
     assert transfer.merge(unlocked_vault, head, audio)[2] == 0
     assert len(unlocked_vault.record_ids()) == 1
@@ -182,18 +196,18 @@ def test_import_back_to_origin_adds_nothing(unlocked_vault, tmp_path):
 def test_chain_keeps_the_original_id(unlocked_vault):
     audio = np.ones(4, "<f4").tobytes()
     first = head_of(records=[{"id": "A1", "meta": {"kind": "correction", "text": "a"}, "samples": 4}])
-    transfer.merge(unlocked_vault, first, audio)            # A -> B
+    transfer.merge(unlocked_vault, first, audio)  # A -> B
     (rid,) = unlocked_vault.record_ids()
     meta, samples = unlocked_vault.read_record(rid)
     assert meta["imported_from"] == "A1"
     second = head_of(records=[{"id": rid, "meta": meta, "samples": len(samples)}])
     payload = samples.astype("<f4").tobytes()
-    assert transfer.merge(unlocked_vault, second, payload)[2] == 0      # back where it came from
-    unlocked_vault.delete_all_records()                                 # B -> C, which has nothing
+    assert transfer.merge(unlocked_vault, second, payload)[2] == 0  # back where it came from
+    unlocked_vault.delete_all_records()  # B -> C, which has nothing
     assert transfer.merge(unlocked_vault, second, payload)[2] == 1
     (rid2,) = unlocked_vault.record_ids()
     assert unlocked_vault.read_record(rid2)[0]["imported_from"] == "A1"
-    assert transfer.merge(unlocked_vault, first, audio)[2] == 0         # the original is recognised
+    assert transfer.merge(unlocked_vault, first, audio)[2] == 0  # the original is recognised
 
 
 def test_merge_minimal_head(unlocked_vault):
@@ -218,10 +232,14 @@ def test_merge_is_all_or_nothing_on_bad_hard_word(unlocked_vault):
 
 def test_merge_is_all_or_nothing_on_truncated_audio(unlocked_vault):
     seed(unlocked_vault)
-    audio = np.ones(4, "<f4").tobytes()                      # the second record's audio is missing
-    head = head_of(custom_words=["nuevo"],
-                   records=[{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
-                            {"id": "R2", "meta": {"kind": "correction", "text": "b"}, "samples": 4}])
+    audio = np.ones(4, "<f4").tobytes()  # the second record's audio is missing
+    head = head_of(
+        custom_words=["nuevo"],
+        records=[
+            {"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
+            {"id": "R2", "meta": {"kind": "correction", "text": "b"}, "samples": 4},
+        ],
+    )
     with pytest.raises(Exception):  # noqa: B017  any failure must leave the vault untouched
         transfer.merge(unlocked_vault, head, audio)
     assert unlocked_vault.record_ids() == []
@@ -230,24 +248,31 @@ def test_merge_is_all_or_nothing_on_truncated_audio(unlocked_vault):
 
 # -- apply_settings --------------------------------------------------------------------------
 
+
 def test_apply_settings_skips_machine_and_unknown():
     s = Settings()
-    transfer.apply_settings(s, head_of(settings={"mode": "ptt", "microphone": "other", "use_gpu": False,
-                                                 "blob_x": 5, "bogus": 1}))
+    transfer.apply_settings(
+        s, head_of(settings={"mode": "ptt", "microphone": "other", "use_gpu": False, "blob_x": 5, "bogus": 1})
+    )
     assert s.mode == "ptt" and s.microphone == "" and s.use_gpu is True and s.blob_x == -1
     assert not hasattr(s, "bogus")
 
 
 def test_apply_settings_type_checks():
     s = Settings()
-    transfer.apply_settings(s, head_of(settings={
-        "streaming": 0,           # an int is not a bool
-        "silence_ms": True,       # nor is a bool an int
-        "retention_days": 30.5,   # a float is not an int
-        "vad_threshold": 1,       # an int is accepted for a float and coerced
-        "keyword": 5,
-        "trailing_space": False,
-    }))
+    transfer.apply_settings(
+        s,
+        head_of(
+            settings={
+                "streaming": 0,  # an int is not a bool
+                "silence_ms": True,  # nor is a bool an int
+                "retention_days": 30.5,  # a float is not an int
+                "vad_threshold": 1,  # an int is accepted for a float and coerced
+                "keyword": 5,
+                "trailing_space": False,
+            }
+        ),
+    )
     assert s.streaming is True and s.silence_ms == 700 and s.retention_days == 180
     assert s.vad_threshold == 1.0 and isinstance(s.vad_threshold, float)
     assert s.keyword == "oye cotorro" and s.trailing_space is False

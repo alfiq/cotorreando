@@ -42,10 +42,10 @@ BASE_SHA256 = "3cbdc85877e668ca7b82d0d56770eb1fac76691f55d6b97545e8d61ca588d10d"
 GROUPS = {
     "attn": (("self_attn",), ("linear_q", "linear_k", "linear_v", "linear_out")),
     "ffn": (("feed_forward1", "feed_forward2"), ("linear1", "linear2")),
-    "conv": (("conv",), ("pointwise_conv1", "pointwise_conv2")),   # 1x1 Conv1d
+    "conv": (("conv",), ("pointwise_conv1", "pointwise_conv2")),  # 1x1 Conv1d
 }
 COPIED = ("nemo128.onnx", "vocab.txt", "config.json")
-DURATIONS = 5       # the model predicts frame skips 0..4
+DURATIONS = 5  # the model predicts frame skips 0..4
 RATE = 16000
 MAX_SECONDS = 30
 CHECKPOINT_EVERY = 25
@@ -69,7 +69,7 @@ class LoRALinear(nn.Module):
         device = base.weight.device
         self.a = nn.Parameter(torch.empty(rank, in_features, device=device))
         self.b = nn.Parameter(torch.zeros(out_features, rank, device=device))
-        if init == "kaiming":      # what PEFT uses
+        if init == "kaiming":  # what PEFT uses
             nn.init.kaiming_uniform_(self.a, a=math.sqrt(5))
         else:
             nn.init.normal_(self.a, std=0.01)
@@ -96,7 +96,7 @@ def adapter_sites(model, targets: str = "attn", layers: str = "all"):
     chosen = list(model.encoder.layers)
     if layers != "all":
         first, last = (int(n) for n in layers.split("-"))
-        chosen = chosen[first:last + 1]
+        chosen = chosen[first : last + 1]
     for layer in chosen:
         for group in targets.split(","):
             parents, names = GROUPS[group]
@@ -105,8 +105,15 @@ def adapter_sites(model, targets: str = "attn", layers: str = "all"):
                     yield getattr(layer, parent), name
 
 
-def add_lora(model, rank: int, alpha: float, targets: str = "attn", layers: str = "all",
-             init: str = "small", dropout: float = 0.0) -> None:
+def add_lora(
+    model,
+    rank: int,
+    alpha: float,
+    targets: str = "attn",
+    layers: str = "all",
+    init: str = "small",
+    dropout: float = 0.0,
+) -> None:
     for p in model.parameters():
         p.requires_grad = False
     for parent, name in adapter_sites(model, targets, layers):
@@ -131,19 +138,19 @@ def _tdt_forward_backward(emit, blank, dur, backward: bool):
     stay = emit + dur[:, :length, 0]
     prefix = np.zeros((frames, length + 1))
     prefix[:, 1:] = np.cumsum(stay, 1)
-    leave = (blank[..., None] + dur[..., 1:]).transpose(0, 2, 1)     # frame, d - 1, cell
+    leave = (blank[..., None] + dur[..., 1:]).transpose(0, 2, 1)  # frame, d - 1, cell
     move = (emit[..., None] + dur[:, :length, 1:]).transpose(0, 2, 1)
     reach = leave.shape[1]
-    alpha = np.full((frames + 1, length + 1), -1e4)      # a floor: the cost of a hopeless text is capped
+    alpha = np.full((frames + 1, length + 1), -1e4)  # a floor: the cost of a hopeless text is capped
     alpha[0, 0] = 0.0
     rows = np.empty((frames, length + 1))
     for t in range(frames):
-        rows[t] = row = prefix[t] + add.accumulate(alpha[t] - prefix[t])   # zero-duration tokens, in closed form
+        rows[t] = row = prefix[t] + add.accumulate(alpha[t] - prefix[t])  # zero-duration tokens, in closed form
         out = leave[t] + row
         out[:, 1:] = add(out[:, 1:], move[t] + row[:-1])
         k = min(reach, frames - t)
-        alpha[t + 1:t + 1 + k] = add(alpha[t + 1:t + 1 + k], out[:k])
-        if k < reach:                                                      # skips past the end land on the last frame
+        alpha[t + 1 : t + 1 + k] = add(alpha[t + 1 : t + 1 + k], out[:k])
+        if k < reach:  # skips past the end land on the last frame
             alpha[frames] = add(alpha[frames], add.reduce(out[k:], 0))
     z = alpha[frames, length]
     if not backward:
@@ -176,12 +183,15 @@ def tdt_cost(acts, labels, frames: int, length: int, durations: int):
     """
     tokens = acts.size(-1) - durations
     wants_grad = torch.is_grad_enabled() and acts.requires_grad
-    acts = acts[:frames, :length + 1]                    # without the batch's padding
+    acts = acts[:frames, : length + 1]  # without the batch's padding
     tok = torch.log_softmax(acts[..., :tokens], -1)
     dur = torch.log_softmax(acts[..., tokens:], -1)
-    logs = (tok[:, torch.arange(length, device=acts.device), labels[:length]],   # label u from cell u
-            tok[..., tokens - 1], dur)
-    logs = tuple(x.clamp_min(-1e4) for x in logs)        # -inf would turn the expected uses into NaN
+    logs = (
+        tok[:, torch.arange(length, device=acts.device), labels[:length]],  # label u from cell u
+        tok[..., tokens - 1],
+        dur,
+    )
+    logs = tuple(x.clamp_min(-1e4) for x in logs)  # -inf would turn the expected uses into NaN
     z, uses = _tdt_forward_backward(*(x.detach().double().cpu().numpy() for x in logs), wants_grad)
     if not wants_grad:
         return -dur.new_tensor(z) / frames
@@ -192,10 +202,12 @@ def tdt_cost(acts, labels, frames: int, length: int, durations: int):
 
 def use_portable_loss(model) -> None:
     """NeMo's TDT loss needs numba's CUDA backend, whose nvvm.dll pip does not ship on Windows."""
+
     def forward(acts, labels, act_lens, label_lens):
         acts = acts.float()
-        return torch.stack([tdt_cost(acts[i], labels[i], int(act_lens[i]), int(label_lens[i]), DURATIONS)
-                            for i in range(acts.size(0))])
+        return torch.stack(
+            [tdt_cost(acts[i], labels[i], int(act_lens[i]), int(label_lens[i]), DURATIONS) for i in range(acts.size(0))]
+        )
 
     model.loss._loss.forward = forward  # noqa: SLF001
     # One by one: otherwise the joint also computes the whole batch's padding rows, and the
@@ -207,8 +219,11 @@ class Readings(torch.utils.data.Dataset):
     """Recordings held in memory: decrypted audio never touches the disk."""
 
     def __init__(self, model, rows: list[dict]):
-        self.items = [(torch.from_numpy(r["audio"]), torch.tensor(model.tokenizer.text_to_ids(r["text"])))
-                      for r in rows if r["audio"].size <= MAX_SECONDS * RATE]
+        self.items = [
+            (torch.from_numpy(r["audio"]), torch.tensor(model.tokenizer.text_to_ids(r["text"])))
+            for r in rows
+            if r["audio"].size <= MAX_SECONDS * RATE
+        ]
 
     def __len__(self):
         return len(self.items)
@@ -219,8 +234,12 @@ class Readings(torch.utils.data.Dataset):
     @staticmethod
     def collate(batch):
         audio, tokens = zip(*batch)
-        return (nn.utils.rnn.pad_sequence(audio, batch_first=True), torch.tensor([a.numel() for a in audio]),
-                nn.utils.rnn.pad_sequence(tokens, batch_first=True), torch.tensor([t.numel() for t in tokens]))
+        return (
+            nn.utils.rnn.pad_sequence(audio, batch_first=True),
+            torch.tensor([a.numel() for a in audio]),
+            nn.utils.rnn.pad_sequence(tokens, batch_first=True),
+            torch.tensor([t.numel() for t in tokens]),
+        )
 
 
 def adapter_state(model) -> dict:
@@ -231,8 +250,9 @@ def save_checkpoint(path: Path, key: bytes, digest: str, step: int, model, optim
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
     buffer = io.BytesIO()
-    torch.save({"digest": digest, "step": step, "adapters": adapter_state(model),
-                "optimizer": optimizer.state_dict()}, buffer)
+    torch.save(
+        {"digest": digest, "step": step, "adapters": adapter_state(model), "optimizer": optimizer.state_dict()}, buffer
+    )
     nonce = os.urandom(12)
     temp = path.with_name(path.name + ".tmp")
     temp.write_bytes(nonce + AESGCM(key).encrypt(nonce, buffer.getvalue(), None))
@@ -252,8 +272,17 @@ def load_checkpoint(path: Path, key: bytes, digest: str) -> dict | None:
     return state if state["digest"] == digest else None
 
 
-def train(model, rows: list[dict], steps: int, lr: float, stopping: threading.Event, checkpoint: Path,
-          key: bytes, digest: str, sched: str = "constant") -> bool:
+def train(
+    model,
+    rows: list[dict],
+    steps: int,
+    lr: float,
+    stopping: threading.Event,
+    checkpoint: Path,
+    key: bytes,
+    digest: str,
+    sched: str = "constant",
+) -> bool:
     """Returns False if it stopped early, with its state saved in ``checkpoint``."""
     import lightning.pytorch as pl
 
@@ -266,8 +295,13 @@ def train(model, rows: list[dict], steps: int, lr: float, stopping: threading.Ev
         print(f"RESUMED {done}", flush=True)
     if done >= steps:
         return True
-    model._train_dl = torch.utils.data.DataLoader(Readings(model, rows), batch_size=4, shuffle=True,  # noqa: SLF001
-                                                  collate_fn=Readings.collate, drop_last=False)
+    model._train_dl = torch.utils.data.DataLoader(
+        Readings(model, rows),
+        batch_size=4,
+        shuffle=True,  # noqa: SLF001
+        collate_fn=Readings.collate,
+        drop_last=False,
+    )
     optim = {"name": "adamw", "lr": lr, "weight_decay": 0.0}
     if sched == "cosine":
         # A resumed run restarts the schedule; only the sweep uses it so far, and it never resumes.
@@ -296,14 +330,22 @@ def train(model, rows: list[dict], steps: int, lr: float, stopping: threading.Ev
                 trainer.should_stop = True
 
     # log_every_n_steps past the last step: at each one NeMo would decode the batch for a WER nobody reads.
-    trainer = pl.Trainer(max_steps=steps - done, accelerator="gpu" if gpu else "cpu", devices=1,
-                         precision="bf16-mixed" if gpu else "32-true", logger=False,
-                         enable_checkpointing=False, log_every_n_steps=steps - done + 1, limit_val_batches=0,
-                         callbacks=[Progress()], enable_progress_bar=False)
+    trainer = pl.Trainer(
+        max_steps=steps - done,
+        accelerator="gpu" if gpu else "cpu",
+        devices=1,
+        precision="bf16-mixed" if gpu else "32-true",
+        logger=False,
+        enable_checkpointing=False,
+        log_every_n_steps=steps - done + 1,
+        limit_val_batches=0,
+        callbacks=[Progress()],
+        enable_progress_bar=False,
+    )
     model.set_trainer(trainer)
     trainer.fit(model)
     if gpu:
-        model.cuda()               # Lightning leaves the model on the CPU
+        model.cuda()  # Lightning leaves the model on the CPU
     return not stopping.is_set()
 
 
@@ -312,7 +354,9 @@ def text_cost(model, audio, text: str) -> float:
     device = next(model.parameters()).device
     labels = torch.tensor(model.tokenizer.text_to_ids(text), device=device)
     signal = torch.from_numpy(audio).to(device)[None]
-    encoded, frames = model.forward(input_signal=signal, input_signal_length=torch.tensor([signal.size(1)], device=device))
+    encoded, frames = model.forward(
+        input_signal=signal, input_signal_length=torch.tensor([signal.size(1)], device=device)
+    )
     decoded, _, _ = model.decoder(targets=labels[None], target_length=torch.tensor([labels.numel()], device=device))
     acts = model.joint.joint(encoded.transpose(1, 2), decoded.transpose(1, 2))
     return float(tdt_cost(acts[0].float(), labels, int(frames[0]), labels.numel(), DURATIONS))
@@ -327,7 +371,8 @@ def verify_corrections(model, rows: list[dict]) -> list[dict]:
         for row in rows:
             if row.get("kind") == "correction" and not row.get("verified"):
                 accepted = text_cost(model, row["audio"], row["text"]) <= (
-                    text_cost(model, row["audio"], row["old"]) + VERIFY_MARGIN)
+                    text_cost(model, row["audio"], row["old"]) + VERIFY_MARGIN
+                )
                 print(f"VERIFY {row['id']} {int(accepted)}", flush=True)
                 if not accepted:
                     continue
@@ -406,7 +451,7 @@ def graft(model, base_onnx: Path, out: Path) -> None:
             consumers.setdefault(i, []).append(n)
     weights = {i.name: i for i in graph.initializer}
     by_name = {n.name: n for n in graph.node}
-    after: dict[str, list] = {}           # node name -> new nodes to place right after it
+    after: dict[str, list] = {}  # node name -> new nodes to place right after it
 
     for name, module in model.encoder.named_modules():
         if not isinstance(module, LoRALinear):
@@ -417,16 +462,16 @@ def graft(model, base_onnx: Path, out: Path) -> None:
         expected = tuple(module.base.weight.shape) if module.pointwise else tuple(module.base.weight.shape[::-1])
         if tuple(weights[quant.input[1]].dims) != expected:
             raise RuntimeError(f"{name}: weight {list(weights[quant.input[1]].dims)} is not {list(expected)}")
-        x = producer[quant.input[0]].input[0]                  # the float input of DynamicQuantizeLinear
-        cast, = consumers[quant.output[0]]
-        scaled, = consumers[cast.output[0]]                     # Mul by the scales: the float result
+        x = producer[quant.input[0]].input[0]  # the float input of DynamicQuantizeLinear
+        (cast,) = consumers[quant.output[0]]
+        (scaled,) = consumers[cast.output[0]]  # Mul by the scales: the float result
         y = scaled.output[0]
         a = module.a.detach().float().cpu().numpy()
         b = (module.b.detach().float() * module.scale).cpu().numpy()
         p = f"lora/{name}"
-        if module.pointwise:     # (batch, channels, time): 1x1 convolutions
+        if module.pointwise:  # (batch, channels, time): 1x1 convolutions
             a, b, op = a[..., None], b[..., None], "Conv"
-        else:                    # (..., features) @ (in, out)
+        else:  # (..., features) @ (in, out)
             a, b, op = a.T.copy(), b.T.copy(), "MatMul"
         graph.initializer.extend([numpy_helper.from_array(a, f"{p}/A"), numpy_helper.from_array(b, f"{p}/B")])
         scaled.output[0] = f"{p}/base"
@@ -454,8 +499,8 @@ def module_path(node_name: str) -> str:
     """'/pre_encode/conv/conv.0/Conv_quant' -> 'pre_encode.conv.0' (the exporter repeats a parent's name)."""
     parts, path = node_name.strip("/").split("/")[:-1], []
     for part in parts:
-        if path and part.startswith(path[-1] + ".") and part[len(path[-1]) + 1:].isdigit():
-            part = part[len(path[-1]) + 1:]
+        if path and part.startswith(path[-1] + ".") and part[len(path[-1]) + 1 :].isdigit():
+            part = part[len(path[-1]) + 1 :]
         path.append(part)
     return ".".join(path)
 
@@ -482,7 +527,7 @@ class AppWeights:
     stay as they are.
     """
 
-    MAX_ERROR = 0.25      # relative difference that marks a folded weight rather than int8 rounding
+    MAX_ERROR = 0.25  # relative difference that marks a folded weight rather than int8 rounding
 
     def __init__(self, model, base_onnx: Path):
         import onnx
@@ -504,9 +549,9 @@ class AppWeights:
             module = modules.get(path)
             q = numpy_helper.to_array(values[node.input[1]]).astype(np.float32)
             zero = numpy_helper.to_array(values[node.input[3]]).astype(np.float32)
-            cast, = consumers[node.output[0]]
-            scaled, = consumers[cast.output[0]]
-            scales = producer[scaled.input[1]]                       # x_scale * w_scale
+            (cast,) = consumers[node.output[0]]
+            (scaled,) = consumers[cast.output[0]]
+            scales = producer[scaled.input[1]]  # x_scale * w_scale
             w_scale = next(numpy_helper.to_array(values[i]) for i in scales.input if i in values)
             weight = (q - zero) * w_scale
             weight = weight if node.op_type == "ConvInteger" else weight.T
@@ -562,8 +607,13 @@ def quantize(fp32: Path, out: Path, base_onnx: Path | None, per_channel: bool = 
 
     out.mkdir(parents=True, exist_ok=True)
     for stem in ("encoder-model", "decoder_joint-model"):
-        quantize_dynamic(fp32 / f"{stem}.onnx", out / f"{stem}.int8.onnx", weight_type=QuantType.QUInt8,
-                         per_channel=per_channel, use_external_data_format=False)
+        quantize_dynamic(
+            fp32 / f"{stem}.onnx",
+            out / f"{stem}.int8.onnx",
+            weight_type=QuantType.QUInt8,
+            per_channel=per_channel,
+            use_external_data_format=False,
+        )
     if base_onnx:
         for name in COPIED:
             shutil.copy2(base_onnx / name, out / name)
@@ -572,7 +622,7 @@ def quantize(fp32: Path, out: Path, base_onnx: Path | None, per_channel: bool = 
 def export(model, out: Path, base_onnx: Path | None, per_channel: bool = False) -> None:
     export_fp32(model, out)
     quantize(out, out, base_onnx, per_channel)
-    for leftover in out.iterdir():   # the fp32 export scatters its tensors in loose files
+    for leftover in out.iterdir():  # the fp32 export scatters its tensors in loose files
         if not (leftover.name.endswith(".int8.onnx") or leftover.name in COPIED):
             leftover.unlink()
     if not base_onnx:
@@ -593,6 +643,7 @@ def load_base(name: str):
         raise SystemExit(f"Unknown model {name!r}: only the pinned {BASE_MODEL} is allowed")
     import nemo.collections.asr as nemo_asr
     from huggingface_hub import hf_hub_download
+
     path = hf_hub_download(BASE_MODEL, BASE_FILE, revision=BASE_REVISION)
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -622,13 +673,16 @@ def main() -> None:
     ap.add_argument("--lora-dropout", type=float, default=0.0)
     ap.add_argument("--sched", choices=("constant", "cosine"), default="constant")
     ap.add_argument("--per-channel", action="store_true", help="int8 with one scale per output channel")
-    ap.add_argument("--fp32-base", action="store_true",
-                    help="train on NeMo's fp32 weights instead of the app's int8 ones (needs --base-onnx otherwise)")
+    ap.add_argument(
+        "--fp32-base",
+        action="store_true",
+        help="train on NeMo's fp32 weights instead of the app's int8 ones (needs --base-onnx otherwise)",
+    )
     ap.add_argument("--export-only", action="store_true")
     args = ap.parse_args()
 
     if not args.export_only:
-        key, rows = read_job()     # first, so that the sender never waits on a loading model
+        key, rows = read_job()  # first, so that the sender never waits on a loading model
         stopping = threading.Event()
         watch_for_stop(stopping)
     model = load_base(args.model)
@@ -636,7 +690,7 @@ def main() -> None:
         if torch.cuda.is_available():
             model = model.cuda()
         if args.base_onnx and not args.fp32_base:
-            AppWeights(model, args.base_onnx)   # learn for the int8 model the app runs, not NeMo's fp32 one
+            AppWeights(model, args.base_onnx)  # learn for the int8 model the app runs, not NeMo's fp32 one
         rows = verify_corrections(model, rows)
         # The adapters' design is part of it: a checkpoint of another shape must not be resumed.
         design = f"{args.targets}|{args.layers}|{args.rank}|{args.alpha}|{args.lr}|{args.steps}|{args.sched}"
@@ -646,11 +700,20 @@ def main() -> None:
         add_lora(model, args.rank, args.alpha, args.targets, args.layers, args.init, args.lora_dropout)
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Trainable parameters: {trainable:,}", flush=True)
-        finished = train(model, [r for r in rows if not r["held"]], args.steps, args.lr, stopping,
-                         args.checkpoint, key, digest, args.sched)
+        finished = train(
+            model,
+            [r for r in rows if not r["held"]],
+            args.steps,
+            args.lr,
+            stopping,
+            args.checkpoint,
+            key,
+            digest,
+            args.sched,
+        )
         if not finished:
             print("PAUSED", flush=True)
-            os._exit(0)            # the stdin watcher must not delay or upset the exit
+            os._exit(0)  # the stdin watcher must not delay or upset the exit
         after = word_error_rate(model, held)
         print(f"EVAL {before:.4f} {after:.4f}", flush=True)
         if after >= before:

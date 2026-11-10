@@ -29,8 +29,7 @@ def old_key():
 
 
 def _private(key) -> bytes:
-    return key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw,
-                             serialization.NoEncryption())
+    return key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
 
 
 def write_key_file(key, password=None):
@@ -39,7 +38,8 @@ def write_key_file(key, password=None):
     if password is not None:
         salt = os.urandom(16)
         derived = Argon2id(salt=salt, length=32, iterations=3, lanes=4, memory_cost=65536).derive(
-            password.encode("utf-8"))
+            password.encode("utf-8")
+        )
         nonce = os.urandom(12)
         raw = nonce + AESGCM(derived).encrypt(nonce, raw, None)
         file["salt"] = salt.hex()
@@ -70,6 +70,7 @@ def snapshot(root):
 
 # -- detection --------------------------------------------------------------------
 
+
 def test_pending_and_password_flavours(isolated_data, old_key):
     assert not legacy.pending()
     write_key_file(old_key)
@@ -93,12 +94,15 @@ def test_check_old_password_without_password(isolated_data, old_key):
 
 # -- migrate ------------------------------------------------------------------------
 
+
 def test_migrate_reseals_records_lists_and_training(unlocked_vault, old_key):
     first = put_record(old_key, "20240101T000000-aaaaaaaa", b"one")
     nested = put_record(old_key, "001", b"two", v.RECORDINGS_DIR / "es")
-    for name, data in (("hard_words", {"x": {"word": "x", "count": 1, "read": 0}}),
-                       ("corrections", {"a|b": 2}),
-                       ("training", {"trained": ["r1", "r2"], "checkpoint": "zzz"})):
+    for name, data in (
+        ("hard_words", {"x": {"word": "x", "count": 1, "read": 0}}),
+        ("corrections", {"a|b": 2}),
+        ("training", {"trained": ["r1", "r2"], "checkpoint": "zzz"}),
+    ):
         (v.VAULT_DIR / f"{name}.bin").write_text(json.dumps(data), encoding="utf-8")
     (v.VAULT_DIR / "checkpoint.sealed").write_bytes(b"old")
     write_key_file(old_key)
@@ -133,7 +137,7 @@ def test_migrate_skips_already_age_and_second_run_is_harmless(unlocked_vault, ol
     legacy.migrate(unlocked_vault)
     assert new.read_bytes() == before
     assert unlocked_vault.open(old.read_bytes()) == b"old"
-    write_key_file(old_key)       # a stale key file left behind by an interrupted run
+    write_key_file(old_key)  # a stale key file left behind by an interrupted run
     resealed = old.read_bytes()
     legacy.migrate(unlocked_vault)
     assert old.read_bytes() == resealed and new.read_bytes() == before

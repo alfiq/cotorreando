@@ -34,8 +34,7 @@ def _wasapi_devices(pa) -> list[dict]:
 def list_microphones() -> list[str]:
     pa = pyaudio.PyAudio()
     try:
-        return [d["name"] for d in _wasapi_devices(pa)
-                if d["maxInputChannels"] and not d.get("isLoopbackDevice")]
+        return [d["name"] for d in _wasapi_devices(pa) if d["maxInputChannels"] and not d.get("isLoopbackDevice")]
     finally:
         pa.terminate()
 
@@ -59,7 +58,7 @@ class Resampler:
         if self.step == 1:
             return x
         x = np.concatenate([self.history, x])
-        self.history = x[-(self.TAPS - 1):]
+        self.history = x[-(self.TAPS - 1) :]
         y = np.convolve(x, self.taps, mode="valid")
         positions = np.arange(self.phase, len(y) - 1, self.step)
         self.phase = positions[-1] + self.step - len(y) if len(positions) else self.phase - len(y)
@@ -73,8 +72,14 @@ class _Stream:
         rate, channels = int(device["defaultSampleRate"]), int(device["maxInputChannels"])
         self.resample = Resampler(rate, channels)
         self.block = rate // 100
-        self.stream = pa.open(format=pyaudio.paFloat32, channels=channels, rate=rate, input=True,
-                              input_device_index=device["index"], frames_per_buffer=self.block)
+        self.stream = pa.open(
+            format=pyaudio.paFloat32,
+            channels=channels,
+            rate=rate,
+            input=True,
+            input_device_index=device["index"],
+            frames_per_buffer=self.block,
+        )
         self.buffer = np.zeros(0, np.float32)
 
     def frames(self):
@@ -94,8 +99,7 @@ class _Stream:
 class AudioInput:
     """Delivers processed float32 frames to ``on_frame`` from a worker thread."""
 
-    def __init__(self, on_frame, microphone: str = "", noise_suppression=True,
-                 echo_cancellation=True, auto_gain=True):
+    def __init__(self, on_frame, microphone: str = "", noise_suppression=True, echo_cancellation=True, auto_gain=True):
         self.on_frame = on_frame
         self.microphone = microphone
         self.use_aec = echo_cancellation and rtc is not None
@@ -103,8 +107,11 @@ class AudioInput:
         if rtc is not None and (noise_suppression or echo_cancellation or auto_gain):
             try:
                 self.apm = rtc.AudioProcessingModule(
-                    echo_cancellation=echo_cancellation, noise_suppression=noise_suppression,
-                    high_pass_filter=True, auto_gain_control=auto_gain)
+                    echo_cancellation=echo_cancellation,
+                    noise_suppression=noise_suppression,
+                    high_pass_filter=True,
+                    auto_gain_control=auto_gain,
+                )
             except Exception:
                 log.exception("Audio processing unavailable; capturing raw audio")
                 self.use_aec = False
@@ -197,7 +204,7 @@ class Player:
                 for start in range(0, len(pcm), FRAME * 10):
                     if not self._running:
                         break
-                    stream.write(pcm[start:start + FRAME * 10])
+                    stream.write(pcm[start : start + FRAME * 10])
             finally:
                 stream.close()
         except Exception:

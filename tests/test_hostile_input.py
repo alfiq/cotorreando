@@ -22,14 +22,29 @@ def test_retention_below_one_day_never_deletes(unlocked_vault, days):
     assert unlocked_vault.record_ids() == [rid]
 
 
-@pytest.mark.parametrize("field, value", [
-    ("retention_days", 0), ("retention_days", -1), ("retention_days", "180"), ("retention_days", True),
-    ("retention_days", 10 ** 9), ("mode", "rm -rf"), ("ui_language", "xx"), ("silence_ms", -5),
-    ("vad_threshold", float("nan")), ("vad_threshold", 7.0), ("boost_alpha", float("inf")),
-    ("keyword", 123), ("hotkey", None), ("blob_size", ["large"]),
-    ("model_unload_min", -1), ("model_unload_min", 10 ** 9), ("model_unload_min", "10"),
-    ("model_unload_min", True),
-])
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("retention_days", 0),
+        ("retention_days", -1),
+        ("retention_days", "180"),
+        ("retention_days", True),
+        ("retention_days", 10**9),
+        ("mode", "rm -rf"),
+        ("ui_language", "xx"),
+        ("silence_ms", -5),
+        ("vad_threshold", float("nan")),
+        ("vad_threshold", 7.0),
+        ("boost_alpha", float("inf")),
+        ("keyword", 123),
+        ("hotkey", None),
+        ("blob_size", ["large"]),
+        ("model_unload_min", -1),
+        ("model_unload_min", 10**9),
+        ("model_unload_min", "10"),
+        ("model_unload_min", True),
+    ],
+)
 def test_bad_values_in_settings_file_fall_back_to_defaults(isolated_data, field, value):
     config.CONFIG_FILE.write_text(json.dumps({field: value}), encoding="utf-8")
     assert getattr(Settings.load(), field) == getattr(Settings(), field)
@@ -37,9 +52,20 @@ def test_bad_values_in_settings_file_fall_back_to_defaults(isolated_data, field,
 
 def test_imported_settings_are_validated_and_skip_machine_fields():
     settings = Settings()
-    transfer.apply_settings(settings, head_of(settings={
-        "retention_days": -1, "mode": "evil", "use_gpu": False, "custom_model": "C:/evil",
-        "lora_adapter": r"\\attacker\share", "keyword": "hola", "silence_ms": 900}))
+    transfer.apply_settings(
+        settings,
+        head_of(
+            settings={
+                "retention_days": -1,
+                "mode": "evil",
+                "use_gpu": False,
+                "custom_model": "C:/evil",
+                "lora_adapter": r"\\attacker\share",
+                "keyword": "hola",
+                "silence_ms": 900,
+            }
+        ),
+    )
     assert settings.retention_days == Settings().retention_days
     assert settings.mode == Settings().mode
     assert settings.custom_model == "" and settings.lora_adapter == "" and settings.use_gpu
@@ -53,11 +79,18 @@ def test_imported_settings_of_the_wrong_shape_are_ignored(settings):
     assert s == Settings()
 
 
-@pytest.mark.parametrize("meta", [
-    {}, {"text": "a"}, {"kind": "correction"}, {"kind": "reading", "text": "a"},
-    {"kind": "../../x", "text": "a"}, {"kind": "correction", "text": 5},
-    {"kind": "correction", "text": "a", "old": ["x"]},
-])
+@pytest.mark.parametrize(
+    "meta",
+    [
+        {},
+        {"text": "a"},
+        {"kind": "correction"},
+        {"kind": "reading", "text": "a"},
+        {"kind": "../../x", "text": "a"},
+        {"kind": "correction", "text": 5},
+        {"kind": "correction", "text": "a", "old": ["x"]},
+    ],
+)
 def test_imported_records_with_bad_meta_are_rejected(unlocked_vault, meta):
     head = head_of(records=[{"id": "R1", "meta": meta, "samples": 4}])
     with pytest.raises(transfer.NotAnExport):
@@ -65,22 +98,28 @@ def test_imported_records_with_bad_meta_are_rejected(unlocked_vault, meta):
     assert unlocked_vault.record_ids() == []
 
 
-@pytest.mark.parametrize("records, audio", [
-    ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 10 ** 12}], b"\0" * 16),
-    ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": -1}], b"\0" * 16),
-    ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4.0}], b"\0" * 16),
-    ([{"id": 1, "meta": {"kind": "correction", "text": "a"}, "samples": 4}], b"\0" * 16),
-    ([{"meta": {"kind": "correction", "text": "a"}, "samples": 4}], b"\0" * 16),
-    ("not a list", b""),
-])
+@pytest.mark.parametrize(
+    "records, audio",
+    [
+        ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 10**12}], b"\0" * 16),
+        ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": -1}], b"\0" * 16),
+        ([{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4.0}], b"\0" * 16),
+        ([{"id": 1, "meta": {"kind": "correction", "text": "a"}, "samples": 4}], b"\0" * 16),
+        ([{"meta": {"kind": "correction", "text": "a"}, "samples": 4}], b"\0" * 16),
+        ("not a list", b""),
+    ],
+)
 def test_imported_audio_lengths_cannot_overrun(unlocked_vault, records, audio):
     with pytest.raises(transfer.NotAnExport):
         transfer.merge(unlocked_vault, head_of(records=records), audio)
 
 
 def test_imported_record_ids_cannot_choose_where_files_go(unlocked_vault):
-    head = head_of(records=[{"id": r"..\..\..\evil", "meta": {"kind": "correction", "text": "a",
-                                                                   "id": "../../evil"}, "samples": 4}])
+    head = head_of(
+        records=[
+            {"id": r"..\..\..\evil", "meta": {"kind": "correction", "text": "a", "id": "../../evil"}, "samples": 4}
+        ]
+    )
     transfer.merge(unlocked_vault, head, b"\0" * 16)
     (rid,) = unlocked_vault.record_ids()
     assert ".." not in rid and "/" not in rid and "\\" not in rid

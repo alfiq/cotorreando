@@ -36,7 +36,7 @@ def test_welcome_accept_saves(isolated_data, checked):
     dialog.learning.setChecked(checked)
     dialog.accept()
     assert settings.welcome_accepted is True and settings.learning is checked
-    saved = Settings.load()                     # from the temporary settings file
+    saved = Settings.load()  # from the temporary settings file
     assert saved.welcome_accepted is True and saved.learning is checked
     assert config.CONFIG_FILE.is_relative_to(isolated_data)
 
@@ -73,7 +73,7 @@ def test_new_password_validation():
     widget = dialogs.NewPassword()
     widget.first.setText("a long enough one")
     widget.second.setText("different")
-    assert widget.problem()                         # mismatch
+    assert widget.problem()  # mismatch
     widget.second.setText("a long enough one")
     assert widget.problem() is None and widget.password() == "a long enough one"
     widget.first.setText("short")
@@ -90,6 +90,7 @@ def test_new_password_generate_fills_both_fields():
 
 # -- settings ---------------------------------------------------------------------------------
 
+
 class FakeListener:
     last_level = -42.0
     threshold_db = -50.0
@@ -101,6 +102,7 @@ class FakeListener:
 @pytest.fixture
 def settings_dialog(isolated_data, monkeypatch, unlocked_vault):
     from cotorreando import learning
+
     monkeypatch.setattr(dialogs, "list_microphones", lambda: ["Test Mic"])
     monkeypatch.setattr(dialogs, "MODELS_DIR", isolated_data / "models")
     monkeypatch.setattr(learning, "FieldReader", lambda: None)
@@ -115,7 +117,7 @@ def test_settings_dialog_builds_and_keeps_values(settings_dialog):
     settings, dialog = settings_dialog
     before = Settings()
     dialog._accept()
-    assert settings == before                    # nothing touched: nothing changes
+    assert settings == before  # nothing touched: nothing changes
 
 
 def test_settings_dialog_applies_edits(settings_dialog):
@@ -136,7 +138,7 @@ def test_settings_dialog_rejects_a_bad_hotkey(settings_dialog):
 
 def test_settings_dialog_saves_a_recorded_hotkey(settings_dialog, monkeypatch):
     settings, dialog = settings_dialog
-    snapshots = iter([set(), {0xA2, 0x5B, 0x70}, set()])      # ctrl+win+f1, then released
+    snapshots = iter([set(), {0xA2, 0x5B, 0x70}, set()])  # ctrl+win+f1, then released
     monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: next(snapshots))
     dialog.hotkey.start()
     for _ in range(3):
@@ -168,7 +170,7 @@ def test_hotkey_recording_pauses_and_always_resumes_the_real_hotkey(settings_dia
 def test_closing_the_dialog_mid_recording_resumes_the_real_hotkey(settings_dialog, monkeypatch, close):
     settings, dialog = settings_dialog
     monkeypatch.setattr(dialogs.keyboard, "down_keys", lambda: set())
-    dialog.show()                   # close and hide only mean something on a shown window
+    dialog.show()  # close and hide only mean something on a shown window
     dialog.hotkey.start()
     assert dialogs.keyboard.hotkey_paused.is_set()
     getattr(dialog, close)()
@@ -186,11 +188,12 @@ def test_escape_cancels_a_recording_and_keeps_the_old_hotkey(settings_dialog, mo
     assert not dialogs.keyboard.hotkey_paused.is_set()
 
 
-@pytest.mark.parametrize("locked, idle, closes", [(True, 0, True), (False, 10 ** 9, True), (False, 1000, False)])
+@pytest.mark.parametrize("locked, idle, closes", [(True, 0, True), (False, 10**9, True), (False, 1000, False)])
 def test_data_window_closes_when_the_computer_is_left_alone(unlocked_vault, monkeypatch, locked, idle, closes):
     monkeypatch.setattr(dialogs.keyboard, "session_locked", lambda: locked)
     monkeypatch.setattr(dialogs.keyboard, "idle_ms", lambda: idle)
     from cotorreando import learning
+
     monkeypatch.setattr(learning, "FieldReader", lambda: None)
     monkeypatch.setattr(learning.Learner, "_watch", lambda self: None)
     learner = learning.Learner(Settings())
@@ -206,6 +209,7 @@ def test_data_window_closes_when_the_computer_is_left_alone(unlocked_vault, monk
 def _esc(kind, auto=False):
     from PySide6.QtCore import QEvent, Qt
     from PySide6.QtGui import QKeyEvent
+
     typ = QEvent.KeyPress if kind == "press" else QEvent.KeyRelease
     return QKeyEvent(typ, Qt.Key_Escape, Qt.NoModifier, "", auto)
 

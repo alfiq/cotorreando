@@ -62,7 +62,7 @@ def write_ico(path: Path, images: list[QImage]) -> None:
     offset = len(header) + 16 * len(blobs)
     entries = b""
     for image, blob in zip(images, blobs):
-        side = image.width() if image.width() < 256 else 0      # 0 means 256
+        side = image.width() if image.width() < 256 else 0  # 0 means 256
         entries += struct.pack("<BBBBHHII", side, side, 0, 0, 1, 32, len(blob), offset)
         offset += len(blob)
     path.write_bytes(header + entries + b"".join(blobs))

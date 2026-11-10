@@ -21,7 +21,7 @@ def spanish(qapp):
 def test_progress_lights_the_mosaic(isolated_data):
     dialog = dialogs.DownloadDialog(lambda progress, cancelled: None)
     dialog._show(0, 1000)
-    dialog._show(500 * 1024 ** 2, 1000 * 1024 ** 2)
+    dialog._show(500 * 1024**2, 1000 * 1024**2)
     assert dialog.mosaic.progress == pytest.approx(0.5)
     assert "500 MB" in dialog.label.text() and "50%" in dialog.label.text()
 
@@ -46,6 +46,7 @@ def test_cancel_while_running_asks_the_worker_to_stop(isolated_data):
 def test_worker_turns_any_exception_into_a_model_error(isolated_data):
     def broken(progress, cancelled):
         raise RuntimeError("boom")
+
     dialog = dialogs.DownloadDialog(broken)
     got = []
     dialog._ended.disconnect()
@@ -62,9 +63,13 @@ def test_error_dialog_reports_the_choice(isolated_data):
 
 
 def test_every_model_error_has_text_in_both_languages():
-    errors = [model_store.NoConnection("d"), model_store.DownloadFailed("d"),
-              model_store.NotEnoughSpace(10, 5), model_store.Cancelled(),
-              model_store.InvalidModel("model_missing", files="vocab.txt")]
+    errors = [
+        model_store.NoConnection("d"),
+        model_store.DownloadFailed("d"),
+        model_store.NotEnoughSpace(10, 5),
+        model_store.Cancelled(),
+        model_store.InvalidModel("model_missing", files="vocab.txt"),
+    ]
     for lang in ("es", "en"):
         set_language(lang)
         for err in errors:

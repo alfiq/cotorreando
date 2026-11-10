@@ -13,8 +13,18 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-PACKAGES = ("numpy", "onnxruntime-directml", "PyAudioWPatch", "livekit", "cryptography", "cffi",
-            "pyrage", "comtypes", "protobuf", "aiofiles")
+PACKAGES = (
+    "numpy",
+    "onnxruntime-directml",
+    "PyAudioWPatch",
+    "livekit",
+    "cryptography",
+    "cffi",
+    "pyrage",
+    "comtypes",
+    "protobuf",
+    "aiofiles",
+)
 MARKS = ("LICENSE", "LICENCE", "NOTICE", "COPYING", "THIRDPARTY", "CYCLONEDX")
 # Their packages do not carry the text we need.
 DOWNLOADS = {
@@ -37,8 +47,12 @@ def fetch(url: str) -> bytes:
 def copy_package(name: str, out: Path) -> None:
     dist = metadata.distribution(name)
     # Skip files of the Python tooling, such as packaging/licenses/__init__.py.
-    found = [f for f in dist.files or [] if f.suffix not in (".py", ".pyc")
-             and any(mark in f.name.upper().replace("-", "").replace("_", "") for mark in MARKS)]
+    found = [
+        f
+        for f in dist.files or []
+        if f.suffix not in (".py", ".pyc")
+        and any(mark in f.name.upper().replace("-", "").replace("_", "") for mark in MARKS)
+    ]
     if not found:
         raise SystemExit(f"No license files found for {name}")
     for file in found:

@@ -21,8 +21,13 @@ class FakeOpener:
         self.calls.append((request, timeout))
         if self.error:
             raise self.error
-        body = self.body if self.body is not None else json.dumps(
-            {"tag_name": self.tag, "html_url": "https://github.com/alfiq/cotorreando/releases/tag/" + self.tag})
+        body = (
+            self.body
+            if self.body is not None
+            else json.dumps(
+                {"tag_name": self.tag, "html_url": "https://github.com/alfiq/cotorreando/releases/tag/" + self.tag}
+            )
+        )
         return io.BytesIO(body.encode())
 
 
@@ -31,24 +36,26 @@ def settings(isolated_data):
     return Settings()
 
 
-@pytest.mark.parametrize("candidate, current, newer", [
-    ("v0.0.9", "0.0.8", True),
-    ("0.0.10", "0.0.9", True),     # numeric, not lexical
-    ("v0.1.0", "0.0.99", True),
-    ("v1.0", "1.0.0", False),
-    ("v0.0.8", "0.0.8", False),
-    ("v0.0.7", "0.0.8", False),
-    ("v2.0.0-beta", "0.0.8", False),   # unparseable tags are ignored
-    ("", "0.0.8", False),
-])
+@pytest.mark.parametrize(
+    "candidate, current, newer",
+    [
+        ("v0.0.9", "0.0.8", True),
+        ("0.0.10", "0.0.9", True),  # numeric, not lexical
+        ("v0.1.0", "0.0.99", True),
+        ("v1.0", "1.0.0", False),
+        ("v0.0.8", "0.0.8", False),
+        ("v0.0.7", "0.0.8", False),
+        ("v2.0.0-beta", "0.0.8", False),  # unparseable tags are ignored
+        ("", "0.0.8", False),
+    ],
+)
 def test_is_newer(candidate, current, newer):
     assert updates.is_newer(candidate, current) is newer
 
 
 def test_finds_a_newer_release(settings):
     opener = FakeOpener()
-    assert updates.check(settings, NOW, opener) == (
-        "9.9.9", "https://github.com/alfiq/cotorreando/releases/tag/v9.9.9")
+    assert updates.check(settings, NOW, opener) == ("9.9.9", "https://github.com/alfiq/cotorreando/releases/tag/v9.9.9")
     request, timeout = opener.calls[0]
     assert request.full_url == updates.LATEST_URL
     assert request.get_header("User-agent").startswith("Cotorreando/")
@@ -82,12 +89,15 @@ def test_skipped_version_is_not_offered_but_a_later_one_is(settings):
     assert updates.check(settings, NOW + DAY, FakeOpener("v9.9.10")) is not None
 
 
-@pytest.mark.parametrize("opener", [
-    FakeOpener(error=urllib.error.URLError("offline")),
-    FakeOpener(error=TimeoutError()),
-    FakeOpener(body="not json"),
-    FakeOpener(body="{}"),
-])
+@pytest.mark.parametrize(
+    "opener",
+    [
+        FakeOpener(error=urllib.error.URLError("offline")),
+        FakeOpener(error=TimeoutError()),
+        FakeOpener(body="not json"),
+        FakeOpener(body="{}"),
+    ],
+)
 def test_failures_are_silent_and_still_throttled(settings, opener):
     assert updates.check(settings, NOW, opener) is None
     assert settings.update_last_check == NOW
@@ -108,4 +118,5 @@ def test_foreign_release_url_falls_back(settings):
 
 def test_update_state_stays_on_this_machine():
     from cotorreando.transfer import MACHINE_FIELDS
+
     assert {"update_last_check", "update_skipped"} <= MACHINE_FIELDS

@@ -172,8 +172,9 @@ class Window(QDialog):
     def showEvent(self, event):
         # Windows 11 rounds frameless windows only when asked; older versions just decline.
         corner = ctypes.c_int(DWMWCP_ROUND)
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(int(self.winId()), DWMWA_WINDOW_CORNER_PREFERENCE,
-                                                   ctypes.byref(corner), ctypes.sizeof(corner))
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            int(self.winId()), DWMWA_WINDOW_CORNER_PREFERENCE, ctypes.byref(corner), ctypes.sizeof(corner)
+        )
         super().showEvent(event)
 
 
@@ -305,7 +306,7 @@ class SetupDialog(_Form):
         if vault_legacy.pending():
             try:
                 vault_legacy.migrate(vault, old)
-            except Exception:    # the new key exists, so the code must still be shown; tried again on unlock
+            except Exception:  # the new key exists, so the code must still be shown; tried again on unlock
                 log.exception("Could not move the old data to the new key")
         vault.migrate_readings()
         self.learner.activate()
@@ -379,12 +380,15 @@ class Notice(QWidget):
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setObjectName("notice")
-        self.setStyleSheet("#notice { background: %s; border: 1px solid %s; }" % (palette.BACKGROUND, palette.WINDOW_BORDER))
+        self.setStyleSheet(
+            "#notice { background: %s; border: 1px solid %s; }" % (palette.BACKGROUND, palette.WINDOW_BORDER)
+        )
         self.setAttribute(Qt.WA_StyledBackground)
         button = QPushButton(action, clicked=lambda: (self.close(), on_action()))
         button.setFocusPolicy(Qt.NoFocus)
-        later = QPushButton(dismiss or tr("later"), objectName="ghost",
-                            clicked=lambda: (self.close(), on_dismiss and on_dismiss()))
+        later = QPushButton(
+            dismiss or tr("later"), objectName="ghost", clicked=lambda: (self.close(), on_dismiss and on_dismiss())
+        )
         later.setFocusPolicy(Qt.NoFocus)
         row = QHBoxLayout()
         row.addStretch()
@@ -418,7 +422,7 @@ def choose_model_folder(parent=None, start: str = "") -> str | None:
     if not path:
         return None
     problem = None
-    QApplication.setOverrideCursor(Qt.WaitCursor)   # loading the graphs takes a few seconds
+    QApplication.setOverrideCursor(Qt.WaitCursor)  # loading the graphs takes a few seconds
     try:
         model_store.validate(path)
     except model_store.InvalidModel as err:
@@ -432,7 +436,7 @@ def choose_model_folder(parent=None, start: str = "") -> str | None:
 
 
 def _size(n: float) -> str:
-    return f"{n / 1024 ** 2:,.0f} MB"
+    return f"{n / 1024**2:,.0f} MB"
 
 
 def _duration(seconds: float) -> str:
@@ -484,7 +488,7 @@ class DownloadDialog(Window):
             self.download(self._report, self._cancel.is_set)
         except model_store.ModelError as err:
             self._ended.emit(err)
-        except Exception as err:   # never leave the dialog spinning
+        except Exception as err:  # never leave the dialog spinning
             log.exception("Model download failed")
             self._ended.emit(model_store.DownloadFailed(str(err)))
         else:
@@ -492,7 +496,7 @@ class DownloadDialog(Window):
 
     def _report(self, done: int, total: int) -> None:
         now = time.monotonic()
-        if now - self._last >= 0.1 or done == total:   # ~10 updates a second is plenty
+        if now - self._last >= 0.1 or done == total:  # ~10 updates a second is plenty
             self._last = now
             self._progress.emit(done, total)
 
@@ -565,10 +569,11 @@ class HotkeyEdit(QLineEdit):
     Recording polls the keys (see keyboard.down_keys) and pauses the real hotkey; it
     ends on its own, with Esc, or when the field loses focus or hides.
     """
+
     changed = Signal(str)
 
     def __init__(self, value: str):
-        self.recorder = None        # set first: Qt may call event() during construction
+        self.recorder = None  # set first: Qt may call event() during construction
         self._value, self._win_down = "", False
         self._esc_swallow, self._cancel_at = False, 0.0
         super().__init__(readOnly=True)
@@ -612,7 +617,7 @@ class HotkeyEdit(QLineEdit):
         down = keyboard.down_keys()
         win = bool(down & keyboard.WIN_VKS)
         if win and not self._win_down:
-            keyboard.cancel_start_menu()    # releasing Win would open the Start menu
+            keyboard.cancel_start_menu()  # releasing Win would open the Start menu
         self._win_down = win
         state = self.recorder.feed(down)
         if state == "live":
@@ -652,7 +657,7 @@ class HotkeyEdit(QLineEdit):
             if self.recording():
                 self._cancel()
         elif self.recording():
-            event.accept()      # Enter belongs to the recording, not to the dialog
+            event.accept()  # Enter belongs to the recording, not to the dialog
         elif event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
             event.accept()
             self.start()
@@ -698,9 +703,13 @@ class SettingsDialog(Window):
 
         self.pages = QStackedWidget()
         self.nav = QListWidget(objectName="sidebar")
-        for title, page in ((tr("general"), self._general()), (tr("audio"), self._audio()),
-                            (tr("typing"), self._typing()), (tr("model"), self._model()),
-                            (tr("privacy"), self._privacy())):
+        for title, page in (
+            (tr("general"), self._general()),
+            (tr("audio"), self._audio()),
+            (tr("typing"), self._typing()),
+            (tr("model"), self._model()),
+            (tr("privacy"), self._privacy()),
+        ):
             self.nav.addItem(title)
             self.pages.addWidget(self._page(title, page))
         self.nav.currentRowChanged.connect(self.pages.setCurrentIndex)
@@ -792,14 +801,15 @@ class SettingsDialog(Window):
 
     def _general(self):
         self.language = self._combo([("es", "Español"), ("en", "English")], self.s.ui_language)
-        self.mode = self._combo([("open", tr("mode_open")), ("ptt", tr("mode_ptt")),
-                                 ("activation", tr("mode_activation"))], self.s.mode)
-        self.activation = self._combo([("voice", tr("act_voice")), ("keyword", tr("act_keyword"))],
-                                      self.s.activation)
+        self.mode = self._combo(
+            [("open", tr("mode_open")), ("ptt", tr("mode_ptt")), ("activation", tr("mode_activation"))], self.s.mode
+        )
+        self.activation = self._combo([("voice", tr("act_voice")), ("keyword", tr("act_keyword"))], self.s.activation)
         self.keyword = QLineEdit(self.s.keyword)
         self.hotkey = HotkeyEdit(self.s.hotkey)
-        reset = QPushButton(tr("hotkey_reset"), objectName="ghost",
-                            clicked=lambda: self.hotkey.setValue(Settings().hotkey))
+        reset = QPushButton(
+            tr("hotkey_reset"), objectName="ghost", clicked=lambda: self.hotkey.setValue(Settings().hotkey)
+        )
         hotkey_row = QWidget()
         line = QHBoxLayout(hotkey_row)
         line.setContentsMargins(0, 0, 0, 0)
@@ -809,14 +819,21 @@ class SettingsDialog(Window):
         self.use_gpu = QCheckBox(tr("use_gpu"), checked=self.s.use_gpu)
         self.autostart = QCheckBox(tr("autostart"), checked=self.s.autostart)
         return self._groups(
-            (tr("listening"), [(tr("mode"), self.mode), (tr("activation"), self.activation),
-                               (tr("keyword"), self.keyword), (tr("hotkey"), hotkey_row)]),
+            (
+                tr("listening"),
+                [
+                    (tr("mode"), self.mode),
+                    (tr("activation"), self.activation),
+                    (tr("keyword"), self.keyword),
+                    (tr("hotkey"), hotkey_row),
+                ],
+            ),
             (tr("appearance"), [(tr("language"), self.language), (tr("blob_size"), self.blob_size)]),
-            (tr("system"), [self.use_gpu, self.autostart]))
+            (tr("system"), [self.use_gpu, self.autostart]),
+        )
 
     def _audio(self):
-        self.mic = self._combo([("", tr("default"))] + [(m, m) for m in list_microphones()],
-                               self.s.microphone)
+        self.mic = self._combo([("", tr("default"))] + [(m, m) for m in list_microphones()], self.s.microphone)
         self.noise = QCheckBox(tr("noise"), checked=self.s.noise_suppression)
         self.echo = QCheckBox(tr("echo"), checked=self.s.echo_cancellation)
         self.agc = QCheckBox(tr("agc"), checked=self.s.auto_gain)
@@ -837,9 +854,18 @@ class SettingsDialog(Window):
         line.addWidget(calibrate)
         return self._groups(
             (tr("capture"), [(tr("microphone"), self.mic), self.noise, self.echo, self.agc]),
-            (tr("detection"), [self.auto, (tr("threshold"), self.threshold),
-                               (tr("vad_threshold"), self.vad), (tr("silence"), self.silence),
-                               (tr("session"), self.session), row]))
+            (
+                tr("detection"),
+                [
+                    self.auto,
+                    (tr("threshold"), self.threshold),
+                    (tr("vad_threshold"), self.vad),
+                    (tr("silence"), self.silence),
+                    (tr("session"), self.session),
+                    row,
+                ],
+            ),
+        )
 
     def _typing(self):
         self.holdoff = QSpinBox(minimum=0, maximum=10000, singleStep=100, value=self.s.typing_holdoff_ms)
@@ -851,8 +877,7 @@ class SettingsDialog(Window):
         self.custom_model = self.s.custom_model
         self.model_label = QLabel(wordWrap=True)
         choose = QPushButton(tr("own_model_choose"), objectName="ghost", clicked=self._choose_model)
-        self.stock_button = QPushButton(tr("use_stock_model"), objectName="ghost",
-                                        clicked=lambda: self._set_model(""))
+        self.stock_button = QPushButton(tr("use_stock_model"), objectName="ghost", clicked=lambda: self._set_model(""))
         own = QWidget()
         line = QHBoxLayout(own)
         line.setContentsMargins(0, 0, 0, 0)
@@ -861,12 +886,18 @@ class SettingsDialog(Window):
         line.addWidget(choose)
         self._set_model(self.custom_model)
         own_help = QLabel(tr("own_model_help"), objectName="note", wordWrap=True)
-        self.unload = QSpinBox(minimum=0, maximum=240, singleStep=5, value=min(self.s.model_unload_min, 240),
-                               specialValueText=tr("unload_never"))
+        self.unload = QSpinBox(
+            minimum=0,
+            maximum=240,
+            singleStep=5,
+            value=min(self.s.model_unload_min, 240),
+            specialValueText=tr("unload_never"),
+        )
         unload_help = QLabel(tr("unload_help"), objectName="note", wordWrap=True)
-        self.adapter =self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
-        self.boost = self._combo([("auto", tr("boost_auto")), ("on", tr("boost_on")), ("off", tr("boost_off"))],
-                                 self.s.boost_mode)
+        self.adapter = self._combo([("", tr("stock"))] + [(a, a) for a in adapters()], self.s.lora_adapter)
+        self.boost = self._combo(
+            [("auto", tr("boost_auto")), ("on", tr("boost_on")), ("off", tr("boost_off"))], self.s.boost_mode
+        )
         boost_note = QLabel(tr("boost_note"), objectName="note", wordWrap=True)
         help_text = QLabel(tr("calibrate_help"), objectName="note", wordWrap=True)
         calibrate = QPushButton(tr("calibrate_voice"))
@@ -877,9 +908,11 @@ class SettingsDialog(Window):
         line.setSpacing(16)
         line.addWidget(help_text, 1)
         line.addWidget(calibrate)
-        return self._groups((tr("own_model"), [own, own_help]),
-                            (None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]),
-                            (None, [(tr("unload_after"), self.unload), unload_help]))
+        return self._groups(
+            (tr("own_model"), [own, own_help]),
+            (None, [(tr("adapter"), self.adapter), row, (tr("boost"), self.boost), boost_note]),
+            (None, [(tr("unload_after"), self.unload), unload_help]),
+        )
 
     def _set_model(self, path: str) -> None:
         self.custom_model = path
@@ -909,9 +942,21 @@ class SettingsDialog(Window):
         line.addWidget(QPushButton(tr("import"), objectName="ghost", clicked=self._import))
         line.addStretch()
         self._show_password_state()
-        return self._groups((None, [self.learning, (tr("excluded"), self.excluded),
-                                    (tr("retention"), self.retention), row, note,
-                                    self.updates, updates_note, privacy_link()]))
+        return self._groups(
+            (
+                None,
+                [
+                    self.learning,
+                    (tr("excluded"), self.excluded),
+                    (tr("retention"), self.retention),
+                    row,
+                    note,
+                    self.updates,
+                    updates_note,
+                    privacy_link(),
+                ],
+            )
+        )
 
     def _show_password_state(self):
         self.password.setText(tr("password_change") if self.learner.vault.ready else tr("password_set"))
@@ -945,8 +990,9 @@ class SettingsDialog(Window):
             path, _ = QFileDialog.getSaveFileName(self, tr("export"), name, "Cotorreando (*.cotorreando)")
             if path:
                 try:
-                    transfer.export(self.learner.vault, self.s, path, dialog.new.password(),
-                                    dialog.dictations.isChecked())
+                    transfer.export(
+                        self.learner.vault, self.s, path, dialog.new.password(), dialog.dictations.isChecked()
+                    )
                     Prompt(self, tr("export_done"), cancel=False).exec()
                 except Exception:
                     log.exception("Could not export")
@@ -963,8 +1009,9 @@ class SettingsDialog(Window):
         if dialog and dialog.exec():
             learner = self.learner
             try:
-                words, corrections, records = transfer.merge(learner.vault, dialog.head, dialog.audio,
-                                                              dialog.mode.currentData())
+                words, corrections, records = transfer.merge(
+                    learner.vault, dialog.head, dialog.audio, dialog.mode.currentData()
+                )
                 if learner.loaded:
                     learner.hard = learner.vault.load_private("hard_words", {})
                     learner.counts = learner.vault.load_private("corrections", {})
@@ -972,8 +1019,9 @@ class SettingsDialog(Window):
                 if dialog.settings.isChecked():
                     transfer.apply_settings(self.s, dialog.head)
                     applied = True
-                Prompt(self, tr("import_done", words=words, corrections=corrections, records=records),
-                       cancel=False).exec()
+                Prompt(
+                    self, tr("import_done", words=words, corrections=corrections, records=records), cancel=False
+                ).exec()
             except Exception:
                 log.exception("Could not import")
                 Prompt(self, tr("import_failed"), cancel=False).exec()
@@ -990,7 +1038,7 @@ class SettingsDialog(Window):
         self.meter.setText(tr("level", lvl=lvl, thr=self.listener.threshold_db))
 
     def done(self, result):
-        self.hotkey.stop()      # the real hotkey must never stay paused
+        self.hotkey.stop()  # the real hotkey must never stay paused
         super().done(result)
 
     def _accept(self):
@@ -1001,17 +1049,26 @@ class SettingsDialog(Window):
             self.hotkey.setFocus()
             return
         s = self.s
-        s.ui_language, s.mode, s.activation = (self.language.currentData(), self.mode.currentData(),
-                                               self.activation.currentData())
+        s.ui_language, s.mode, s.activation = (
+            self.language.currentData(),
+            self.mode.currentData(),
+            self.activation.currentData(),
+        )
         s.keyword, s.hotkey = self.keyword.text().strip().lower(), self.hotkey.value()
         s.use_gpu, s.autostart = self.use_gpu.isChecked(), self.autostart.isChecked()
         s.blob_size = self.blob_size.currentData()
         s.microphone = self.mic.currentData()
         s.noise_suppression, s.echo_cancellation, s.auto_gain = (
-            self.noise.isChecked(), self.echo.isChecked(), self.agc.isChecked())
+            self.noise.isChecked(),
+            self.echo.isChecked(),
+            self.agc.isChecked(),
+        )
         s.auto_threshold, s.energy_threshold_db = self.auto.isChecked(), self.threshold.value()
         s.vad_threshold, s.silence_ms, s.session_timeout_s = (
-            self.vad.value(), self.silence.value(), self.session.value())
+            self.vad.value(),
+            self.silence.value(),
+            self.session.value(),
+        )
         s.typing_holdoff_ms, s.trailing_space = self.holdoff.value(), self.trailing.isChecked()
         s.streaming = self.streaming.isChecked()
         s.lora_adapter = self.adapter.currentData()
@@ -1207,14 +1264,30 @@ class DataDialog(Window):
         for word in self.learner.custom:
             show(word)
         sections = (
-            (tr("words_boost"), tr("words_boost_note"),
-             [(f"{old}  →  {new}", tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
-               lambda o=old, w=new: drop(o, w))
-              for old, new, n in pairs]),
-            (tr("words_hard"), tr("words_hard_note"),
-             [(e["word"], tr("words_hard_times", n=e["count"], read=e["read"]),
-               lambda w=e["word"]: self.learner.drop_hard_word(w))
-              for e in self.learner.hard_words()]),
+            (
+                tr("words_boost"),
+                tr("words_boost_note"),
+                [
+                    (
+                        f"{old}  →  {new}",
+                        tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
+                        lambda o=old, w=new: drop(o, w),
+                    )
+                    for old, new, n in pairs
+                ],
+            ),
+            (
+                tr("words_hard"),
+                tr("words_hard_note"),
+                [
+                    (
+                        e["word"],
+                        tr("words_hard_times", n=e["count"], read=e["read"]),
+                        lambda w=e["word"]: self.learner.drop_hard_word(w),
+                    )
+                    for e in self.learner.hard_words()
+                ],
+            ),
         )
         for title, note, items in sections:
             rows.addSpacing(6)
@@ -1319,7 +1392,7 @@ class DataDialog(Window):
         self.playing = ""
 
     def _on_ended(self, rid: str) -> None:
-        if rid == self.playing:      # not one that was stopped to play another
+        if rid == self.playing:  # not one that was stopped to play another
             self._stop()
 
     def _delete(self, rid: str) -> None:
@@ -1394,13 +1467,15 @@ class AboutDialog(Window):
         rows = "".join(
             f"<p><b><a href='{url}'>{name}</a></b> — {purpose}<br>"
             f"<a href='{lic_url}'>{lic}</a> · <span style='color:{palette.MUTED}'>{note}</span></p>"
-            for name, purpose, lic, url, lic_url, note in CREDITS + TRAINING_CREDITS)
+            for name, purpose, lic, url, lic_url, note in CREDITS + TRAINING_CREDITS
+        )
         html = (
             f"<h2>Cotorreando {__version__}</h2><p>{tr('tagline')}</p>"
             f"<p>{tr('author')}: <b>{__author__}</b> · <a href='{AUTHOR_URL}'>{AUTHOR_URL}</a><br>"
             f"Repo: <a href='{REPO_URL}'>{REPO_URL}</a> · MIT<br>"
             f"<a href='{tr('privacy_url')}'>{tr('privacy_link')}</a></p>"
-            f"<h3>{tr('credits')}</h3>{rows}")
+            f"<h3>{tr('credits')}</h3>{rows}"
+        )
         text = QTextBrowser(openExternalLinks=True)
         text.setHtml(html)
         close = QHBoxLayout()

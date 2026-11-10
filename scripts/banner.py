@@ -1,6 +1,6 @@
 """Draws docs/assets/banner.png, the README's header: the tiled parrot and the name.
 
-    python scripts/banner.py
+python scripts/banner.py
 """
 
 import sys
@@ -16,7 +16,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from cotorreando import palette as P  # noqa: E402
 from cotorreando.mosaic import logo_pixmap  # noqa: E402
 
-W, H, SCALE = 1200, 300, 2          # drawn at twice the size, for sharp text on high-DPI screens
+W, H, SCALE = 1200, 300, 2  # drawn at twice the size, for sharp text on high-DPI screens
 BACKGROUND, TITLE, TAGLINE = QColor(P.BACKGROUND), QColor(P.TITLE), QColor(P.LINK)
 PLUMAGE = [QColor(c) for c in P.PLUMAGE]
 
@@ -32,7 +32,7 @@ def main() -> None:
     card.addRoundedRect(QRectF(0, 0, W, H), 24, 24)
     p.fillPath(card, BACKGROUND)
     p.setClipPath(card)
-    stripe = W / len(PLUMAGE)         # the plumage along the bottom edge
+    stripe = W / len(PLUMAGE)  # the plumage along the bottom edge
     for i, color in enumerate(PLUMAGE):
         p.fillRect(QRectF(i * stripe, H - 10, stripe + 1, 10), color)
     logo = logo_pixmap(7 * SCALE)

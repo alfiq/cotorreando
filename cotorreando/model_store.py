@@ -22,8 +22,9 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 # Pinned to one commit so the files cannot change under us; SHA256 checks every byte.
-ONNX_REPO = ("https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/"
-             "8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/")
+ONNX_REPO = (
+    "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/"
+)
 SHA256 = {
     "config.json": "666903c76b9798caf2c210afd4f6cd60b08a8dbf9800ec8d7a3bc0d2148ac466",
     "vocab.txt": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d",
@@ -31,11 +32,10 @@ SHA256 = {
     "encoder-model.int8.onnx": "6139d2fa7e1b086097b277c7149725edbab89cc7c7ae64b23c741be4055aff09",
     "decoder_joint-model.int8.onnx": "eea7483ee3d1a30375daedc8ed83e3960c91b098812127a0d99d1c8977667a70",
 }
-FILES = ("config.json", "vocab.txt", "nemo128.onnx",
-         "encoder-model.int8.onnx", "decoder_joint-model.int8.onnx")
-MANIFEST = "download.json"     # sizes of the files as verified after download
-EXPECTED_BYTES = 700 * 1024 ** 2   # used for the space check when the server gives no sizes
-SPACE_MARGIN = 50 * 1024 ** 2
+FILES = ("config.json", "vocab.txt", "nemo128.onnx", "encoder-model.int8.onnx", "decoder_joint-model.int8.onnx")
+MANIFEST = "download.json"  # sizes of the files as verified after download
+EXPECTED_BYTES = 700 * 1024**2  # used for the space check when the server gives no sizes
+SPACE_MARGIN = 50 * 1024**2
 TIMEOUT_S = 30
 CHUNK = 1 << 20
 
@@ -84,10 +84,11 @@ class InvalidModel(ModelError):
 
 
 def _mb(n: int) -> str:
-    return f"{n / 1024 ** 2:,.0f} MB"
+    return f"{n / 1024**2:,.0f} MB"
 
 
 # -- downloading ---------------------------------------------------------------
+
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
@@ -138,7 +139,7 @@ def _manifest(directory: Path) -> dict:
     try:
         sizes = json.loads((directory / MANIFEST).read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {}      # downloaded by an older version, before there was a manifest
+        return {}  # downloaded by an older version, before there was a manifest
     return sizes if isinstance(sizes, dict) else {}
 
 
@@ -156,13 +157,14 @@ def remove(directory: Path, files=FILES) -> None:
             log.warning("Could not delete %s: %s", name, err)
 
 
-def download(target: Path, progress=lambda done, total: None, cancelled=lambda: False,
-             base: str = ONNX_REPO, files=FILES) -> Path:
+def download(
+    target: Path, progress=lambda done, total: None, cancelled=lambda: False, base: str = ONNX_REPO, files=FILES
+) -> Path:
     """Fetch every missing file into ``target``. Raises a ModelError on any problem."""
     target.mkdir(parents=True, exist_ok=True)
     sizes = _manifest(target)
     missing = [f for f in files if not _verified(target, f, sizes)]
-    for name in missing:            # a file that changed since it was verified is fetched again
+    for name in missing:  # a file that changed since it was verified is fetched again
         (target / name).unlink(missing_ok=True)
     try:
         remote = {name: _remote(base + name) for name in missing}
@@ -183,12 +185,12 @@ def download(target: Path, progress=lambda done, total: None, cancelled=lambda: 
     done = sum(have.values())
     for name in missing:
         size, digest = remote[name]
-        if base == ONNX_REPO:       # our own hash, not whatever the server claims
+        if base == ONNX_REPO:  # our own hash, not whatever the server claims
             digest = SHA256[name]
         try:
             done = _fetch(base + name, target / name, size, digest, done, total, progress, cancelled)
         except OSError as err:
-            if getattr(err, "errno", None) == 28:   # ENOSPC
+            if getattr(err, "errno", None) == 28:  # ENOSPC
                 raise NotEnoughSpace(needed + SPACE_MARGIN, shutil.disk_usage(target).free) from err
             raise _network_error(err) from err
         except http.client.HTTPException as err:
@@ -211,7 +213,7 @@ def _fetch(url, dest: Path, size, digest, done, total, progress, cancelled) -> i
         done, start = done - start, 0
     if size is None or start < size or not part.exists():
         with _open(url, start) as r:
-            if start and getattr(r, "status", 200) != 206:   # no resume: start over
+            if start and getattr(r, "status", 200) != 206:  # no resume: start over
                 done, start = done - start, 0
             with open(part, "ab" if start else "wb") as f:
                 while chunk := r.read(CHUNK):
@@ -226,7 +228,7 @@ def _fetch(url, dest: Path, size, digest, done, total, progress, cancelled) -> i
             part.unlink()
         raise DownloadFailed(f"{dest.name}: {got} of {size} bytes")
     if digest and _sha256(part) != digest:
-        part.unlink()   # resumed onto bad bytes or corrupted: never resume from this
+        part.unlink()  # resumed onto bad bytes or corrupted: never resume from this
         raise DownloadFailed(f"{dest.name}: checksum mismatch")
     os.replace(part, dest)
     return done
@@ -259,8 +261,10 @@ class Rate:
 
 # -- checking a user's own model ------------------------------------------------
 
+
 def _session(path: Path):
     import onnxruntime as ort
+
     opts = ort.SessionOptions()
     opts.log_severity_level = 3
     return ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"])
@@ -297,11 +301,15 @@ def validate(directory: Path | str) -> None:
     directory = Path(directory)
     if not directory.is_dir():
         raise InvalidModel("model_no_folder", path=str(directory))
-    graphs = {PREPROCESSOR: PREPROCESSOR if (directory / PREPROCESSOR).is_file() else None,
-              ENCODER: pick(directory, ENCODER), DECODER: pick(directory, DECODER)}
+    graphs = {
+        PREPROCESSOR: PREPROCESSOR if (directory / PREPROCESSOR).is_file() else None,
+        ENCODER: pick(directory, ENCODER),
+        DECODER: pick(directory, DECODER),
+    }
     missing = [] if (directory / "vocab.txt").is_file() else ["vocab.txt"]
-    missing += [stem if stem.endswith(".onnx") else f"{stem}(.int8).onnx"
-                for stem, name in graphs.items() if name is None]
+    missing += [
+        stem if stem.endswith(".onnx") else f"{stem}(.int8).onnx" for stem, name in graphs.items() if name is None
+    ]
     if missing:
         raise InvalidModel("model_missing", files=", ".join(missing))
     vocab = read_vocab(directory / "vocab.txt")
@@ -309,18 +317,23 @@ def validate(directory: Path | str) -> None:
     for stem, name in graphs.items():
         try:
             sessions[stem] = _session(directory / name)
-        except Exception as err:   # onnxruntime raises its own exception types
+        except Exception as err:  # onnxruntime raises its own exception types
             raise InvalidModel("model_bad_onnx", file=name, detail=str(err).splitlines()[0][:200]) from err
         inputs = {i.name for i in sessions[stem].get_inputs()}
         outputs = sessions[stem].get_outputs()
         if not INPUTS[stem] <= inputs or len(outputs) != OUTPUTS[stem]:
-            raise InvalidModel("model_bad_names", file=name,
-                               expected=", ".join(sorted(INPUTS[stem])), found=", ".join(sorted(inputs)))
+            raise InvalidModel(
+                "model_bad_names", file=name, expected=", ".join(sorted(INPUTS[stem])), found=", ".join(sorted(inputs))
+            )
     decoder = sessions[DECODER]
     states = {i.name: i.shape for i in decoder.get_inputs()}
     if len(states["input_states_1"]) != 3:
-        raise InvalidModel("model_bad_names", file=graphs[DECODER], expected="input_states_1 [layers, batch, hidden]",
-                           found=str(states["input_states_1"]))
+        raise InvalidModel(
+            "model_bad_names",
+            file=graphs[DECODER],
+            expected="input_states_1 [layers, batch, hidden]",
+            found=str(states["input_states_1"]),
+        )
     # TDT: the joint outputs every token, the blank, then the durations. RNN-T or CTC stop at the blank.
     width = decoder.get_outputs()[0].shape[-1]
     if isinstance(width, int) and width <= max(vocab) + 1:

@@ -109,6 +109,7 @@ def qapp():
     and crash the process (exit code 0xC0000005) even though every test passed.
     """
     from PySide6.QtWidgets import QApplication
+
     app = QApplication.instance() or QApplication([])
     yield app
     for widget in app.topLevelWidgets():

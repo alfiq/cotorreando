@@ -10,42 +10,68 @@ LSHIFT, LALT, LWIN, RWIN = 0xA0, 0xA4, 0x5B, 0x5C
 F5, SPACE, ESC, A = 0x74, 0x20, 0x1B, ord("A")
 
 
-@pytest.mark.parametrize("vks, text", [
-    ({LWIN, LCTRL}, "ctrl+win"),                       # canonical order, whatever the input
-    ({RWIN, RCTRL, CTRL}, "ctrl+win"),                 # left, right and generic are one key
-    ({LSHIFT, LALT, LCTRL, LWIN, A}, "ctrl+alt+shift+win+a"),
-    ({F5}, "f5"),
-    ({LCTRL, SPACE}, "ctrl+space"),
-    ({LCTRL, 0x41, 0x42}, "ctrl+a"),                   # one plain key only: the lowest
-    ({LCTRL, 0xE8, 0x70 - 0x10}, "ctrl"),              # keys a hotkey cannot use are ignored
-    (set(), ""),
-])
+@pytest.mark.parametrize(
+    "vks, text",
+    [
+        ({LWIN, LCTRL}, "ctrl+win"),  # canonical order, whatever the input
+        ({RWIN, RCTRL, CTRL}, "ctrl+win"),  # left, right and generic are one key
+        ({LSHIFT, LALT, LCTRL, LWIN, A}, "ctrl+alt+shift+win+a"),
+        ({F5}, "f5"),
+        ({LCTRL, SPACE}, "ctrl+space"),
+        ({LCTRL, 0x41, 0x42}, "ctrl+a"),  # one plain key only: the lowest
+        ({LCTRL, 0xE8, 0x70 - 0x10}, "ctrl"),  # keys a hotkey cannot use are ignored
+        (set(), ""),
+    ],
+)
 def test_hotkey_from_vks(vks, text):
     assert hotkey_from_vks(vks) == text
 
 
-@pytest.mark.parametrize("text", ["ctrl+win", "ctrl+alt+shift+win+a", "f5", "ctrl+space", "alt+9", "pause",
-                                  "ctrl+f24"])
+@pytest.mark.parametrize("text", ["ctrl+win", "ctrl+alt+shift+win+a", "f5", "ctrl+space", "alt+9", "pause", "ctrl+f24"])
 def test_text_round_trips_through_parse_hotkey(text):
     groups = parse_hotkey(text)
     vks = {sorted(g)[0] for g in groups}
     assert hotkey_from_vks(vks) == text
 
 
-@pytest.mark.parametrize("text, ok", [
-    ("ctrl+win", True), ("ctrl+a", True), ("alt+space", True), ("win+f1", True), ("ctrl+shift", True),
-    ("f5", True), ("f24", True), ("pause", True),
-    ("ctrl", False), ("win", False), ("shift", False), ("shift+a", False), ("shift+f5", False),
-    ("a", False), ("space", False), ("", False), ("nonsense", False), ("ctrl+nonsense", False),
-])
+@pytest.mark.parametrize(
+    "text, ok",
+    [
+        ("ctrl+win", True),
+        ("ctrl+a", True),
+        ("alt+space", True),
+        ("win+f1", True),
+        ("ctrl+shift", True),
+        ("f5", True),
+        ("f24", True),
+        ("pause", True),
+        ("ctrl", False),
+        ("win", False),
+        ("shift", False),
+        ("shift+a", False),
+        ("shift+f5", False),
+        ("a", False),
+        ("space", False),
+        ("", False),
+        ("nonsense", False),
+        ("ctrl+nonsense", False),
+    ],
+)
 def test_hotkey_valid(text, ok):
     assert hotkey_valid(text) is ok
 
 
-@pytest.mark.parametrize("text, label", [
-    ("ctrl+win", "Ctrl+Win"), ("f5", "F5"), ("ctrl+alt+a", "Ctrl+Alt+A"), ("ctrl+space", "Ctrl+Space"),
-    ("pause", "Pause"), ("not+a+hotkey", "not+a+hotkey"),
-])
+@pytest.mark.parametrize(
+    "text, label",
+    [
+        ("ctrl+win", "Ctrl+Win"),
+        ("f5", "F5"),
+        ("ctrl+alt+a", "Ctrl+Alt+A"),
+        ("ctrl+space", "Ctrl+Space"),
+        ("pause", "Pause"),
+        ("not+a+hotkey", "not+a+hotkey"),
+    ],
+)
 def test_hotkey_label(text, label):
     assert hotkey_label(text) == label
 
@@ -64,7 +90,7 @@ def test_recorder_ends_when_everything_is_released_and_keeps_the_biggest_set():
 def test_recorder_tie_keeps_the_first_set():
     rec = HotkeyRecorder()
     run(rec, set(), {LCTRL}, {A}, set())
-    assert rec.result == ""                      # a lone ctrl is invalid...
+    assert rec.result == ""  # a lone ctrl is invalid...
     rec = HotkeyRecorder()
     states = run(rec, set(), {A, LCTRL}, {F5}, set())
     assert states[-1] == "done" and rec.result == "ctrl+a"

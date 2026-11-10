@@ -56,7 +56,7 @@ from .paths import DATA_DIR, MODELS_DIR
 from .residency import ModelHolder
 
 log = logging.getLogger(__name__)
-UPDATE_DELAY_MS = 30_000   # let the app settle before going online
+UPDATE_DELAY_MS = 30_000  # let the app settle before going online
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 WM_QUERYENDSESSION = 0x0011
 ENDSESSION_CRITICAL = 0x40000000
@@ -73,9 +73,9 @@ def after_keyword(text: str, keyword: str) -> str | None:
     words, key = text.split(), normalize(keyword)
     n = len(key.split())
     for i in range(len(words) - n + 1):
-        window = normalize(" ".join(words[i:i + n]))
+        window = normalize(" ".join(words[i : i + n]))
         if difflib.SequenceMatcher(None, window, key).ratio() >= 0.75:
-            return " ".join(words[i + n:]).lstrip(",.;: ")
+            return " ".join(words[i + n :]).lstrip(",.;: ")
     return None
 
 
@@ -95,8 +95,14 @@ class SessionFilter(QAbstractNativeEventFilter):
 
 def on_battery() -> bool:
     class Power(ctypes.Structure):
-        _fields_ = [("ac", ctypes.c_ubyte), ("flag", ctypes.c_ubyte), ("percent", ctypes.c_ubyte),
-                    ("saver", ctypes.c_ubyte), ("life", wintypes.DWORD), ("full", wintypes.DWORD)]
+        _fields_ = [
+            ("ac", ctypes.c_ubyte),
+            ("flag", ctypes.c_ubyte),
+            ("percent", ctypes.c_ubyte),
+            ("saver", ctypes.c_ubyte),
+            ("life", wintypes.DWORD),
+            ("full", wintypes.DWORD),
+        ]
 
     power = Power()
     return bool(ctypes.windll.kernel32.GetSystemPowerStatus(ctypes.byref(power))) and power.ac == 0
@@ -109,9 +115,9 @@ class Cotorreando(QObject):
     loaded = Signal()
     toggle_requested = Signal()
     warning = Signal(str)
-    loading = Signal(float)   # -1 = busy, 0..1 = download progress
-    update_found = Signal(str, str)   # version, release page
-    model_failed = Signal(object)     # the exception that kept the model from loading
+    loading = Signal(float)  # -1 = busy, 0..1 = download progress
+    update_found = Signal(str, str)  # version, release page
+    model_failed = Signal(object)  # the exception that kept the model from loading
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -119,11 +125,15 @@ class Cotorreando(QObject):
         self.s = Settings.load()
         set_language(self.s.ui_language)
         self.enabled = True
-        self.holder = ModelHolder(self._build_model, self.s.model_unload_min * 60,
-                                  on_load_start=self._on_load_start, on_load_done=self._on_load_done)
-        self._announce = False          # the next successful load emits ``loaded``
+        self.holder = ModelHolder(
+            self._build_model,
+            self.s.model_unload_min * 60,
+            on_load_start=self._on_load_start,
+            on_load_done=self._on_load_done,
+        )
+        self._announce = False  # the next successful load emits ``loaded``
         self._queued_uid = None
-        self._pinned = None             # the model the calibration window holds
+        self._pinned = None  # the model the calibration window holds
         self.audio: AudioInput | None = None
         self.listener: Listener | None = None
         self.jobs: queue.Queue = queue.Queue()
@@ -154,8 +164,9 @@ class Cotorreando(QObject):
         self.menu = styled_menu()
         self.menu.aboutToShow.connect(self._build_menu)
         self.tray.setContextMenu(self.menu)
-        self.warning.connect(lambda text: self.tray.showMessage(
-            "Cotorreando", text, QSystemTrayIcon.MessageIcon.Warning))
+        self.warning.connect(
+            lambda text: self.tray.showMessage("Cotorreando", text, QSystemTrayIcon.MessageIcon.Warning)
+        )
         self.tray.show()
 
         self.keyboard = KeyboardMonitor(self.s.hotkey, self._hotkey_down, self._hotkey_up)
@@ -164,20 +175,20 @@ class Cotorreando(QObject):
 
         if not self.s.hidden:
             self.blob.show()
-        self.blob.set_enabled(False)   # grey until the model is loaded
+        self.blob.set_enabled(False)  # grey until the model is loaded
         self.model_failed.connect(self._on_model_failed)
-        QTimer.singleShot(0, self._prepare_model)   # its dialogs need the event loop running
+        QTimer.singleShot(0, self._prepare_model)  # its dialogs need the event loop running
         self.update_found.connect(self._offer_update)
         QTimer.singleShot(UPDATE_DELAY_MS, self._check_updates)
         self._collector = QTimer(self, interval=30_000)
-        self._collector.timeout.connect(self.holder.collect)   # frees the model when idle
+        self._collector.timeout.connect(self.holder.collect)  # frees the model when idle
         self._collector.start()
 
     # -- model & audio --------------------------------------------------------
 
     def _model_dir(self):
         if self.s.custom_model:
-            return Path(self.s.custom_model)   # adapters are trained on the stock model only
+            return Path(self.s.custom_model)  # adapters are trained on the stock model only
         path = MODELS_DIR / "adapters" / self.s.lora_adapter
         return path if self.s.lora_adapter and path.exists() else asr.model_dir()
 
@@ -255,7 +266,7 @@ class Cotorreando(QObject):
             self.model_failed.emit(err)
             return
         self.status.emit(tr("ready") if self.enabled else tr("disabled"))
-        if self._announce:              # reloads after an idle unload stay silent
+        if self._announce:  # reloads after an idle unload stay silent
             self._announce = False
             self.loaded.emit()
 
@@ -271,7 +282,7 @@ class Cotorreando(QObject):
         elif vault.ready:
             self.open_training()
         else:
-            self.s.calibrated = True    # calibration keeps your voice, which takes the password
+            self.s.calibrated = True  # calibration keeps your voice, which takes the password
             self.start_audio()
         if not first_run:
             self._offer_password()
@@ -286,15 +297,21 @@ class Cotorreando(QObject):
             found = updates.check(self.s)
             if found:
                 self.update_found.emit(*found)
+
         threading.Thread(target=run, daemon=True, name="updates").start()
 
     def _offer_update(self, version: str, url: str) -> None:
         def skip():
             self.s.update_skipped = version
             self.s.save()
-        self.update_notice = Notice(tr("update_available", version=version, current=__version__),
-                                    tr("update_open"), lambda: webbrowser.open(url),
-                                    tr("update_skip"), skip)
+
+        self.update_notice = Notice(
+            tr("update_available", version=version, current=__version__),
+            tr("update_open"),
+            lambda: webbrowser.open(url),
+            tr("update_skip"),
+            skip,
+        )
         area = self.blob.screen().availableGeometry()
         corner = QRect(area.bottomRight(), area.bottomRight())
         self.update_notice.show_near(self.blob.geometry() if self.blob.isVisible() else corner, area)
@@ -305,8 +322,11 @@ class Cotorreando(QObject):
         if not self.s.learning or self.learner.loaded:
             return
         ready = self.learner.vault.ready
-        self.notice = Notice(tr("notice_unlock" if ready else "notice_setup"),
-                             tr("notice_action" if ready else "notice_setup_action"), self.ask_password)
+        self.notice = Notice(
+            tr("notice_unlock" if ready else "notice_setup"),
+            tr("notice_action" if ready else "notice_setup_action"),
+            self.ask_password,
+        )
         area = self.blob.screen().availableGeometry()
         corner = QRect(area.bottomRight(), area.bottomRight())
         self.notice.show_near(self.blob.geometry() if self.blob.isVisible() else corner, area)
@@ -316,24 +336,29 @@ class Cotorreando(QObject):
         if not vault.ready:
             SetupDialog(self.learner).exec()
         elif UnlockDialog(self.learner).exec():
-            vault.lock()                # the word lists stay in memory; the key does not
+            vault.lock()  # the word lists stay in memory; the key does not
 
     def start_audio(self) -> None:
         self.stop_audio()
         if not self.enabled or not self.holder.available:
             log.info("Not listening (enabled=%s, model=%s)", self.enabled, self.holder.available)
             return
-        self.listener = Listener(self.s, lambda uid, audio: self._queue("audio", uid, audio),
-                                 lambda uid: self.jobs.put(("end", uid, None)), self.level.emit)
-        self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
-                                self.s.echo_cancellation, self.s.auto_gain)
+        self.listener = Listener(
+            self.s,
+            lambda uid, audio: self._queue("audio", uid, audio),
+            lambda uid: self.jobs.put(("end", uid, None)),
+            self.level.emit,
+        )
+        self.audio = AudioInput(
+            self._on_frame, self.s.microphone, self.s.noise_suppression, self.s.echo_cancellation, self.s.auto_gain
+        )
         self._silent_frames = 0
         log.info("Listening on %s (mode %s)", self.s.microphone or "default microphone", self.s.mode)
         self.audio.start()
         self.blob.set_enabled(True)
 
     def _queue(self, kind: str, uid, audio) -> None:
-        if uid != self._queued_uid:     # a new utterance: start loading the model if it was freed
+        if uid != self._queued_uid:  # a new utterance: start loading the model if it was freed
             self._queued_uid = uid
             if not self.holder.failed:
                 self.holder.ensure_loading()
@@ -351,7 +376,7 @@ class Cotorreando(QObject):
         # Windows hands out pure zeros when microphone access is denied in Privacy settings.
         if self._silent_frames >= 0:
             self._silent_frames = self._silent_frames + 1 if not frame.any() else -1
-            if self._silent_frames == 300:   # 3 s
+            if self._silent_frames == 300:  # 3 s
                 log.warning("Microphone delivers only silence")
                 self.warning.emit(tr("mic_silent"))
                 self._silent_frames = -1
@@ -363,14 +388,14 @@ class Cotorreando(QObject):
     def _recognizer(self) -> None:
         """Consume listener events; stream text out as soon as it is final."""
         uid, stream, buffered, cancelled, heard, field = 0, None, [], False, [], None
-        bound = None                            # the model this utterance started on
+        bound = None  # the model this utterance started on
         while True:
             kind, job_uid, audio = self.jobs.get()
             if not self.enabled:
                 continue
             try:
-                with self.holder.using() as model:   # waits while a freed model loads again
-                    if job_uid != uid:          # a new utterance (an unfinished one was cancelled)
+                with self.holder.using() as model:  # waits while a freed model loads again
+                    if job_uid != uid:  # a new utterance (an unfinished one was cancelled)
                         uid, buffered, cancelled, heard, bound = job_uid, [], False, [], model
                         stream = asr.Stream(model) if self._should_stream() else None
                         self._tail, self._tail_since, self._tail_window = "", time.monotonic(), foreground()
@@ -380,11 +405,11 @@ class Cotorreando(QObject):
                         boost = self.s.boost_mode == "on" or (self.s.boost_mode == "auto" and self.s.vocabulary_on)
                         model.set_phrases(self.learner.bias_words(field) if boost else None)
                     elif model is not bound or model.closed:
-                        cancelled = True        # the model was replaced mid-utterance
+                        cancelled = True  # the model was replaced mid-utterance
                     if time.monotonic() - self.keyboard.last_typed < self.s.typing_holdoff_ms / 1000:
-                        cancelled = True        # you are typing; never write over it
+                        cancelled = True  # you are typing; never write over it
                     if ours_in_front():
-                        cancelled = True        # never into our own windows, such as the password
+                        cancelled = True  # never into our own windows, such as the password
                     if cancelled:
                         continue
                     if kind == "audio":
@@ -403,7 +428,7 @@ class Cotorreando(QObject):
                         self._finish_utterance(heard, whole.trace, field)
             except Exception:
                 if self.holder.failed or not self.holder.available:
-                    continue                    # no model: drop the job (model_failed says why)
+                    continue  # no model: drop the job (model_failed says why)
                 log.exception("Transcription failed")
 
     def _finish_utterance(self, heard: list, trace: list, field) -> None:
@@ -431,13 +456,13 @@ class Cotorreando(QObject):
             # The caret moved: what is before it is no longer ours to delete.
             self._tail, self._tail_since, self._tail_window = "", time.monotonic(), window
         if (text or tail) and self.listener and self.listener.awake:
-            self.listener.wake()                # keyword mode: keep the session alive
+            self.listener.wake()  # keyword mode: keep the session alive
         text, tail = self._fit(text, tail)
         if end and text.strip() and self.s.trailing_space:
             text = text.rstrip() + " "
         self._typed += text
         old, self._tail = self._tail, tail
-        if text + tail == old:                  # what was tentative may just have become final
+        if text + tail == old:  # what was tentative may just have become final
             return
         self.writing.emit(True)
         replace_text(old, text + tail)
@@ -445,7 +470,7 @@ class Cotorreando(QObject):
 
     def _type(self, text: str, end: bool = False) -> None:
         if text and self.listener and self.listener.awake:
-            self.listener.wake()                # keyword mode: keep the session alive
+            self.listener.wake()  # keyword mode: keep the session alive
         text = self._fit(text, "")[0]
         if end and text.strip() and self.s.trailing_space:
             text = text.rstrip() + " "
@@ -472,7 +497,7 @@ class Cotorreando(QObject):
 
     def _hotkey_down(self) -> None:
         if self.enabled and not self.holder.failed:
-            self.holder.ensure_loading()        # you are about to speak
+            self.holder.ensure_loading()  # you are about to speak
         if self.s.mode == "ptt":
             if self.listener:
                 self.listener.push_to_talk(True)
@@ -488,7 +513,7 @@ class Cotorreando(QObject):
     def toggle_enabled(self) -> None:
         self.enabled = not self.enabled
         if self.enabled:
-            if self.holder.failed:      # an earlier load failed: try again, then start listening
+            if self.holder.failed:  # an earlier load failed: try again, then start listening
                 self._announce = True
             self.holder.ensure_loading()
         self.blob.set_enabled(self.enabled)
@@ -528,11 +553,12 @@ class Cotorreando(QObject):
 
     def open_training(self) -> None:
         from .lora.ui import CalibrationDialog  # rarely used, load lazily
+
         if self.calibration is not None:
             self.calibration.show()
             self.calibration.raise_()
             return
-        model = self.holder.pin()       # kept loaded while the window is open
+        model = self.holder.pin()  # kept loaded while the window is open
         if model is None:
             self.holder.ensure_loading()
             self.warning.emit(tr("loading"))
@@ -540,7 +566,7 @@ class Cotorreando(QObject):
         self._pinned = model
         dialog = self.calibration = CalibrationDialog(self.s, model, self.learner)
         dialog.skipped.connect(self._calibration_skipped)
-        dialog.reading_started.connect(self.stop_audio)         # free the microphone
+        dialog.reading_started.connect(self.stop_audio)  # free the microphone
         dialog.reading_finished.connect(self.start_audio)
         dialog.trained.connect(self._calibration_trained)
         dialog.finished.connect(self._calibration_closed)
@@ -585,6 +611,7 @@ class Cotorreando(QObject):
         if self._asking:
             return True
         from .lora import job
+
         if not self.s.learning or on_battery() or self.calibration or not job.is_pending(self.learner):
             return False
         self._asking = True
@@ -593,6 +620,7 @@ class Cotorreando(QObject):
 
     def _ask_at_shutdown(self) -> None:
         from .lora.screen import ShutdownPrompt
+
         prompt = ShutdownPrompt()
         prompt.exec()
         self._asking = False
@@ -606,8 +634,9 @@ class Cotorreando(QObject):
 
     def _train_then(self, action: str | None) -> None:
         from .lora.screen import TrainingScreen
+
         self.stop_audio()
-        self.holder.suspend()           # free the GPU for training, and keep it free
+        self.holder.suspend()  # free the GPU for training, and keep it free
         self.screen = TrainingScreen(self.learner, self.s)
         self.screen.ended.connect(lambda result: self._training_over(result, action))
         self.screen.begin()
@@ -705,22 +734,20 @@ def already_running() -> bool:
 
 
 def main() -> int:
-    if already_running():        # before the log is opened: opening it wipes what the running copy wrote
+    if already_running():  # before the log is opened: opening it wipes what the running copy wrote
         return 0
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     handlers = [logging.FileHandler(DATA_DIR / "cotorreando.log", mode="w", encoding="utf-8")]
-    if sys.stderr is not None:   # the windowed build has no console
+    if sys.stderr is not None:  # the windowed build has no console
         handlers.append(logging.StreamHandler())
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s",
-                        handlers=handlers)
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s", handlers=handlers)
     # Without a console, exceptions raised in Qt slots would vanish.
-    sys.excepthook = lambda *exc: logging.getLogger("cotorreando").error(
-        "Unhandled exception", exc_info=exc)
+    sys.excepthook = lambda *exc: logging.getLogger("cotorreando").error("Unhandled exception", exc_info=exc)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     apply_theme(app)
     settings = Settings.load()
-    if not settings.welcome_accepted:   # before anything is downloaded or recorded
+    if not settings.welcome_accepted:  # before anything is downloaded or recorded
         set_language(settings.ui_language)
         if not WelcomeDialog(settings).exec():
             return 0

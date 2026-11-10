@@ -28,7 +28,7 @@ def parse(version: str) -> tuple[int, ...] | None:
     if not re.fullmatch(r"\d+(\.\d+)*", text):
         return None
     parts = [int(p) for p in text.split(".")]
-    while len(parts) > 1 and parts[-1] == 0:   # 1.0 == 1.0.0
+    while len(parts) > 1 and parts[-1] == 0:  # 1.0 == 1.0.0
         parts.pop()
     return tuple(parts)
 
@@ -43,13 +43,14 @@ def due(settings, now: float | None = None) -> bool:
         return False
     now = time.time() if now is None else now
     last = settings.update_last_check
-    return not (0 <= now - last < INTERVAL_S)   # a clock set back counts as due
+    return not (0 <= now - last < INTERVAL_S)  # a clock set back counts as due
 
 
 def fetch_latest(opener=urllib.request.urlopen) -> tuple[str, str]:
     """(tag without the 'v', release page URL). Raises on any network or format problem."""
-    request = urllib.request.Request(LATEST_URL, headers={
-        "User-Agent": f"Cotorreando/{__version__}", "Accept": "application/vnd.github+json"})
+    request = urllib.request.Request(
+        LATEST_URL, headers={"User-Agent": f"Cotorreando/{__version__}", "Accept": "application/vnd.github+json"}
+    )
     with opener(request, timeout=TIMEOUT_S) as response:
         data = json.loads(response.read().decode("utf-8"))
     tag = str(data["tag_name"]).strip().lstrip("vV")
@@ -64,10 +65,10 @@ def check(settings, now: float | None = None, opener=urllib.request.urlopen) -> 
     if not due(settings, now):
         return None
     settings.update_last_check = time.time() if now is None else now
-    settings.save()             # a failed check also waits a day, so an offline PC is not nagged
+    settings.save()  # a failed check also waits a day, so an offline PC is not nagged
     try:
         tag, url = fetch_latest(opener)
-    except Exception as err:    # noqa: BLE001 - offline, rate limited, malformed: all the same to us
+    except Exception as err:  # noqa: BLE001 - offline, rate limited, malformed: all the same to us
         log.info("Update check failed: %s", err)
         return None
     if not is_newer(tag) or tag == settings.update_skipped:

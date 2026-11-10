@@ -15,15 +15,26 @@ from PySide6.QtGui import QColor, QImage, QPainter, QRadialGradient
 from cotorreando import palette
 from cotorreando.blob import _feather
 
-WIDTH, HEIGHT = 1440, 920     # twice the window, so it stays sharp on scaled screens
+WIDTH, HEIGHT = 1440, 920  # twice the window, so it stays sharp on scaled screens
 BACKGROUND = QColor(palette.BACKGROUND)
 # (plumage colour, x, y, angle, length, strength): gathered on the right, away from the text.
-FEATHERS = ((palette.MINT, 1120, 300, 28, 620, 0.62), (palette.GREEN, 1290, 520, -22, 700, 0.66),
-            (palette.LIME, 1010, 660, 50, 520, 0.48), (palette.ORANGE, 1340, 180, 62, 470, 0.5),
-            (palette.RED, 1180, 780, -58, 400, 0.4), (palette.YELLOW, 860, 180, -35, 300, 0.22))
+FEATHERS = (
+    (palette.MINT, 1120, 300, 28, 620, 0.62),
+    (palette.GREEN, 1290, 520, -22, 700, 0.66),
+    (palette.LIME, 1010, 660, 50, 520, 0.48),
+    (palette.ORANGE, 1340, 180, 62, 470, 0.5),
+    (palette.RED, 1180, 780, -58, 400, 0.4),
+    (palette.YELLOW, 860, 180, -35, 300, 0.22),
+)
 # installer.iss name -> colour. Inno Setup takes colours as $BBGGRR.
-ISS_COLOURS = {"WINDOW_BACK": palette.BACKGROUND, "CAPTION_TEXT": palette.MUTED, "TITLE_TEXT": palette.TITLE,
-               "BODY_TEXT": palette.BODY, "CLOSE_TEXT": palette.SECONDARY, "LINK_TEXT": palette.LINK}
+ISS_COLOURS = {
+    "WINDOW_BACK": palette.BACKGROUND,
+    "CAPTION_TEXT": palette.MUTED,
+    "TITLE_TEXT": palette.TITLE,
+    "BODY_TEXT": palette.BODY,
+    "CLOSE_TEXT": palette.SECONDARY,
+    "LINK_TEXT": palette.LINK,
+}
 
 
 def iss_colour(hex_colour: str) -> str:

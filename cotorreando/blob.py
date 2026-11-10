@@ -30,15 +30,15 @@ from .i18n import tr
 # window is much larger than the orb to leave room for ripples and the drag
 # trail; its transparent pixels let clicks through.
 SIZES = {"small": (110, 13), "medium": (170, 20), "large": (250, 30)}
-GOO_STIFFNESS, GOO_DAMPING = 60.0, 7.0   # the sticky tail: softer than the drag spring
+GOO_STIFFNESS, GOO_DAMPING = 60.0, 7.0  # the sticky tail: softer than the drag spring
 POINTS = 72
-STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
+STIFFNESS, DAMPING = 220.0, 16.0  # spring used while dragging
 # The parrot's own colours (assets/parrot.png), in the order they run along its plumage.
 PLUMAGE = tuple(QColor(c) for c in palette.PLUMAGE)
 # (place in PLUMAGE, orbit radius, feather size) relative to the radius, drifting inside the orb.
 CLOUDS = ((0, 0.45, 0.75), (1, 0.35, 0.85), (2, 0.5, 0.7), (4, 0.3, 0.6), (5, 0.55, 0.45))
 GREY = QColor(palette.OFF)
-EDGE_FADE = 0.8      # share of the way from the outline to the centre spent fading in
+EDGE_FADE = 0.8  # share of the way from the outline to the centre spent fading in
 MIN_RINGS = 24
 # Windows keeps on top whichever topmost window asked last, so one opened later
 # (the taskbar or an app starting with Windows) hides the blob for good unless
@@ -49,8 +49,7 @@ HWND_TOPMOST, HWND_NOTOPMOST, GW_HWNDPREV = -1, -2, 3
 SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = 0x1, 0x2, 0x10
 user32 = ctypes.windll.user32
 # Without these, -1 reaches Windows as 0xFFFFFFFF instead of a 64-bit HWND_TOPMOST.
-user32.SetWindowPos.argtypes = [ctypes.wintypes.HWND, ctypes.wintypes.HWND] + [ctypes.c_int] * 4 \
-    + [ctypes.c_uint]
+user32.SetWindowPos.argtypes = [ctypes.wintypes.HWND, ctypes.wintypes.HWND] + [ctypes.c_int] * 4 + [ctypes.c_uint]
 user32.GetWindow.restype = ctypes.wintypes.HWND
 
 
@@ -59,8 +58,7 @@ class Blob(QWidget):
     menu_requested = Signal(object)
 
     def __init__(self, size: str = "medium"):
-        super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-                         | Qt.WindowDoesNotAcceptFocus)
+        super().__init__(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         # The blob never takes focus, and Qt hides tips of inactive windows unless told otherwise.
@@ -70,13 +68,13 @@ class Blob(QWidget):
         self.set_size(size)
         self.enabled = True
         self.writing = False
-        self.loading: float | None = None   # None, -1 = busy, 0..1 = progress
-        self.level = 0.0          # smoothed 0..1
+        self.loading: float | None = None  # None, -1 = busy, 0..1 = progress
+        self.level = 0.0  # smoothed 0..1
         self._target_level = 0.0
-        self.ripples: list[float] = []   # birth times
+        self.ripples: list[float] = []  # birth times
         self._last_ripple = 0.0
         self._hue = 0.0
-        self._drift = 0.0          # accumulated phase of the inner colour clouds
+        self._drift = 0.0  # accumulated phase of the inner colour clouds
         self._t0 = time.monotonic()
         self._last_tick = self._t0
         # Spring state for elastic dragging.
@@ -84,7 +82,7 @@ class Blob(QWidget):
         self._pos = QPointF()
         self._vel = QPointF()
         self._target = QPointF()
-        self._tail = QPointF()      # where the gooey tail lags behind, relative to the centre
+        self._tail = QPointF()  # where the gooey tail lags behind, relative to the centre
         self._tail_vel = QPointF()
         self._timer = QTimer(self, interval=16, timeout=self._tick)
         self._timer.start()
@@ -107,8 +105,14 @@ class Blob(QWidget):
         while other:
             user32.GetWindowThreadProcessId(other, ctypes.byref(pid))
             user32.GetWindowRect(other, ctypes.byref(rect))
-            if pid.value != mine.value and user32.IsWindowVisible(other) and rect.left < own.right \
-                    and rect.right > own.left and rect.top < own.bottom and rect.bottom > own.top:
+            if (
+                pid.value != mine.value
+                and user32.IsWindowVisible(other)
+                and rect.left < own.right
+                and rect.right > own.left
+                and rect.top < own.bottom
+                and rect.bottom > own.top
+            ):
                 flags = SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
                 user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags)
                 user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags)
@@ -183,7 +187,7 @@ class Blob(QWidget):
 
         moving = self._step_spring(dt)
         if not self.enabled and not moving and not self.writing and self.loading is None:
-            self._timer.stop()     # disabled and still: no CPU spent at all
+            self._timer.stop()  # disabled and still: no CPU spent at all
             self.update()
             return
         self.level += (self._target_level - self.level) * min(dt * 6, 1)
@@ -198,8 +202,7 @@ class Blob(QWidget):
         """Move the window towards the target; returns False once all is at rest."""
         delta = self._target - self._pos
         tail_moving = _norm(self._tail) > 0.3 or _norm(self._tail_vel) > 3
-        if self._drag_offset is None and _norm(delta) < 0.5 and _norm(self._vel) < 5 \
-                and not tail_moving:
+        if self._drag_offset is None and _norm(delta) < 0.5 and _norm(self._vel) < 5 and not tail_moving:
             return False
         accel = delta * STIFFNESS - self._vel * DAMPING
         self._vel += accel * dt
@@ -235,7 +238,7 @@ class Blob(QWidget):
         for birth in self.ripples:
             age = (time.monotonic() - birth) / 1.4
             color = plumage(self._hue / 60 + age * 2)
-            color.setAlphaF(max(0.0, 0.55 * math.sin(math.pi * age)))   # born and gone invisible
+            color.setAlphaF(max(0.0, 0.55 * math.sin(math.pi * age)))  # born and gone invisible
             p.setPen(QPen(color, 1.5))
             p.setBrush(Qt.NoBrush)
             p.drawPath(self._shape(c, self.radius * (1 + age * 1.4), t, 0.4))
@@ -310,7 +313,7 @@ class Blob(QWidget):
             pos = c + QPointF(math.cos(a), math.sin(a * 1.3)) * self.radius * orbit
             color = plumage(place + shift / 60)
             g = QRadialGradient(pos, self.radius * size)
-            color.setAlphaF(glow * 0.45)   # a faint halo behind each feather
+            color.setAlphaF(glow * 0.45)  # a faint halo behind each feather
             g.setColorAt(0, color)
             color.setAlphaF(0)
             g.setColorAt(1, color)
@@ -338,8 +341,7 @@ class Blob(QWidget):
         path = QPainterPath()
         for i in range(POINTS + 1):
             a = 2 * math.pi * i / POINTS
-            wobble = (math.sin(3 * a + t * 2.1) * 0.5 + math.sin(5 * a - t * 3.3) * 0.3
-                      + math.sin(7 * a + t * 5.0) * 0.2)
+            wobble = math.sin(3 * a + t * 2.1) * 0.5 + math.sin(5 * a - t * 3.3) * 0.3 + math.sin(7 * a + t * 5.0) * 0.2
             r = radius * (1 + amp * wobble)
             dx, dy = math.cos(a), math.sin(a)
             # The side facing the tail is pulled out into a sticky, tapering drop;
@@ -377,8 +379,11 @@ def plumage(place: float) -> QColor:
     x = 2 * last - x if x > last else x
     i = min(int(x), last - 1)
     a, b, f = PLUMAGE[i], PLUMAGE[i + 1], x - i
-    return QColor.fromRgbF(a.redF() + (b.redF() - a.redF()) * f, a.greenF() + (b.greenF() - a.greenF()) * f,
-                           a.blueF() + (b.blueF() - a.blueF()) * f)
+    return QColor.fromRgbF(
+        a.redF() + (b.redF() - a.redF()) * f,
+        a.greenF() + (b.greenF() - a.greenF()) * f,
+        a.blueF() + (b.blueF() - a.blueF()) * f,
+    )
 
 
 def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QColor) -> None:
@@ -389,7 +394,7 @@ def _feather(p: QPainter, pos: QPointF, angle: float, length: float, color: QCol
     p.save()
     p.translate(pos)
     p.rotate(angle)
-    p.translate(0, length / 2)   # the feather is centred on ``pos``, tip pointing up
+    p.translate(0, length / 2)  # the feather is centred on ``pos``, tip pointing up
 
     def shaft(u: float) -> QPointF:
         return QPointF(length * 0.08 * math.sin(math.pi * u), -length * u)

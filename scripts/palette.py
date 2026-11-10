@@ -16,29 +16,61 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from cotorreando import palette as P  # noqa: E402
 
-W, SCALE = 1200, 2                  # drawn at twice the size, for sharp text on high-DPI screens
+W, SCALE = 1200, 2  # drawn at twice the size, for sharp text on high-DPI screens
 BACKGROUND, TITLE, MUTED = QColor(P.BACKGROUND), QColor(P.TITLE), QColor(P.MUTED)
 DARK_TEXT, LIGHT_TEXT = QColor(P.ON_ACCENT), QColor(P.WHITE)
 COLUMNS, SWATCH_H, GAP, MARGIN = 6, 120, 16, 48
 GROUPS = (
-    ("Plumaje (assets/parrot.png)", (
-        ("Verde cotorra", P.GREEN), ("Menta", P.MINT), ("Oliva", P.OLIVE), ("Lima", P.LIME),
-        ("Amarillo", P.YELLOW), ("Naranja", P.ORANGE), ("Rojo teja", P.BRICK), ("Rojo", P.RED),
-        ("Granate", P.GARNET), ("Rosa", P.PINK), ("Marrón", P.BROWN), ("Pico", P.BEAK))),
-    ("Interfaz (cotorreando/palette.py)", (
-        ("Fondo", P.BACKGROUND), ("Tarjeta", P.CARD), ("Campo", P.FIELD), ("Texto", P.TEXT),
-        ("Título", P.TITLE), ("Cuerpo", P.BODY), ("Secundario", P.SECONDARY), ("Nota", P.MUTED),
-        ("Texto en botón", P.ON_ACCENT), ("Botón hover", P.ACCENT_HOVER), ("Botón pulsado", P.ACCENT_PRESSED),
-        ("Borde casilla", P.CHECKBOX_BORDER))),
-    ("Insignias del README (texto blanco)", (
-        ("Licencia", P.BADGE_LICENSE), ("Windows", P.BADGE_WINDOWS), ("Privacidad", P.BADGE_PRIVACY),
-        ("Versión", P.BADGE_VERSION))),
+    (
+        "Plumaje (assets/parrot.png)",
+        (
+            ("Verde cotorra", P.GREEN),
+            ("Menta", P.MINT),
+            ("Oliva", P.OLIVE),
+            ("Lima", P.LIME),
+            ("Amarillo", P.YELLOW),
+            ("Naranja", P.ORANGE),
+            ("Rojo teja", P.BRICK),
+            ("Rojo", P.RED),
+            ("Granate", P.GARNET),
+            ("Rosa", P.PINK),
+            ("Marrón", P.BROWN),
+            ("Pico", P.BEAK),
+        ),
+    ),
+    (
+        "Interfaz (cotorreando/palette.py)",
+        (
+            ("Fondo", P.BACKGROUND),
+            ("Tarjeta", P.CARD),
+            ("Campo", P.FIELD),
+            ("Texto", P.TEXT),
+            ("Título", P.TITLE),
+            ("Cuerpo", P.BODY),
+            ("Secundario", P.SECONDARY),
+            ("Nota", P.MUTED),
+            ("Texto en botón", P.ON_ACCENT),
+            ("Botón hover", P.ACCENT_HOVER),
+            ("Botón pulsado", P.ACCENT_PRESSED),
+            ("Borde casilla", P.CHECKBOX_BORDER),
+        ),
+    ),
+    (
+        "Insignias del README (texto blanco)",
+        (
+            ("Licencia", P.BADGE_LICENSE),
+            ("Windows", P.BADGE_WINDOWS),
+            ("Privacidad", P.BADGE_PRIVACY),
+            ("Versión", P.BADGE_VERSION),
+        ),
+    ),
 )
 
 
 def luminance(c: QColor) -> float:
     def channel(v: float) -> float:
         return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
     return 0.2126 * channel(c.redF()) + 0.7152 * channel(c.greenF()) + 0.0722 * channel(c.blueF())
 
 
@@ -83,15 +115,24 @@ def main() -> None:
             p.setFont(QFont("Consolas", 11))
             p.drawText(QRectF(x + 12, top + 36, width - 24, 24), Qt.AlignLeft, hex_value)
             p.setFont(QFont("Segoe UI", 9))
-            p.drawText(QRectF(x + 12, top + SWATCH_H - 54, width - 24, 20), Qt.AlignLeft,
-                       f"{contrast(ink, color):.1f}:1 con {'texto oscuro' if ink == DARK_TEXT else 'blanco'}")
-            p.drawText(QRectF(x + 12, top + SWATCH_H - 32, width - 24, 20), Qt.AlignLeft,
-                       f"{contrast(color, BACKGROUND):.1f}:1 sobre el fondo")
+            p.drawText(
+                QRectF(x + 12, top + SWATCH_H - 54, width - 24, 20),
+                Qt.AlignLeft,
+                f"{contrast(ink, color):.1f}:1 con {'texto oscuro' if ink == DARK_TEXT else 'blanco'}",
+            )
+            p.drawText(
+                QRectF(x + 12, top + SWATCH_H - 32, width - 24, 20),
+                Qt.AlignLeft,
+                f"{contrast(color, BACKGROUND):.1f}:1 sobre el fondo",
+            )
         y += -(-len(colours) // COLUMNS) * (SWATCH_H + GAP)
     p.setPen(MUTED)
     p.setFont(QFont("Segoe UI", 9))
-    p.drawText(QRectF(MARGIN, height - MARGIN + 8, W - 2 * MARGIN, 24), Qt.AlignLeft,
-               "Contraste WCAG 2.x. Texto: 4,5:1 como mínimo; texto grande y controles: 3:1. Fondo: #161b17.")
+    p.drawText(
+        QRectF(MARGIN, height - MARGIN + 8, W - 2 * MARGIN, 24),
+        Qt.AlignLeft,
+        "Contraste WCAG 2.x. Texto: 4,5:1 como mínimo; texto grande y controles: 3:1. Fondo: #161b17.",
+    )
     p.end()
     out = ROOT / "docs" / "assets" / "paleta.png"
     image.save(str(out))

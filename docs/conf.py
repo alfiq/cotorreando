@@ -118,15 +118,27 @@ DESCARGA = """
 def _portada():
     """index.md a partir del README: quita las insignias y ajusta las rutas a docs/."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    cuerpo = readme[readme.index("# Cotorreando"):]
+    cuerpo = readme[readme.index("# Cotorreando") :]
     cuerpo = re.sub(r"\]\(docs/", "](", cuerpo)
-    cuerpo = re.sub(r"\]\((?!https?://|#)([^)]+)\)",
-                    lambda m: m.group(0) if (DOCS / m.group(1).split("#")[0]).exists()
-                    else f"](https://github.com/alfiq/cotorreando/blob/main/{m.group(1)})",
-                    cuerpo)
+    cuerpo = re.sub(
+        r"\]\((?!https?://|#)([^)]+)\)",
+        lambda m: (
+            m.group(0)
+            if (DOCS / m.group(1).split("#")[0]).exists()
+            else f"](https://github.com/alfiq/cotorreando/blob/main/{m.group(1)})"
+        ),
+        cuerpo,
+    )
     indice = "\n".join(p.stem for p in sorted(DOCS.glob("*.md")) if p.stem != "index")
-    return ("![Cotorreando](assets/banner.png)\n" + DESCARGA + "\n" + cuerpo
-            + "\n\n```{toctree}\n:hidden:\n:maxdepth: 1\n\n" + indice + "\n```\n")
+    return (
+        "![Cotorreando](assets/banner.png)\n"
+        + DESCARGA
+        + "\n"
+        + cuerpo
+        + "\n\n```{toctree}\n:hidden:\n:maxdepth: 1\n\n"
+        + indice
+        + "\n```\n"
+    )
 
 
 (DOCS / "index.md").write_text(_portada(), encoding="utf-8")

@@ -34,6 +34,7 @@ def make(idle_s=600, gate=None, fail=None):
         if fail:
             raise fail
         return FakeModel()
+
     return ModelHolder(factory, idle_s, clock=clock), calls, clock
 
 
@@ -54,7 +55,7 @@ def test_frees_after_idle_and_not_before():
 def test_never_frees_with_idle_zero():
     holder, _, clock = make(idle_s=0)
     loaded(holder)
-    clock.now += 10 ** 9
+    clock.now += 10**9
     assert not holder.collect() and holder.loaded
 
 
@@ -82,6 +83,7 @@ def test_reload_after_free_is_a_single_load():
         barrier.wait()
         with holder.using() as model:
             got.append(model)
+
     threads = [threading.Thread(target=worker) for _ in range(8)]
     for t in threads:
         t.start()
@@ -109,11 +111,11 @@ def test_failure_propagates_and_leaves_clean_state():
     with pytest.raises(OSError):
         holder.acquire()
     assert holder.failed and not holder.loaded and not holder.available
-    with pytest.raises(OSError):         # no retry loop on its own
+    with pytest.raises(OSError):  # no retry loop on its own
         holder.acquire()
     assert len(calls) == 1
     holder.factory = FakeModel
-    holder.ensure_loading()              # an explicit retry
+    holder.ensure_loading()  # an explicit retry
     assert loaded(holder) and not holder.failed
 
 
@@ -132,6 +134,7 @@ def test_collect_racing_using_never_closes_a_model_in_use():
         while not stop.is_set():
             clock.now += 1
             holder.collect()
+
     threads = [threading.Thread(target=user) for _ in range(3)] + [threading.Thread(target=collector)]
     for t in threads:
         t.start()

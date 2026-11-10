@@ -26,8 +26,8 @@ BROWN = "#64442b"
 BEAK = "#000000"
 
 # Interface: surfaces, from back to front.
-DEEP = "#0d110e"          # full-screen calibration
-BACKGROUND = "#161b17"    # windows
+DEEP = "#0d110e"  # full-screen calibration
+BACKGROUND = "#161b17"  # windows
 CARD = "#1d241f"
 FIELD = "#252d27"
 FIELD_DISABLED = "#1f2621"
@@ -35,7 +35,7 @@ HOVER = "#222a24"
 SELECTED = "#2a342d"
 LIST_SELECTED = "#333e36"
 GHOST_HOVER = "#242c26"
-MENU = "rgba(26, 31, 27, 240)"   # BACKGROUND-like, slightly see-through
+MENU = "rgba(26, 31, 27, 240)"  # BACKGROUND-like, slightly see-through
 
 # Interface: lines.
 DIVIDER = "#262e28"
@@ -45,14 +45,14 @@ WINDOW_BORDER = "#303a32"
 FIELD_BORDER = "#333d36"
 GHOST_BORDER = "#38433b"
 SCROLLBAR = "#3a453d"
-CHECKBOX_BORDER = "#6b7a6f"   # 3.1:1 on FIELD, the minimum for controls
+CHECKBOX_BORDER = "#6b7a6f"  # 3.1:1 on FIELD, the minimum for controls
 
 # Interface: text.
 TITLE = "#f3f6f4"
 TEXT = "#e8ece9"
 BODY = "#b6c2b9"
 SECONDARY = "#a4b0a7"
-MUTED = "#8b998e"             # notes and captions, 5.9:1 on BACKGROUND
+MUTED = "#8b998e"  # notes and captions, 5.9:1 on BACKGROUND
 DISABLED_TEXT = "#6d7b71"
 DISABLED_BUTTON_TEXT = "#7b887e"
 WHITE = "#ffffff"
@@ -61,15 +61,15 @@ WHITE = "#ffffff"
 ACCENT = GREEN
 ACCENT_HOVER = "#2cc45a"
 ACCENT_PRESSED = "#1d9a42"
-ON_ACCENT = "#0b1a10"         # text on ACCENT, 6.4:1
+ON_ACCENT = "#0b1a10"  # text on ACCENT, 6.4:1
 LINK = MINT
 CHEER = LIME
 RECORDING = ORANGE
 RECORDING_TEXT = "#ffb27a"
-CLOSE_HOVER = BRICK           # with WHITE text, 4.8:1
+CLOSE_HOVER = BRICK  # with WHITE text, 4.8:1
 CLOSE_PRESSED = GARNET
-ORB = "#aa105c3e"           # the blob's glass: deep parrot green, translucent (#AARRGGBB)
-OFF = "#808086"               # blob and tray when switched off
+ORB = "#aa105c3e"  # the blob's glass: deep parrot green, translucent (#AARRGGBB)
+OFF = "#808086"  # blob and tray when switched off
 
 # README badges: shields.io always writes white text, so these are darker plumage tones.
 BADGE_LICENSE = "#157f35"

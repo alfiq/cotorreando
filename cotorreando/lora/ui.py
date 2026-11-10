@@ -34,10 +34,10 @@ from .align import Follower, split_words
 
 log = logging.getLogger(__name__)
 
-QUIET_LEVEL = 0.01       # RMS below this counts as not speaking
-END_SILENCE_S = 1.2      # after the last words, this much quiet finishes the panel
+QUIET_LEVEL = 0.01  # RMS below this counts as not speaking
+END_SILENCE_S = 1.2  # after the last words, this much quiet finishes the panel
 MIN_AUDIO_S = 1.0
-NEARLY_ALL = 2           # words that may go unrecognised at the end of a panel
+NEARLY_ALL = 2  # words that may go unrecognised at the end of a panel
 CHEERS = (0.0, 0.2, 0.45, 0.7, 0.9)
 
 
@@ -48,7 +48,7 @@ class CalibrationDialog(Window):
     reading_started = Signal()
     reading_finished = Signal()
     trained = Signal(str)
-    words_read = Signal(int, int)        # panel serial, words read
+    words_read = Signal(int, int)  # panel serial, words read
     heard_level = Signal(float)
     train_log = Signal(str)
     train_ended = Signal(bool, str)
@@ -138,8 +138,7 @@ class CalibrationDialog(Window):
         head.addWidget(self.mosaic)
         head.addWidget(self.cheer, 1)
         head.addWidget(self.percent)
-        self.panel_text = QLabel(objectName="panel", wordWrap=True, alignment=Qt.AlignCenter,
-                                 textFormat=Qt.RichText)
+        self.panel_text = QLabel(objectName="panel", wordWrap=True, alignment=Qt.AlignCenter, textFormat=Qt.RichText)
         self.meter = QProgressBar(objectName="meter", textVisible=False, maximum=100)
         self.hint = QLabel(tr("cal_read_hint"), objectName="note")
         again = QPushButton(tr("cal_again"), objectName="ghost", clicked=self._restart_panel)
@@ -195,16 +194,14 @@ class CalibrationDialog(Window):
         self.s.lora_language = self.language.currentData()
         self.s.microphone = self.mic.currentData()
         languages = ("es", "en") if self.s.lora_language == "both" else (self.s.lora_language,)
-        self.items = [(lang, i, text) for lang in languages
-                      for i, text in enumerate(job.read_panels(lang))]
+        self.items = [(lang, i, text) for lang in languages for i, text in enumerate(job.read_panels(lang))]
         missing = [n for n, (lang, i, _) in enumerate(self.items) if not reading_path(lang, i).exists()]
-        self.index = missing[0] if missing else 0   # resume, or start a new calibration over
+        self.index = missing[0] if missing else 0  # resume, or start a new calibration over
         # The heavy download runs while the user reads, so that training can start right after.
         self.deps_thread = threading.Thread(target=self._install_deps, daemon=True)
         self.deps_thread.start()
         self.reading_started.emit()
-        self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression,
-                                False, self.s.auto_gain)
+        self.audio = AudioInput(self._on_frame, self.s.microphone, self.s.noise_suppression, False, self.s.auto_gain)
         self.audio.start()
         threading.Thread(target=self._follow, daemon=True, name="follower").start()
         self.pages.setCurrentIndex(1)
@@ -213,7 +210,7 @@ class CalibrationDialog(Window):
     def _install_deps(self) -> None:
         try:
             env.ensure_installed(log.info)
-        except Exception:          # tried again, and reported, when training starts
+        except Exception:  # tried again, and reported, when training starts
             log.exception("Could not install the training environment")
 
     # -- reading --------------------------------------------------------------
@@ -243,7 +240,7 @@ class CalibrationDialog(Window):
     def _on_frame(self, frame: np.ndarray) -> None:
         self.frames.append(frame)
         self.jobs.put(("audio", self.serial, frame))
-        rms = float(np.sqrt(np.mean(frame ** 2)))
+        rms = float(np.sqrt(np.mean(frame**2)))
         if rms > QUIET_LEVEL:
             self.last_voice = time.monotonic()
         self.heard_level.emit(rms)
@@ -260,7 +257,7 @@ class CalibrationDialog(Window):
                 stream, follower = Stream(self.model), Follower(payload)
             elif job_serial == serial and stream:
                 pending.append(payload)
-                if len(pending) >= 8 or self.jobs.empty():   # catch up in batches if we fall behind
+                if len(pending) >= 8 or self.jobs.empty():  # catch up in batches if we fall behind
                     try:
                         heard = stream.feed(np.concatenate(pending))
                     except Exception:
@@ -282,8 +279,7 @@ class CalibrationDialog(Window):
     def _check_finished(self) -> None:
         """A panel ends by itself once its last words were heard and the reader has gone quiet."""
         words = len(split_words(self.items[self.index][2]))
-        if (self.position >= words - NEARLY_ALL
-                and time.monotonic() - self.last_voice > END_SILENCE_S):
+        if self.position >= words - NEARLY_ALL and time.monotonic() - self.last_voice > END_SILENCE_S:
             self._finish_panel()
 
     def _restart_panel(self) -> None:

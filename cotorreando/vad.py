@@ -13,14 +13,14 @@ from .paths import MODELS_DIR
 URL = "https://github.com/snakers4/silero-vad/raw/v5.1.2/src/silero_vad/data/silero_vad.onnx"
 SHA256 = "2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f"
 PATH = MODELS_DIR / "silero_vad.onnx"
-CHUNK = 512      # samples per decision at 16 kHz (32 ms)
-CONTEXT = 64     # v5 expects the tail of the previous chunk prepended
+CHUNK = 512  # samples per decision at 16 kHz (32 ms)
+CONTEXT = 64  # v5 expects the tail of the previous chunk prepended
 
 
 def ensure_model() -> None:
     if not PATH.exists():
         PATH.parent.mkdir(parents=True, exist_ok=True)
-        part = PATH.with_name(PATH.name + ".part")    # renamed only once it is complete
+        part = PATH.with_name(PATH.name + ".part")  # renamed only once it is complete
         urllib.request.urlretrieve(URL, part)
         if hashlib.sha256(part.read_bytes()).hexdigest() != SHA256:
             part.unlink()

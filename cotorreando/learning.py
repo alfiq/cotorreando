@@ -25,16 +25,16 @@ from .vault import Vault
 
 log = logging.getLogger(__name__)
 
-SETTLE_S = 120               # corrections are looked for this long after dictating
-WATCH_S = 2                  # how often the field is looked at, while it has the focus
+SETTLE_S = 120  # corrections are looked for this long after dictating
+WATCH_S = 2  # how often the field is looked at, while it has the focus
 LOW_PROBABILITY = 0.6
 LOW_MARGIN = 0.3
 MAX_HARD_WORDS = 500
-MIN_KEPT = 0.6               # share of the dictated words that must still be in the field
+MIN_KEPT = 0.6  # share of the dictated words that must still be in the field
 MAX_CHANGED_WORDS = 3
 MIN_SOUND_ALIKE = 0.5
-MAX_PHRASE_ALPHA = 3.0       # a corrected word's boost grows with each correction, up to this
-CUSTOM_ALPHA = 2.0           # words you added yourself: you know you say them
+MAX_PHRASE_ALPHA = 3.0  # a corrected word's boost grows with each correction, up to this
+CUSTOM_ALPHA = 2.0  # words you added yourself: you know you say them
 MAX_FIELD_WORDS = 300
 WORD = re.compile(r"\w[\w'’-]*")
 SENTENCE_END = (".", "?", "!", "\n", "\r", ":")
@@ -49,8 +49,18 @@ def _plain(text: str) -> str:
 def _sound(text: str) -> str:
     """A rough spelling-independent form, so that b/v, s/z/c or a silent h do not count."""
     text = _plain(text)
-    for old, new in (("qu", "k"), ("ll", "y"), ("ch", "x"), ("ce", "se"), ("ci", "si"),
-                     ("c", "k"), ("z", "s"), ("v", "b"), ("h", ""), ("w", "u")):
+    for old, new in (
+        ("qu", "k"),
+        ("ll", "y"),
+        ("ch", "x"),
+        ("ce", "se"),
+        ("ci", "si"),
+        ("c", "k"),
+        ("z", "s"),
+        ("v", "b"),
+        ("h", ""),
+        ("w", "u"),
+    ):
         text = text.replace(old, new)
     return "".join(c for i, c in enumerate(text) if i == 0 or c != text[i - 1])
 
@@ -93,12 +103,12 @@ def find_corrections(typed: str, field: str) -> tuple[str, list[tuple[str, str]]
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag != "replace" or i2 - i1 > MAX_CHANGED_WORDS or j2 - j1 > MAX_CHANGED_WORDS:
             continue
-        old = typed[a[i1].start():a[i2 - 1].end()]
-        new = field[b[j1].start():b[j2 - 1].end()]
+        old = typed[a[i1].start() : a[i2 - 1].end()]
+        new = field[b[j1].start() : b[j2 - 1].end()]
         if not sound_alike(old, new):
             continue
         pairs.append((old, new))
-        fixed += [typed[cursor:a[i1].start()], new]
+        fixed += [typed[cursor : a[i1].start()], new]
         cursor = a[i2 - 1].end()
     return "".join(fixed) + typed[cursor:], pairs
 
@@ -110,7 +120,7 @@ def fit_start(text: str, before: str | None) -> str:
     if not before.strip() or before.rstrip(" ").endswith(SENTENCE_END):
         text = text[0].upper() + text[1:]
         return text if not before or before.endswith(OPENERS) else " " + text
-    if text[1:2].islower():    # not an acronym
+    if text[1:2].islower():  # not an acronym
         text = text[0].lower() + text[1:]
     return text if before.endswith(OPENERS) else " " + text
 
@@ -121,7 +131,7 @@ def exe_name(window: int) -> str:
     ctypes.windll.user32.GetWindowThreadProcessId(window, ctypes.byref(pid))
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.OpenProcess.restype = wintypes.HANDLE
-    handle = kernel32.OpenProcess(0x1000, False, pid.value)    # PROCESS_QUERY_LIMITED_INFORMATION
+    handle = kernel32.OpenProcess(0x1000, False, pid.value)  # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
         return ""
     try:
@@ -152,7 +162,7 @@ class Learner:
         self.vault.delete_older_than(settings.retention_days)
         self.reader = FieldReader()
         self.lock = threading.Lock()
-        self.loaded = False          # the word lists can only be read with the password
+        self.loaded = False  # the word lists can only be read with the password
         self.hard: dict = {}
         self.counts: dict = {}
         self.custom: list[str] = []
@@ -303,10 +313,10 @@ class Learner:
     def _look(self, item: Pending) -> bool:
         """Reads the field only while it has the focus. True once the dictated text is gone."""
         field = self.reader.read_if_focused(item.element)
-        if field is None:            # you are somewhere else: nothing is read
+        if field is None:  # you are somewhere else: nothing is read
             return False
         found = find_corrections(item.typed, field)
-        if found is None:            # sent, cleared or rewritten: keep the last version seen
+        if found is None:  # sent, cleared or rewritten: keep the last version seen
             return True
         item.latest = found
         return False

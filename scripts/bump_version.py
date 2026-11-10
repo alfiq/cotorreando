@@ -27,7 +27,7 @@ def replace(text: str, pattern: str, version: str) -> str:
     match = re.search(pattern, text, re.M)
     if not match:
         raise SystemExit(f"Pattern not found: {pattern}")
-    return text[:match.start(1)] + version + text[match.end(1):]
+    return text[: match.start(1)] + version + text[match.end(1) :]
 
 
 def bump(version: str, root: Path = ROOT, today: datetime.date | None = None) -> None:

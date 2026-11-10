@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 FADE_MS = 900
 MIN_READING_S = 1.0
-PREPARE_SHARE = 0.05         # of the parrot, lit before training starts
+PREPARE_SHARE = 0.05  # of the parrot, lit before training starts
 EXPORT_SHARE = 0.95
 
 
@@ -40,7 +40,7 @@ class ShutdownPrompt(Window):
         super().__init__(parent)
         self.setWindowTitle("Cotorreando")
         self.setWindowFlag(Qt.WindowStaysOnTopHint)
-        self.choice = None           # None = stay on, else (train, "/s" or "/r")
+        self.choice = None  # None = stay on, else (train, "/s" or "/r")
         title = QLabel(tr("shut_title"), objectName="title")
         text = QLabel(tr("shut_text"), objectName="body", wordWrap=True)
         layout = QVBoxLayout(self)
@@ -49,11 +49,13 @@ class ShutdownPrompt(Window):
         layout.addWidget(title)
         layout.addWidget(text)
         layout.addSpacing(10)
-        for label, choice, ghost in (("shut_train_off", (True, "/s"), False),
-                                     ("shut_train_restart", (True, "/r"), False),
-                                     ("shut_off", (False, "/s"), True),
-                                     ("shut_restart", (False, "/r"), True),
-                                     ("shut_stay", None, True)):
+        for label, choice, ghost in (
+            ("shut_train_off", (True, "/s"), False),
+            ("shut_train_restart", (True, "/r"), False),
+            ("shut_off", (False, "/s"), True),
+            ("shut_restart", (False, "/r"), True),
+            ("shut_stay", None, True),
+        ):
             button = QPushButton(tr(label), objectName="ghost" if ghost else "")
             button.clicked.connect(lambda _=False, c=choice: self._choose(c))
             layout.addWidget(button)
@@ -67,7 +69,7 @@ class ShutdownPrompt(Window):
 class TrainingScreen(QWidget):
     """Full screen: the parrot lights up with real progress. The cross saves and leaves."""
 
-    ended = Signal(object)       # the job's Result, or None if nothing ran to the end
+    ended = Signal(object)  # the job's Result, or None if nothing ran to the end
     line = Signal(str)
     stage = Signal(str)
     share = Signal(float)
@@ -184,8 +186,9 @@ class TrainingScreen(QWidget):
         self.panels = panels
         if panels:
             self.pages.setCurrentIndex(1)
-            self.audio = AudioInput(self.frames.append, self.s.microphone, self.s.noise_suppression,
-                                    False, self.s.auto_gain)
+            self.audio = AudioInput(
+                self.frames.append, self.s.microphone, self.s.noise_suppression, False, self.s.auto_gain
+            )
             self.audio.start()
             self._show_reading()
         else:
@@ -202,8 +205,9 @@ class TrainingScreen(QWidget):
         if len(self.frames) * 0.01 < MIN_READING_S:
             return
         current = self.panels.pop(0)
-        self.learner.vault.add_record({"kind": "panel", "text": current["text"], "verified": True},
-                                      np.concatenate(self.frames))
+        self.learner.vault.add_record(
+            {"kind": "panel", "text": current["text"], "verified": True}, np.concatenate(self.frames)
+        )
         self.learner.mark_practiced(current["word"])
         if self.panels:
             self._show_reading()
@@ -265,9 +269,9 @@ class TrainingScreen(QWidget):
         self.pages.setCurrentIndex(0)
         self.title.setText(tr("screen_saving"))
         if any(t.name == "training" for t in threading.enumerate()):
-            env.pause()          # the worker ends and reports through ``trained``
+            env.pause()  # the worker ends and reports through ``trained``
         else:
-            env.stop()           # installing or writing panels: nothing worth saving
+            env.stop()  # installing or writing panels: nothing worth saving
             self._leave(None)
 
     def _leave(self, result) -> None:

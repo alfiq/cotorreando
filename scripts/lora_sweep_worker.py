@@ -24,8 +24,18 @@ import torch  # noqa: E402
 import train as T  # noqa: E402
 from torch import nn  # noqa: E402
 
-DEFAULTS = {"targets": "attn,ffn", "layers": "all", "rank": 4, "alpha": 8.0, "lr": 2e-4, "steps": 150,
-            "sched": "constant", "init": "small", "dropout": 0.0, "app_weights": True}
+DEFAULTS = {
+    "targets": "attn,ffn",
+    "layers": "all",
+    "rank": 4,
+    "alpha": 8.0,
+    "lr": 2e-4,
+    "steps": 150,
+    "sched": "constant",
+    "init": "small",
+    "dropout": 0.0,
+    "app_weights": True,
+}
 
 
 def emit(tag: str, data) -> None:
@@ -79,7 +89,7 @@ def main() -> None:
         model = model.cuda()
     diag = diagnose(model)
     spec_calls = count_calls(model.spec_augmentation) if model.spec_augmentation is not None else None
-    app = T.AppWeights(model, base_onnx)     # NeMo computing like the app's int8 encoder
+    app = T.AppWeights(model, base_onnx)  # NeMo computing like the app's int8 encoder
 
     for fold in range(folds):
         held = [r for r in rows if r["fold"] == fold]
@@ -90,19 +100,20 @@ def main() -> None:
         fold = run["fold"]
         held = [r for r in rows if r["fold"] == fold]
         rest = [r for r in rows if r["fold"] != fold]
-        T.remove_lora(model)           # the base weights are never trained: dropping the adapters resets it
+        T.remove_lora(model)  # the base weights are never trained: dropping the adapters resets it
         app.use(cfg["app_weights"])
         torch.manual_seed(0)
         T.add_lora(model, cfg["rank"], cfg["alpha"], cfg["targets"], cfg["layers"], cfg["init"], cfg["dropout"])
         trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
         checkpoint = work / "checkpoint.sealed"
         checkpoint.unlink(missing_ok=True)
-        T.train(model, rest, cfg["steps"], cfg["lr"], threading.Event(), checkpoint, os.urandom(32),
-                run["id"], cfg["sched"])
+        T.train(
+            model, rest, cfg["steps"], cfg["lr"], threading.Event(), checkpoint, os.urandom(32), run["id"], cfg["sched"]
+        )
         checkpoint.unlink(missing_ok=True)
         if spec_calls is not None and cfg["steps"]:
             diag["spec_augment_calls_while_training"] = spec_calls[0]
-            spec_calls = None          # once is enough
+            spec_calls = None  # once is enough
             emit("DIAG", diag)
         report = delta_report(model)
         wer = T.word_error_rate(model, held)
@@ -120,4 +131,4 @@ def main() -> None:
 if __name__ == "__main__":
     main()
     sys.stdout.flush()
-    os._exit(0)          # NeMo's native libraries can crash during interpreter shutdown
+    os._exit(0)  # NeMo's native libraries can crash during interpreter shutdown

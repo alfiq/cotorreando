@@ -54,11 +54,17 @@ def test_unknown_keys_are_ignored(isolated_data):
 
 
 def test_save_load_roundtrip_with_unicode(isolated_data):
-    s = Settings(keyword="oye cotorro ñandú 日本", microphone="Micrófono (USB)",
-                 welcome_accepted=True, silence_ms=900, vad_threshold=0.25, model_unload_min=0)
+    s = Settings(
+        keyword="oye cotorro ñandú 日本",
+        microphone="Micrófono (USB)",
+        welcome_accepted=True,
+        silence_ms=900,
+        vad_threshold=0.25,
+        model_unload_min=0,
+    )
     s.save()
     assert Settings.load() == s
-    json.loads(config.CONFIG_FILE.read_bytes().decode("utf-8"))      # valid UTF-8 JSON on disk
+    json.loads(config.CONFIG_FILE.read_bytes().decode("utf-8"))  # valid UTF-8 JSON on disk
 
 
 def test_save_creates_parent_folder(isolated_data, monkeypatch):

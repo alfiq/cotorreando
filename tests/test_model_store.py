@@ -26,7 +26,7 @@ class Response:
         if self.cut is not None and self.pos >= self.cut:
             raise ConnectionResetError("connection reset")
         end = self.pos + min(n, 300) if self.cut is None else min(self.pos + min(n, 300), self.cut)
-        chunk, self.pos = self.data[self.pos:end], end
+        chunk, self.pos = self.data[self.pos : end], end
         return chunk
 
     def __enter__(self):
@@ -44,14 +44,14 @@ class Server:
         self.cut, self.opened = {}, []
 
     def head(self, url):
-        data = self.files[url[len(BASE):]]
+        data = self.files[url[len(BASE) :]]
         headers = {"X-Linked-Size": str(len(data))}
         if self.digests:
             headers["X-Linked-Etag"] = '"%s"' % hashlib.sha256(data).hexdigest()
         return headers
 
     def open(self, url, start):
-        name = url[len(BASE):]
+        name = url[len(BASE) :]
         self.opened.append((name, start))
         data = self.files[name]
         if start and self.honour_range:
@@ -98,6 +98,7 @@ def test_downloads_every_file_and_writes_a_manifest(server, target):
 def test_no_connection_is_a_clear_error(monkeypatch, target):
     def offline(url):
         raise urllib.error.URLError(OSError(11001, "getaddrinfo failed"))
+
     monkeypatch.setattr(model_store, "_head", offline)
     with pytest.raises(NoConnection) as err:
         fetch(target)
@@ -108,13 +109,14 @@ def test_no_connection_is_a_clear_error(monkeypatch, target):
 def test_http_error_is_not_mistaken_for_offline(monkeypatch, target):
     def missing(url):
         raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
     monkeypatch.setattr(model_store, "_head", missing)
     with pytest.raises(DownloadFailed):
         fetch(target)
 
 
 def test_not_enough_space_is_checked_before_downloading(server, target, monkeypatch):
-    monkeypatch.setattr(model_store.shutil, "disk_usage", lambda path: Usage(10 ** 9, 10 ** 9, 1234))
+    monkeypatch.setattr(model_store.shutil, "disk_usage", lambda path: Usage(10**9, 10**9, 1234))
     with pytest.raises(NotEnoughSpace) as err:
         fetch(target)
     assert err.value.free == 1234
@@ -127,8 +129,7 @@ def test_not_enough_space_is_checked_before_downloading(server, target, monkeypa
 def test_space_check_without_sizes_uses_the_estimate(server, target, monkeypatch):
     server.head = lambda url: {}
     monkeypatch.setattr(model_store, "_head", server.head)
-    monkeypatch.setattr(model_store.shutil, "disk_usage",
-                        lambda path: Usage(10 ** 9, 0, model_store.EXPECTED_BYTES - 1))
+    monkeypatch.setattr(model_store.shutil, "disk_usage", lambda path: Usage(10**9, 0, model_store.EXPECTED_BYTES - 1))
     with pytest.raises(NotEnoughSpace):
         fetch(target)
 
@@ -144,7 +145,7 @@ def test_interrupted_download_leaves_no_model_and_resumes(server, target):
     assert not asr.is_downloaded(target)
 
     fetch(target)
-    assert (big, 1000) in server.opened            # resumed with a Range request
+    assert (big, 1000) in server.opened  # resumed with a Range request
     assert (target / big).read_bytes() == FILES[big]
     assert model_store.is_complete(target)
 
@@ -162,10 +163,17 @@ def test_retry_restarts_cleanly_when_the_server_ignores_range(server, target):
 def test_checksum_mismatch_discards_the_file(server, target, monkeypatch):
     name = "decoder_joint-model.int8.onnx"
     real = FILES[name]
-    server.files[name] = b"x" * len(real)          # right size, wrong bytes
+    server.files[name] = b"x" * len(real)  # right size, wrong bytes
     honest = server.head
-    monkeypatch.setattr(model_store, "_head", lambda url: honest(url) if not url.endswith(name) else
-                        {"X-Linked-Size": str(len(real)), "X-Linked-Etag": hashlib.sha256(real).hexdigest()})
+    monkeypatch.setattr(
+        model_store,
+        "_head",
+        lambda url: (
+            honest(url)
+            if not url.endswith(name)
+            else {"X-Linked-Size": str(len(real)), "X-Linked-Etag": hashlib.sha256(real).hexdigest()}
+        ),
+    )
     with pytest.raises(DownloadFailed, match="checksum"):
         fetch(target)
     assert not (target / name).exists()
@@ -215,7 +223,7 @@ def test_truncated_file_after_download_is_not_a_model(server, target):
     name = "encoder-model.int8.onnx"
     (target / name).write_bytes(FILES[name][:10])
     assert not model_store.is_complete(target)
-    fetch(target)                                  # fetched again, not trusted
+    fetch(target)  # fetched again, not trusted
     assert (target / name).read_bytes() == FILES[name]
 
 
@@ -245,21 +253,34 @@ Arg = namedtuple("Arg", "name shape")
 
 
 def fake_session(inputs, outputs):
-    return SimpleNamespace(get_inputs=lambda: [Arg(n, s) for n, s in inputs],
-                           get_outputs=lambda: [Arg(n, s) for n, s in outputs])
+    return SimpleNamespace(
+        get_inputs=lambda: [Arg(n, s) for n, s in inputs], get_outputs=lambda: [Arg(n, s) for n, s in outputs]
+    )
 
 
-VOCAB = 8   # ids 0..7, 7 is the blank
+VOCAB = 8  # ids 0..7, 7 is the blank
 GOOD = {
-    "nemo128.onnx": fake_session([("waveforms", [1, "n"]), ("waveforms_lens", [1])],
-                                 [("features", [1, 128, "t"]), ("features_lens", [1])]),
-    "encoder-model.onnx": fake_session([("audio_signal", [1, 128, "t"]), ("length", [1])],
-                                       [("outputs", [1, 1024, "t"]), ("encoded_lengths", [1])]),
+    "nemo128.onnx": fake_session(
+        [("waveforms", [1, "n"]), ("waveforms_lens", [1])], [("features", [1, 128, "t"]), ("features_lens", [1])]
+    ),
+    "encoder-model.onnx": fake_session(
+        [("audio_signal", [1, 128, "t"]), ("length", [1])], [("outputs", [1, 1024, "t"]), ("encoded_lengths", [1])]
+    ),
     "decoder_joint-model.onnx": fake_session(
-        [("encoder_outputs", [1, 1024, 1]), ("targets", [1, 1]), ("target_length", [1]),
-         ("input_states_1", [2, 1, 640]), ("input_states_2", [2, 1, 640])],
-        [("outputs", [1, 1, 1, VOCAB + 5]), ("prednet_lengths", [1]), ("output_states_1", [2, 1, 640]),
-         ("output_states_2", [2, 1, 640])]),
+        [
+            ("encoder_outputs", [1, 1024, 1]),
+            ("targets", [1, 1]),
+            ("target_length", [1]),
+            ("input_states_1", [2, 1, 640]),
+            ("input_states_2", [2, 1, 640]),
+        ],
+        [
+            ("outputs", [1, 1, 1, VOCAB + 5]),
+            ("prednet_lengths", [1]),
+            ("output_states_1", [2, 1, 640]),
+            ("output_states_2", [2, 1, 640]),
+        ],
+    ),
 }
 
 
@@ -276,8 +297,9 @@ def folder(tmp_path, sessions):
     """A folder with tiny stand-in files."""
     root = tmp_path / "mine"
     root.mkdir()
-    (root / "vocab.txt").write_text("".join(f"▁t{i} {i}\n" for i in range(VOCAB - 1)) + f"<blk> {VOCAB - 1}\n",
-                                    encoding="utf-8")
+    (root / "vocab.txt").write_text(
+        "".join(f"▁t{i} {i}\n" for i in range(VOCAB - 1)) + f"<blk> {VOCAB - 1}\n", encoding="utf-8"
+    )
     for name in GOOD:
         (root / name).write_bytes(b"stand-in")
     return root
@@ -323,14 +345,13 @@ def test_bad_vocab(folder):
 
 
 def test_garbage_onnx_is_rejected_by_onnxruntime(folder, monkeypatch):
-    monkeypatch.undo()                             # use the real loader on a few bytes of junk
+    monkeypatch.undo()  # use the real loader on a few bytes of junk
     err = reason(folder)
     assert err.key == "model_bad_onnx" and err.kw["file"] == "nemo128.onnx"
 
 
 def test_wrong_input_names(folder, sessions):
-    sessions["encoder-model.onnx"] = fake_session([("input_features", [1, 80, "t"])],
-                                                         [("a", [1]), ("b", [1])])
+    sessions["encoder-model.onnx"] = fake_session([("input_features", [1, 80, "t"])], [("a", [1]), ("b", [1])])
     err = reason(folder)
     assert err.key == "model_bad_names" and "audio_signal" in err.kw["expected"]
 
@@ -338,22 +359,23 @@ def test_wrong_input_names(folder, sessions):
 def test_wrong_number_of_outputs(folder, sessions):
     good = GOOD["decoder_joint-model.onnx"]
     sessions["decoder_joint-model.onnx"] = fake_session(
-        [(a.name, a.shape) for a in good.get_inputs()], [("logits", [1, 1, 1, VOCAB])])
+        [(a.name, a.shape) for a in good.get_inputs()], [("logits", [1, 1, 1, VOCAB])]
+    )
     assert reason(folder).key == "model_bad_names"
 
 
 def test_rnnt_or_ctc_joint_is_not_tdt(folder, sessions):
     good = GOOD["decoder_joint-model.onnx"]
     outputs = [(a.name, a.shape) for a in good.get_outputs()]
-    outputs[0] = ("outputs", [1, 1, 1, VOCAB])     # tokens + blank, no durations
-    sessions["decoder_joint-model.onnx"] = fake_session([(a.name, a.shape) for a in good.get_inputs()],
-                                                               outputs)
+    outputs[0] = ("outputs", [1, 1, 1, VOCAB])  # tokens + blank, no durations
+    sessions["decoder_joint-model.onnx"] = fake_session([(a.name, a.shape) for a in good.get_inputs()], outputs)
     assert reason(folder).key == "model_not_tdt"
 
 
 def test_custom_model_is_a_machine_setting():
     from cotorreando import transfer
     from cotorreando.config import Settings
+
     assert "custom_model" in transfer.MACHINE_FIELDS
     assert "custom_model" in {f for f in Settings.__dataclass_fields__}
 

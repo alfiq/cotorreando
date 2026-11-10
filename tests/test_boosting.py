@@ -7,7 +7,7 @@ import pytest
 
 from cotorreando.boosting import BoostingTree, PhraseTokenizer
 
-DEPTH2 = 2.0 + math.log(2)      # bonus of the second piece of a phrase
+DEPTH2 = 2.0 + math.log(2)  # bonus of the second piece of a phrase
 DEPTH3 = 2.0 + math.log(3)
 
 
@@ -34,7 +34,7 @@ def test_walking_a_phrase_increases_the_bonus(tree):
     assert tree.scores(s1)[2] == pytest.approx(DEPTH2)
     s2 = tree.next(s1, 2)
     assert tree.scores(s2)[3] == pytest.approx(DEPTH3)
-    assert tree.scores(s2)[4] == pytest.approx(DEPTH3)      # the shared prefix serves both phrases
+    assert tree.scores(s2)[4] == pytest.approx(DEPTH3)  # the shared prefix serves both phrases
 
 
 def test_leaving_a_phrase_gives_the_bonus_back(tree):
@@ -57,9 +57,9 @@ def test_next_transitions_and_backoff(tree):
     s2 = tree.next(s1, 2)
     assert s1 != 0 and s2 != s1
     assert tree.next(s2, 3) != 0 and tree.next(s2, 3) != tree.next(s2, 4)
-    assert tree.next(s2, 7) == 0           # unrelated piece: back to the root
+    assert tree.next(s2, 7) == 0  # unrelated piece: back to the root
     assert tree.next(0, 7) == 0
-    assert tree.next(s1, 5) == tree.next(0, 5)      # leaves the phrase and starts the other one
+    assert tree.next(s1, 5) == tree.next(0, 5)  # leaves the phrase and starts the other one
 
 
 def test_empty_tree_scores_zero():
@@ -84,6 +84,7 @@ def test_phrase_tokenizer(tmp_path):
     from tokenizers import Tokenizer
     from tokenizers.models import WordLevel
     from tokenizers.pre_tokenizers import Whitespace
+
     base = Tokenizer(WordLevel({"[UNK]": 0, "hola": 1, "mundo": 2}, unk_token="[UNK]"))
     base.pre_tokenizer = Whitespace()
     path = tmp_path / "tokenizer.json"

@@ -21,7 +21,7 @@ from .audio import RATE
 from .vad import CHUNK, SileroVAD
 
 PREROLL_S = 0.6
-CALIBRATION_FRAMES = 300   # ~10 s of 32 ms chunks used for the noise floor
+CALIBRATION_FRAMES = 300  # ~10 s of 32 ms chunks used for the noise floor
 AUTO_MARGIN_DB = 12.0
 
 
@@ -42,8 +42,7 @@ class Listener:
         self.on_audio, self.on_end, self.on_level = on_audio, on_end, on_level
         self.vad = SileroVAD()
         self.pending = np.zeros(0, np.float32)
-        self.preroll: collections.deque[np.ndarray] = collections.deque(
-            maxlen=int(PREROLL_S * RATE / CHUNK) + 1)
+        self.preroll: collections.deque[np.ndarray] = collections.deque(maxlen=int(PREROLL_S * RATE / CHUNK) + 1)
         self.noise_floor: collections.deque[float] = collections.deque(maxlen=CALIBRATION_FRAMES)
         self.active = False
         self.uid = 0

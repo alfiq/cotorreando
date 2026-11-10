@@ -39,8 +39,18 @@ RECORDS_DIR = VAULT_DIR / "records"
 JOURNAL_DIR = VAULT_DIR / "journal"
 TRAINED_FILE = VAULT_DIR / "trained.json"
 MIN_PASSWORD = 8
-COMMON_PASSWORDS = {"password", "contraseña", "contrasena", "qwertyui", "qwerty123", "cotorreando",
-                    "iloveyou", "administrador", "admin123", "password1"}
+COMMON_PASSWORDS = {
+    "password",
+    "contraseña",
+    "contrasena",
+    "qwertyui",
+    "qwerty123",
+    "cotorreando",
+    "iloveyou",
+    "administrador",
+    "admin123",
+    "password1",
+}
 RECOVERY_GROUP = 4
 
 
@@ -58,8 +68,7 @@ def password_problem(password: str) -> str | None:
         return "password_short"
     lowered = password.lower()
     ascending = "01234567890123456789"
-    if (lowered in COMMON_PASSWORDS or len(set(lowered)) < 4
-            or lowered in ascending or lowered in ascending[::-1]):
+    if lowered in COMMON_PASSWORDS or len(set(lowered)) < 4 or lowered in ascending or lowered in ascending[::-1]:
         return "password_weak"
     return None
 
@@ -94,7 +103,7 @@ class Vault:
         identity = x25519.Identity.generate()
         secret = str(identity).encode("ascii")
         raw = base64.b32encode(secrets.token_bytes(15)).decode("ascii")
-        code = "-".join(raw[i:i + RECOVERY_GROUP] for i in range(0, len(raw), RECOVERY_GROUP))
+        code = "-".join(raw[i : i + RECOVERY_GROUP] for i in range(0, len(raw), RECOVERY_GROUP))
         _write(IDENTITY_FILE, passphrase.encrypt(secret, password))
         _write(RECOVERY_FILE, passphrase.encrypt(secret, _normal_code(code)))
         _write(RECIPIENT_FILE, str(identity.to_public()).encode("ascii"))
@@ -155,8 +164,9 @@ class Vault:
         return sum(1 for _ in JOURNAL_DIR.glob("*.sealed"))
 
     def read_events(self) -> list[dict]:
-        return [json.loads(self.open(path.read_bytes()).decode("utf-8"))
-                for path in sorted(JOURNAL_DIR.glob("*.sealed"))]
+        return [
+            json.loads(self.open(path.read_bytes()).decode("utf-8")) for path in sorted(JOURNAL_DIR.glob("*.sealed"))
+        ]
 
     def clear_events(self) -> None:
         for path in JOURNAL_DIR.glob("*.sealed"):
@@ -172,8 +182,8 @@ class Vault:
     def _unpack(self, path: Path) -> tuple[dict, np.ndarray]:
         data = self.open(path.read_bytes())
         size = struct.unpack("<I", data[:4])[0]
-        meta = json.loads(data[4:4 + size].decode("utf-8"))
-        return meta, np.frombuffer(data[4 + size:], np.int16).astype(np.float32) / 32768
+        meta = json.loads(data[4 : 4 + size].decode("utf-8"))
+        return meta, np.frombuffer(data[4 + size :], np.int16).astype(np.float32) / 32768
 
     def add_record(self, meta: dict, audio: np.ndarray) -> str:
         """``meta`` holds at least kind and text, and keeps its time if it brings one.
@@ -196,7 +206,7 @@ class Vault:
         (RECORDS_DIR / f"{rid}.sealed").unlink(missing_ok=True)
 
     def delete_older_than(self, days: int) -> int:
-        if days < 1:            # a bad setting must never wipe everything
+        if days < 1:  # a bad setting must never wipe everything
             return 0
         limit, removed = time.time() - days * 86400, 0
         for folder in (RECORDS_DIR, JOURNAL_DIR):

@@ -48,8 +48,12 @@ class Mosaic(QWidget):
         image = QImage(str(SOURCE)).convertToFormat(QImage.Format_ARGB32)
         self.tile, self.progress = tile, progress
         hidden = _background(image)
-        self.cells = [(x, y, image.pixelColor(x, y)) for y in range(image.height())
-                      for x in range(image.width()) if (x, y) not in hidden]
+        self.cells = [
+            (x, y, image.pixelColor(x, y))
+            for y in range(image.height())
+            for x in range(image.width())
+            if (x, y) not in hidden
+        ]
         random.Random(32).shuffle(self.cells)
         self.setFixedSize(QSize(image.width(), image.height()) * tile)
 
@@ -72,5 +76,5 @@ def logo_pixmap(tile: int = 6) -> QPixmap:
     mosaic = Mosaic(tile)
     pixmap = QPixmap(mosaic.size())
     pixmap.fill(QColor(0, 0, 0, 0))
-    mosaic.render(pixmap, renderFlags=QWidget.RenderFlag.DrawChildren)   # no window background
+    mosaic.render(pixmap, renderFlags=QWidget.RenderFlag.DrawChildren)  # no window background
     return pixmap
