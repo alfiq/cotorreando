@@ -4,7 +4,9 @@
 # Standalone, not onefile: Qt DLLs stay as separate, replaceable files (LGPL).
 $ErrorActionPreference = "Stop"
 $env:PYTHONIOENCODING = "utf-8"
-python -m pip install -e ".[build]"
+# Exact, hashed versions (requirements.lock); regenerate it as described in its header.
+python -m pip install --require-hashes -r requirements.lock
+python -m pip install -e . --no-deps
 python -m nuitka `
     --standalone `
     --enable-plugin=pyside6 `

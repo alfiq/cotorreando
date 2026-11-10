@@ -129,6 +129,21 @@ Compara el valor `Hash` (en minúsculas o mayúsculas, da igual) con la línea d
 `SHA256SUMS.txt` que termina en `Cotorreando-setup.exe`. Si no coinciden, no ejecutes el
 instalador y vuelve a bajarlo.
 
+## Actualizar dependencias
+
+Las versiones exactas viven en `requirements.lock`, con hashes SHA-256; `build.ps1` y CI (Python
+3.12) lo instalan tal cual. `pyproject.toml` solo lleva pisos. Para subir versiones, regenera el
+archivo desde la raíz (necesita [uv](https://docs.astral.sh/uv/)):
+
+```powershell
+uv pip compile pyproject.toml --extra build --extra test --generate-hashes --python-version 3.12 --python-platform windows --upgrade -o requirements.lock
+```
+
+Luego prueba con `python -m pip install --require-hashes -r requirements.lock`, corre las
+pruebas y haz commit del archivo. Si cambias las dependencias de `pyproject.toml`, regenera
+también el lock. Dependabot (ecosistema `pip`) solo propone subir los pisos de `pyproject.toml`; no entiende
+el formato de `requirements.lock` de uv, así que el lock se regenera a mano.
+
 ## Búsqueda de actualizaciones
 
 La app, si está activado en Opciones › Privacidad, consulta una vez al día

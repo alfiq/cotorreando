@@ -44,6 +44,13 @@ python -m ruff check .
 python -m ruff format .
 ```
 
+Las versiones exactas de las dependencias están en `requirements.lock`. Si cambias las
+dependencias de `pyproject.toml`, regéneralo (detalles en [docs/VERSIONES.md](docs/VERSIONES.md)):
+
+```bash
+uv pip compile pyproject.toml --extra build --extra test --generate-hashes --python-version 3.12 --python-platform windows --upgrade -o requirements.lock
+```
+
 Antes de enviar, revisa que las pruebas y `ruff check .` pasen, aplica `ruff format .` y que tu código se parezca al que ya está.
 Si vas a mover la arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo encaja todo.
 Si tocas la interfaz, los colores o las imágenes, sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md).

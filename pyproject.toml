@@ -8,20 +8,20 @@ license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Alfiq" }]
 requires-python = ">=3.10"
 dependencies = [
-    "numpy",
-    "onnxruntime-directml",
-    "PySide6-Essentials",
-    "PyAudioWPatch",
-    "livekit",
-    "cryptography",
-    "pyrage",
-    "comtypes",
-    "tokenizers",
+    "numpy>=2.2",
+    "onnxruntime-directml>=1.23",
+    "PySide6-Essentials>=6.12",
+    "PyAudioWPatch>=0.2.12.9",
+    "livekit>=1.2",
+    "cryptography>=50.0",
+    "pyrage>=1.4",
+    "comtypes>=1.4",
+    "tokenizers>=0.23",
 ]
 
 [project.optional-dependencies]
-build = ["nuitka"]
-test = ["pytest", "ruff"]
+build = ["nuitka>=4.3"]
+test = ["pytest>=9.2", "ruff>=0.17"]
 
 [project.urls]
 Homepage = "https://github.com/alfiq/cotorreando"
