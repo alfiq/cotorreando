@@ -19,6 +19,7 @@ from ..dialogs import Window
 from ..dialogs import UnlockDialog
 from ..i18n import tr
 from ..mosaic import Mosaic
+from .. import palette
 from ..paths import DATA_DIR
 from ..vault import reading_path
 from . import env, job
@@ -228,7 +229,7 @@ class CalibrationDialog(Window):
         words = split_words(self.items[self.index][2])
         html = []
         for i, word in enumerate(words):
-            color = "#f3f6f4" if i < self.position else "#54d7a3" if i == self.position else "#8b998e"
+            color = palette.TITLE if i < self.position else palette.LINK if i == self.position else palette.MUTED
             html.append(f"<span style='color:{color}'>{escape(word)}</span>")
         self.panel_text.setText(" ".join(html))
 

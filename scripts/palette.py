@@ -14,22 +14,25 @@ from PySide6.QtCore import QRectF, Qt  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from cotorreando import palette as P  # noqa: E402
+
 W, SCALE = 1200, 2                  # drawn at twice the size, for sharp text on high-DPI screens
-BACKGROUND, TITLE, MUTED = QColor("#161b17"), QColor("#f3f6f4"), QColor("#8b998e")
-DARK_TEXT, LIGHT_TEXT = QColor("#0b1a10"), QColor("#ffffff")
+BACKGROUND, TITLE, MUTED = QColor(P.BACKGROUND), QColor(P.TITLE), QColor(P.MUTED)
+DARK_TEXT, LIGHT_TEXT = QColor(P.ON_ACCENT), QColor(P.WHITE)
 COLUMNS, SWATCH_H, GAP, MARGIN = 6, 120, 16, 48
 GROUPS = (
     ("Plumaje (assets/parrot.png)", (
-        ("Verde cotorra", "#22b14c"), ("Menta", "#54d7a3"), ("Oliva", "#629a1f"), ("Lima", "#b5e61d"),
-        ("Amarillo", "#fff200"), ("Naranja", "#ff7f27"), ("Rojo teja", "#cb4426"), ("Rojo", "#ed1c24"),
-        ("Granate", "#9f1d29"), ("Rosa", "#ffaec9"), ("Marrón", "#64442b"), ("Pico", "#000000"))),
-    ("Interfaz (dialogs.py)", (
-        ("Fondo", "#161b17"), ("Tarjeta", "#1d241f"), ("Campo", "#252d27"), ("Texto", "#e8ece9"),
-        ("Título", "#f3f6f4"), ("Cuerpo", "#b6c2b9"), ("Secundario", "#a4b0a7"), ("Nota", "#8b998e"),
-        ("Texto en botón", "#0b1a10"), ("Botón hover", "#2cc45a"), ("Botón pulsado", "#1d9a42"),
-        ("Borde casilla", "#6b7a6f"))),
+        ("Verde cotorra", P.GREEN), ("Menta", P.MINT), ("Oliva", P.OLIVE), ("Lima", P.LIME),
+        ("Amarillo", P.YELLOW), ("Naranja", P.ORANGE), ("Rojo teja", P.BRICK), ("Rojo", P.RED),
+        ("Granate", P.GARNET), ("Rosa", P.PINK), ("Marrón", P.BROWN), ("Pico", P.BEAK))),
+    ("Interfaz (cotorreando/palette.py)", (
+        ("Fondo", P.BACKGROUND), ("Tarjeta", P.CARD), ("Campo", P.FIELD), ("Texto", P.TEXT),
+        ("Título", P.TITLE), ("Cuerpo", P.BODY), ("Secundario", P.SECONDARY), ("Nota", P.MUTED),
+        ("Texto en botón", P.ON_ACCENT), ("Botón hover", P.ACCENT_HOVER), ("Botón pulsado", P.ACCENT_PRESSED),
+        ("Borde casilla", P.CHECKBOX_BORDER))),
     ("Insignias del README (texto blanco)", (
-        ("Licencia", "#157f35"), ("Windows", "#0f6b4a"), ("Privacidad", "#5a7d0e"), ("Versión", "#cb4426"))),
+        ("Licencia", P.BADGE_LICENSE), ("Windows", P.BADGE_WINDOWS), ("Privacidad", P.BADGE_PRIVACY),
+        ("Versión", P.BADGE_VERSION))),
 )
 
 

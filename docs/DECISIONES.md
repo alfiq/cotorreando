@@ -26,7 +26,7 @@
 | Activación | Por voz o por palabra clave, configurable. |
 | Palabra clave por defecto | «oye cotorro». |
 | Atajo | `Ctrl+Win`. |
-| Logo | La cotorra dibujada a mano, azulejada y sin fondo; el icono actual queda como mascota. |
+| Logo | La cotorra dibujada a mano, azulejada y sin fondo; también es el icono de la aplicación. |
 
 ### Proyecto
 
@@ -68,6 +68,11 @@ La de NeMo exige numba CUDA (`nvvm.dll`), que pip no instala en Windows.
 Fusionar el adaptador y recuantizar a int8 lo borraba, y entrenar sobre el fp32 de NeMo
 empeoraba la app. Ahora se entrena sobre los pesos int8 de la app y se injerta como rama
 fp32; por defecto, atención + FFN con rango 4. Detalles en [LORA.md](LORA.md).
+
+#### Una sola paleta, sacada de la cotorra
+La interfaz, el blob, el instalador, el icono y el README usan los colores de la cotorra, todos
+definidos en `cotorreando/palette.py`; nadie más escribe un hex. El icono deja de ser la esfera azul
+y pasa a ser la cotorra. Las reglas están en [IDENTIDAD.md](IDENTIDAD.md).
 
 #### Tamaño del blob
 Configurable: pequeño, mediano o grande.

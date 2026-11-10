@@ -4,6 +4,7 @@
 ; tells what Cotorreando is and then installs. Inno Setup's pages stay underneath,
 ; doing the work; [Code] covers them with a single stage and changes its text.
 
+#include "dist\palette.iss"
 #define AppVersion "0.1.2"
 
 [Setup]
@@ -100,7 +101,7 @@ const
   WINDOW_H = 460;
   TEXT_X = 40;
   TEXT_W = 340;
-  WINDOW_BACK = $1B1716;  // #16171b, the colour of the app's windows (BGR)
+  WINDOW_BACK = {#WINDOW_BACK};  // the app's windows; colours come from dist\palette.iss
   WM_NCLBUTTONDOWN = $00A1;
   HTCAPTION = 2;
   DWMWA_WINDOW_CORNER_PREFERENCE = 33;
@@ -207,11 +208,11 @@ begin
   Art.Bitmap.LoadFromFile(ExpandConstant('{tmp}\installer-art.bmp'));
 
   // Our title bar: dragging it moves the window.
-  NewLabel(14, 10, WINDOW_W - 58, 26, 9, [], $998F8B).Caption := 'Cotorreando';
-  TitleText := NewLabel(TEXT_X, 92, TEXT_W, 80, 22, [fsBold], $F6F4F3);
-  BodyText := NewLabel(TEXT_X, 186, TEXT_W, 160, 11, [], $C2B9B6);
+  NewLabel(14, 10, WINDOW_W - 58, 26, 9, [], {#CAPTION_TEXT}).Caption := 'Cotorreando';
+  TitleText := NewLabel(TEXT_X, 92, TEXT_W, 80, 22, [fsBold], {#TITLE_TEXT});
+  BodyText := NewLabel(TEXT_X, 186, TEXT_W, 160, 11, [], {#BODY_TEXT});
 
-  CloseMark := NewLabel(WINDOW_W - 40, 6, 32, 28, 11, [], $B0A7A4);
+  CloseMark := NewLabel(WINDOW_W - 40, 6, 32, 28, 11, [], {#CLOSE_TEXT});
   CloseMark.Caption := '✕';
   CloseMark.Alignment := taCenter;
   CloseMark.Cursor := crHand;
@@ -224,7 +225,7 @@ begin
   DesktopBox.Caption := CustomMessage('Desktop');
   DesktopBox.Visible := False;
 
-  LicensesLink := NewLabel(TEXT_X, 318, TEXT_W, 22, 10, [fsUnderline], $F0B45A);
+  LicensesLink := NewLabel(TEXT_X, 318, TEXT_W, 22, 10, [fsUnderline], {#LINK_TEXT});
   LicensesLink.Caption := CustomMessage('ReadLicenses');
   LicensesLink.Cursor := crHand;
   LicensesLink.OnMouseDown := nil;

@@ -14,6 +14,7 @@ from ..audio import AudioInput
 from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
 from ..mosaic import Mosaic
+from .. import palette
 from . import env, job
 
 log = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class TrainingScreen(QWidget):
         self.panels: list[dict] = []
         self.setObjectName("screen")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setStyleSheet("#screen, #screen QWidget { background: #0d110e; }")
+        self.setStyleSheet("#screen, #screen QWidget { background: %s; }" % palette.DEEP)
         self.setAttribute(Qt.WA_StyledBackground)
 
         self.mosaic = Mosaic(12, 0.0)

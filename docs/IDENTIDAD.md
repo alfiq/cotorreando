@@ -104,15 +104,15 @@ Definida en `STYLE` y `apply_theme()` de `cotorreando/dialogs.py`.
 
 ## El blob y la bandeja
 
-- `cotorreando/blob.py`, `PLUMAGE` (línea 34): menta, verde, lima, amarillo, naranja y rojo, en el
+- `cotorreando/blob.py` toma `palette.PLUMAGE`: menta, verde, lima, amarillo, naranja y rojo, en el
   orden en que corren por el plumaje. `plumage(place)` mezcla entre vecinos y va y vuelve sin saltos;
   al escribir, el blob recorre esa secuencia.
-- Relleno base del orbe: verde cotorra profundo `QColor(16, 92, 62, 170)` (línea 278), con nubes de
-  plumaje dentro y un brillo blanco translúcido.
-- Desactivado: gris `QColor(128, 128, 134)` (`GREY`, línea 37). El anillo de carga usa ese gris al
-  35 % como pista y `plumage(t)` como trazo.
-- Bandeja (`cotorreando/app.py`, `_tray_icon`): círculo `#22b14c` (34, 177, 76) activo y el mismo
-  gris desactivado.
+- Relleno base del orbe: `palette.ORB`, verde cotorra profundo translúcido, con nubes de plumaje
+  dentro y un brillo blanco translúcido.
+- Desactivado: `palette.OFF`, gris. El anillo de carga usa ese gris al 35 % como pista y
+  `plumage(t)` como trazo.
+- Bandeja (`cotorreando/app.py`, `_tray_icon`): círculo `palette.ACCENT` activo y `palette.OFF`
+  desactivado.
 
 ## README, banner e insignias
 
@@ -134,9 +134,16 @@ al blanco.
 
 ## Instalador
 
-`scripts/installer_art.py` dibuja el fondo del instalador (lo ejecuta `build.ps1`) con las plumas
-del blob (`_feather`) sobre `#16171b`; `installer.iss` usa ese mismo color (`WINDOW_BACK`,
-línea 103). Todavía no sigue la paleta: ver "Pendientes conocidos".
+`scripts/installer_art.py` (lo ejecuta `build.ps1`) dibuja el fondo del instalador con las plumas del
+blob (`_feather`) en colores del plumaje sobre `palette.BACKGROUND`. Junto a la imagen escribe
+`dist/palette.iss`, que `installer.iss` incluye: el fondo, los textos y el enlace del asistente salen
+así de `palette.py`, convertidos al formato `$BBGGRR` de Inno Setup.
+
+## Icono de la aplicación
+
+`cotorreando/icon.ico` (16 a 256 px) y `cotorreando/icon.png` (256 px) son la cotorra, generados
+por `scripts/icon.py`. Por debajo de 256 px usa los píxeles del dibujo, nítidos; a 256 px usa el
+azulejado del logo. La esfera azul y magenta anterior queda retirada.
 
 ## Tipografía
 
@@ -173,39 +180,33 @@ No hacer:
 
 ## Dónde vive cada color
 
-| Archivo | Qué define |
+Todos los colores se definen en un solo sitio: **`cotorreando/palette.py`**. Cada constante lleva
+un nombre por su función (`BACKGROUND`, `ACCENT`, `ON_ACCENT`, `LINK`…), y quien pinta algo la
+importa en vez de escribir un hex. Fuera de ese archivo no debe haber colores escritos a mano.
+
+| Archivo | Qué toma de `palette.py` |
 |---|---|
-| `cotorreando/assets/parrot.png` | El dibujo original y la paleta |
-| `cotorreando/mosaic.py` | Logo azulejado y progreso |
-| `cotorreando/dialogs.py` (`STYLE`, líneas 40-106; `apply_theme`, línea 109) | Toda la interfaz |
-| `cotorreando/assets/check.png`, `chevron.png` | Iconos de casilla y desplegable |
-| `cotorreando/blob.py` (`PLUMAGE`, `GREY`, `_paint_orb`, `plumage`) | El blob |
-| `cotorreando/app.py` (`_tray_icon`) | Icono de bandeja |
-| `cotorreando/lora/screen.py` (línea 77), `cotorreando/lora/ui.py` (línea 231) | Pantalla de calibración |
-| `scripts/banner.py` | Banner del README |
-| `scripts/palette.py` | Imagen de la paleta |
-| `README.md` (líneas 6-9) | Insignias |
-| `scripts/installer_art.py`, `installer.iss` | Instalador |
-| `cotorreando/icon.ico`, `cotorreando/icon.png` | Icono de la aplicación |
+| `cotorreando/assets/parrot.png` | Nada: es el dibujo del que sale la paleta |
+| `cotorreando/dialogs.py` (`STYLE`, `apply_theme`) | Toda la interfaz, con `%(NOMBRE)s` en la hoja de estilo |
+| `cotorreando/blob.py` | `PLUMAGE`, `ORB`, `OFF` |
+| `cotorreando/app.py` (`_tray_icon`) | `ACCENT`, `OFF` |
+| `cotorreando/lora/screen.py`, `cotorreando/lora/ui.py` | `DEEP`, `TITLE`, `LINK`, `MUTED` |
+| `scripts/banner.py`, `scripts/palette.py` | Banner del README e imagen de la paleta |
+| `scripts/installer_art.py` → `installer.iss` | Instalador, vía `dist/palette.iss` |
+| `README.md` | Insignias: `BADGE_*`, copiados a mano porque son URLs de shields.io |
+| `cotorreando/assets/check.png`, `chevron.png` | Iconos ya pintados; si cambia la paleta, se recolorean |
 
 ## Regenerar las piezas derivadas
 
 ```bash
 python scripts/banner.py                       # docs/assets/banner.png
 python scripts/palette.py                      # docs/assets/paleta.png
+python scripts/icon.py                         # cotorreando/icon.ico e icon.png
 python scripts/installer_art.py <salida.bmp>   # lo hace build.ps1 al empaquetar
 ```
 
-`palette.py` tiene su propia lista de colores: si cambia la paleta, hay que actualizarla también allí.
-
 ## Pendientes conocidos
 
-- **Icono de la aplicación**: `cotorreando/icon.ico` e `icon.png` siguen siendo el orbe antiguo azul
-  y magenta, fuera de la paleta. Según DECISIONES.md queda como mascota, pero no casa con el resto de
-  la identidad.
-- **Instalador**: `scripts/installer_art.py` pinta las plumas con tonos HSV 320, 200, 140, 265 y 45
-  (magenta, azul, verde, violeta y ámbar), no con `PLUMAGE`. Además su fondo, `#16171b`, es un
-  neutro azulado: el comentario de `installer.iss` dice que es el color de las ventanas, pero la app
-  usa `#161b17`, de tinte verde.
-- **Paleta duplicada**: los colores están escritos a mano en cada archivo; no hay un módulo único de
-  colores.
+- **Insignias del README**: sus colores se copian a mano de `BADGE_*`, porque van dentro de las URLs.
+- **Pico sobre fondo oscuro**: el pico negro de la cotorra casi no se distingue en el icono pequeño
+  sobre la barra de tareas oscura. Es parte del dibujo y se deja así.

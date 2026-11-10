@@ -23,6 +23,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
 from PySide6.QtWidgets import QApplication, QWidget
 
+from . import palette
+
 # Window size and orb radius in pixels for each size the user can pick. The
 # window is much larger than the orb to leave room for ripples and the drag
 # trail; its transparent pixels let clicks through.
@@ -31,10 +33,10 @@ GOO_STIFFNESS, GOO_DAMPING = 60.0, 7.0   # the sticky tail: softer than the drag
 POINTS = 72
 STIFFNESS, DAMPING = 220.0, 16.0   # spring used while dragging
 # The parrot's own colours (assets/parrot.png), in the order they run along its plumage.
-PLUMAGE = tuple(QColor(c) for c in ("#54d7a3", "#22b14c", "#b5e61d", "#fff200", "#ff7f27", "#ed1c24"))
+PLUMAGE = tuple(QColor(c) for c in palette.PLUMAGE)
 # (place in PLUMAGE, orbit radius, feather size) relative to the radius, drifting inside the orb.
 CLOUDS = ((0, 0.45, 0.75), (1, 0.35, 0.85), (2, 0.5, 0.7), (4, 0.3, 0.6), (5, 0.55, 0.45))
-GREY = QColor(128, 128, 134)
+GREY = QColor(palette.OFF)
 EDGE_FADE = 0.8      # share of the way from the outline to the centre spent fading in
 MIN_RINGS = 24
 # Windows keeps on top whichever topmost window asked last, so one opened later
@@ -275,7 +277,7 @@ class Blob(QWidget):
         """A translucent glass bubble with glowing colour clouds drifting inside it."""
         shift = self._hue if self.writing else 0.0
         # An even fill: _fade_edges gives it its shape, sticky tail included.
-        layer.fill(QColor(16, 92, 62, 170))   # deep parrot green
+        layer.fill(QColor(palette.ORB))
         p = QPainter(layer)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)

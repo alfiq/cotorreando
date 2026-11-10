@@ -45,6 +45,7 @@ from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
 from .residency import ModelHolder
 from . import __version__, updates
+from . import palette
 
 log = logging.getLogger(__name__)
 UPDATE_DELAY_MS = 30_000   # let the app settle before going online
@@ -667,7 +668,7 @@ class Cotorreando(QObject):
         p = QPainter(pix)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor(34, 177, 76) if self.enabled else QColor(128, 128, 134))
+        p.setBrush(QColor(palette.ACCENT if self.enabled else palette.OFF))
         p.drawEllipse(6, 6, 52, 52)
         p.end()
         return QIcon(pix)

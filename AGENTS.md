@@ -17,6 +17,7 @@ python -m pytest -q
 - Documentación en español; los textos de la interfaz van en `cotorreando/i18n.py` (español e inglés).
 - Cualquier cambio de color o de aspecto sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md), y la
   actualiza si la cambia.
+- Los colores salen de `cotorreando/palette.py`; no escribas hex en ningún otro archivo.
 - Sin atribución a IA en commits, pull requests ni archivos.
 - Si se resuelve una cuestión de diseño, se anota en [docs/DECISIONES.md](docs/DECISIONES.md).
 - Arquitectura: [docs/DISENO.md](docs/DISENO.md). Contribuir: [CONTRIBUTING.md](CONTRIBUTING.md).

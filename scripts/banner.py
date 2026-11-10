@@ -13,11 +13,12 @@ from PySide6.QtCore import QRectF, Qt  # noqa: E402
 from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from cotorreando.blob import PLUMAGE  # noqa: E402
+from cotorreando import palette as P  # noqa: E402
 from cotorreando.mosaic import logo_pixmap  # noqa: E402
 
 W, H, SCALE = 1200, 300, 2          # drawn at twice the size, for sharp text on high-DPI screens
-BACKGROUND, TITLE, TAGLINE = QColor("#161b17"), QColor("#f3f6f4"), QColor("#54d7a3")
+BACKGROUND, TITLE, TAGLINE = QColor(P.BACKGROUND), QColor(P.TITLE), QColor(P.LINK)
+PLUMAGE = [QColor(c) for c in P.PLUMAGE]
 
 
 def main() -> None:
