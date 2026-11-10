@@ -2,7 +2,7 @@
 
 ## Issue relacionado
 
-<!-- Para cambios no triviales, enlaza el issue donde se acordó. -->
+<!-- Si el cambio es grande, enlaza el issue donde nos pusimos de acuerdo. -->
 
 - [ ] Las pruebas pasan (`python -m pytest -q`).
 - [ ] El código sigue el estilo existente.

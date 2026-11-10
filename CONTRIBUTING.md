@@ -6,7 +6,8 @@ Gracias por pasarte. Cotorreando es un proyecto pequeño y personal, así que cu
 
 ## Reportar un fallo
 
-Abre un issue con la plantilla **Reportar un fallo**. Lo que más ayuda:
+¿Metimos la pata? Cuéntanos. Abre un issue con la plantilla **Reportar un fallo**. Lo que más
+ayuda:
 
 - Versión de Cotorreando (en *Acerca de*) y versión de Windows.
 - GPU, o si va solo con CPU, y el micrófono que usas.
@@ -15,30 +16,31 @@ Abre un issue con la plantilla **Reportar un fallo**. Lo que más ayuda:
 - El registro: `%LOCALAPPDATA%\Cotorreando\cotorreando.log`. Se sobrescribe en cada arranque, así
   que cópialo justo después del fallo, antes de volver a abrir la app.
 
-Revisa el registro antes de pegarlo y **no adjuntes grabaciones ni texto dictado** salvo que quieras
-hacerlo. La privacidad es la razón de ser del proyecto; más en [docs/PRIVACIDAD.md](docs/PRIVACIDAD.md).
+Revisa el registro antes de pegarlo y **no adjuntes grabaciones ni texto dictado**, a menos que
+de verdad quieras. La privacidad es la razón de ser del proyecto. Más en
+[docs/PRIVACIDAD.md](docs/PRIVACIDAD.md).
 
 ## Proponer una idea
 
-Usa la plantilla **Proponer una idea**. Cuenta el problema que quieres resolver antes que la solución.
-Conviene echar un vistazo a [docs/IDEAS.md](docs/IDEAS.md) y [docs/DECISIONES.md](docs/DECISIONES.md),
-por si ya está pensada o descartada.
+Usa la plantilla **Proponer una idea**. Cuéntanos primero el problema y después la solución.
+Échale un ojo a [docs/IDEAS.md](docs/IDEAS.md) y a [docs/DECISIONES.md](docs/DECISIONES.md), por
+si ya la pensamos o ya la descartamos.
 
 ## Enviar código
 
-- **Arreglos pequeños** (erratas, fallos evidentes): manda el pull request directamente.
-- **Todo lo demás**: abre antes un issue y acordemos el enfoque. Así nadie pierde tiempo en algo que
-  no encaja.
+- **Arreglos pequeños** (erratas, fallos obvios): manda el pull request directo.
+- **Todo lo demás**: abre primero un issue y nos ponemos de acuerdo en el enfoque. Así nadie pierde
+  tiempo en algo que no encaja.
 
-Para preparar el entorno y pasar las pruebas:
+Para preparar el entorno y correr las pruebas:
 
 ```bash
 pip install -e ".[test]"
 python -m pytest -q
 ```
 
-Antes de enviar, comprueba que las pruebas pasan y que el código sigue el estilo del que ya existe.
-Para cambios de arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo encaja todo.
+Antes de enviar, revisa que las pruebas pasen y que tu código se parezca al que ya está.
+Si vas a mover la arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo encaja todo.
 Si tocas la interfaz, los colores o las imágenes, sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md).
 
 Al contribuir aceptas que tu aporte se publique bajo la [licencia MIT](LICENSE) del proyecto.

@@ -82,6 +82,11 @@ La portada del sitio abre con un botón que baja el instalador más reciente. Ap
 `releases/latest/download/Cotorreando-setup.exe`, y al publicar cada Release un workflow le sube una
 copia del instalador con ese nombre fijo. No usa la API de GitHub ni JavaScript.
 
+#### Globito de la cotorra
+Al pasar el mouse sobre la cotorra sale un globito con una frase distinta cada vez («¿Tienes algo
+que decir?», «Cuenta el chisme.», «A ver, cuéntamelo todo.») y el atajo al final. Los botones y
+menús se quedan sobrios; el juego va solo en los globitos.
+
 ## Pendientes
 
 - [ ] Hacer público el repositorio.

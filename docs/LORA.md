@@ -1,12 +1,15 @@
 # Entrenar tu voz (LoRA)
 
+Mientras más te oye, mejor te entiende. Lees unas frases en voz alta y Cotorreando ajusta el
+modelo a tu voz, a tu acento y a tu micrófono. Todo en tu computadora.
+
 ## Qué hace
 
-1. Al terminar de cargar el modelo por primera vez se abre la calibración. Se puede omitir
-   y repetir luego en **Opciones → Modelo**.
-2. Se leen paneles breves. Parakeet sigue la lectura en vivo (`lora/align.py`): las palabras
-   se iluminan y el panel termina solo tras las últimas palabras y 1,2 s de silencio;
-   si no, se pulsa **Terminado**. Se asume que el audio coincide con el texto.
+1. La primera vez que termina de cargar el modelo, se abre la calibración. Te la puedes saltar y
+   hacerla después en **Opciones → Modelo**.
+2. Lees paneles cortos. Parakeet te va siguiendo en vivo (`lora/align.py`): las palabras se
+   iluminan y el panel termina solo cuando dices las últimas y te quedas callado 1,2 s. Si no,
+   pulsa **Terminado**. Se da por hecho que leíste lo que dice el texto.
 3. Una de cada seis grabaciones se reserva. Se añaden adaptadores LoRA (rango 4, alfa 8) a
    las proyecciones `q`, `k`, `v` y `out` de la atención y a las dos `feed_forward` de las 24
    capas del codificador.
@@ -25,8 +28,8 @@
    es lo que se usa al dictar. Si no mejora, se conserva el modelo original. Si mejora, queda en
    `%LOCALAPPDATA%\Cotorreando\models\adapters\<nombre>` y se activa.
 
-La descarga arranca al empezar a leer y el entrenamiento sigue en segundo plano; mientras tanto
-se dicta con el modelo actual.
+La descarga arranca en cuanto empiezas a leer y el entrenamiento sigue en segundo plano. Mientras
+tanto puedes dictar con el modelo de siempre.
 
 ## Por qué este diseño
 
@@ -41,8 +44,8 @@ int8 con injerto y en streaming; WER del modelo base 3,1 %):
 | **Atención + FFN, rango 4** | **1,5 %** | **2 / 0** |
 | Coseno, LR más alto o dropout | 2,3–3,1 % | empeoran en algunos |
 
-El rango 4 rinde igual que el 8 con la mitad de parámetros. Hay pocas grabaciones, así que
-es una señal, no una prueba: por eso el paso 4 sigue descartando el adaptador si no mejora.
+El rango 4 rinde igual que el 8 con la mitad de parámetros. Ojo: hay pocas grabaciones, así que
+esto es una señal, no una prueba. Por eso el paso 4 sigue tirando el adaptador si no mejora.
 
 ## Paneles
 
@@ -61,14 +64,16 @@ comandos de edición y anglicismos.
 | onnx, onnxruntime | Apache-2.0, MIT | ~50 MB |
 | uv | MIT / Apache-2.0 | ~40 MB |
 
-No se instalan con la app. La pantalla de bienvenida avisa del tamaño; al pulsar **Empezar**
-se descarga `uv`, se crea un entorno con Python 3.12 en `%LOCALAPPDATA%\Cotorreando\train-env`
-y se instalan ahí. El script `lora/train.py` corre en ese entorno, separado de la app.
+No vienen con la app, porque pesan un montón y no todos van a entrenar. La pantalla de bienvenida
+te avisa cuánto pesan. Si pulsas **Empezar**, baja `uv`, crea un entorno con Python 3.12 en
+`%LOCALAPPDATA%\Cotorreando\train-env` y los instala ahí. El script `lora/train.py` corre en ese
+entorno, aparte de la app.
 
-Con GPU NVIDIA usa CUDA (probado con 16 GB de VRAM). Sin ella instala PyTorch para CPU, que
-pesa menos pero entrena mucho más lento.
+Con GPU NVIDIA usa CUDA (probado con 16 GB de VRAM). Sin ella instala PyTorch para CPU, que pesa
+menos pero entrena mucho más lento. Ve por un café.
 
 ## Respaldo del modelo
 
-Si la descarga del ONNX de istupakov falla, `asr.export_from_nemo` usa este mismo
-entorno para exportar el modelo original de NVIDIA (`train.py --export-only`).
+`asr.export_from_nemo` puede usar este mismo entorno para exportar el modelo original de NVIDIA
+(`train.py --export-only`) si la descarga del ONNX de istupakov falla. Ojo: hoy nada en la app la
+llama, así que este respaldo no está conectado.

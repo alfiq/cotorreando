@@ -24,6 +24,7 @@ from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter, QPainterPat
 from PySide6.QtWidgets import QApplication, QWidget
 
 from . import palette
+from .i18n import tr
 
 # Window size and orb radius in pixels for each size the user can pick. The
 # window is much larger than the orb to leave room for ripples and the drag
@@ -43,6 +44,7 @@ MIN_RINGS = 24
 # (the taskbar or an app starting with Windows) hides the blob for good unless
 # it claims its place again now and then.
 RAISE_MS = 2000
+TIPS = ("blob_tip0", "blob_tip1", "blob_tip2")
 HWND_TOPMOST, HWND_NOTOPMOST, GW_HWNDPREV = -1, -2, 3
 SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = 0x1, 0x2, 0x10
 user32 = ctypes.windll.user32
@@ -61,6 +63,10 @@ class Blob(QWidget):
                          | Qt.WindowDoesNotAcceptFocus)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
+        # The blob never takes focus, and Qt hides tips of inactive windows unless told otherwise.
+        self.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.hotkey = ""
+        self._tip = -1
         self.set_size(size)
         self.enabled = True
         self.writing = False
@@ -108,6 +114,22 @@ class Blob(QWidget):
                 user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags)
                 return
             other = user32.GetWindow(other, GW_HWNDPREV)
+
+    # -- hover tip ------------------------------------------------------------
+
+    def set_hotkey(self, hotkey: str) -> None:
+        """``ctrl+win`` is shown as ``Ctrl+Win`` at the end of the tip."""
+        self.hotkey = "+".join(part.capitalize() for part in hotkey.split("+") if part)
+
+    def next_tip(self) -> str:
+        """The next phrase in turn, so each hover says something different."""
+        self._tip = (self._tip + 1) % len(TIPS)
+        tip = tr(TIPS[self._tip])
+        return tr("blob_tip_hotkey", tip=tip, hotkey=self.hotkey) if self.hotkey else tip
+
+    def enterEvent(self, event) -> None:
+        self.setToolTip(self.next_tip())
+        super().enterEvent(event)
 
     # -- state ----------------------------------------------------------------
 

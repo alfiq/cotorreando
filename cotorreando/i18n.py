@@ -13,13 +13,18 @@ STRINGS = {
     "downloading": ("Descargando modelo… {pct}%", "Downloading model… {pct}%"),
     "ready": ("Listo", "Ready"),
     "load_failed": ("No se pudo cargar el modelo: {error}", "Could not load the model: {error}"),
-    "mic_silent": ("El micrófono no envía audio. Revisa Configuración > Privacidad > Micrófono.",
+    "mic_silent": ("Vaya Tacubaya, el micrófono no me manda nada. Revisa Configuración > Privacidad > Micrófono.",
                    "The microphone sends no audio. Check Settings > Privacy > Microphone."),
     "disabled": ("Desactivado", "Disabled"),
+    # Hover tip on the blob; one phrase per hover, in turn, then the hotkey.
+    "blob_tip0": ("¿Tienes algo que decir?", "Got something to say?"),
+    "blob_tip1": ("Cuenta el chisme.", "Spill the tea."),
+    "blob_tip2": ("A ver, cuéntamelo todo.", "Go on, tell me everything."),
+    "blob_tip_hotkey": ("{tip} ({hotkey})", "{tip} ({hotkey})"),
     # Model download and the user's own model
     "dl_title": ("Descargando el modelo de voz", "Downloading the speech model"),
-    "dl_intro": ("La primera vez Cotorreando descarga el modelo de reconocimiento (unos 670 MB). "
-                 "Después funciona sin conexión.",
+    "dl_intro": ("La primera vez Cotorreando baja el modelo de reconocimiento (unos 670 MB). "
+                 "Después ya no necesita internet.",
                  "The first time, Cotorreando downloads the recognition model (about 670 MB). "
                  "After that it works offline."),
     "dl_starting": ("Conectando…", "Connecting…"),
@@ -27,21 +32,21 @@ STRINGS = {
     "dl_progress_unknown": ("{done} descargados", "{done} downloaded"),
     "dl_speed": (" · {speed}/s · quedan {left}", " · {speed}/s · {left} left"),
     "dl_verifying": ("Comprobando los archivos…", "Checking the files…"),
-    "dl_offline": ("No hay conexión a internet y el modelo aún no está descargado. "
+    "dl_offline": ("No hay conexión a internet y todavía no tengo el modelo. "
                    "Conéctate y vuelve a intentarlo, o usa un modelo que ya tengas.\n\n{detail}",
                    "There is no internet connection and the model is not downloaded yet. "
                    "Connect and try again, or use a model you already have.\n\n{detail}"),
-    "dl_interrupted": ("La descarga del modelo se interrumpió. Lo ya descargado se conserva y "
-                       "se reanuda al reintentar; nada a medias se usará como modelo.\n\n{detail}",
+    "dl_interrupted": ("Se cortó la descarga del modelo. Lo que ya bajó se queda y, si reintentas, "
+                       "sigue donde se quedó. Nada a medias se usa como modelo.\n\n{detail}",
                        "The model download was interrupted. What was downloaded is kept and "
                        "resumes when you retry; nothing half-done is ever used as the model.\n\n{detail}"),
-    "dl_no_space": ("No hay espacio suficiente para el modelo: hacen falta {needed} libres y hay {free}. "
-                    "Libera espacio en el disco y vuelve a intentarlo.",
+    "dl_no_space": ("No cabe el modelo: hacen falta {needed} libres y hay {free}. "
+                    "Haz espacio en el disco y vuelve a intentarlo.",
                     "Not enough disk space for the model: {needed} free are needed and there are {free}. "
                     "Free up some space and try again."),
-    "dl_cancelled": ("Descarga cancelada. Sin el modelo Cotorreando no puede dictar.",
+    "dl_cancelled": ("Cancelaste la descarga. Sin el modelo no puedo escribir lo que dices.",
                      "Download cancelled. Without the model Cotorreando cannot take dictation."),
-    "model_corrupt": ("El modelo descargado no se puede cargar; puede estar dañado.\n\n{error}",
+    "model_corrupt": ("Vaya Tacubaya, el modelo que bajé no carga. Puede estar dañado.\n\n{error}",
                       "The downloaded model cannot be loaded; it may be damaged.\n\n{error}"),
     "model_custom_failed": ("Tu modelo ({path}) no se puede cargar.\n\n{error}",
                             "Your model ({path}) cannot be loaded.\n\n{error}"),
@@ -112,8 +117,8 @@ STRINGS = {
     "use_gpu": ("Usar GPU si está disponible", "Use GPU when available"),
     "unload_after": ("Liberar el modelo tras (minutos sin dictar)", "Free the model after (idle minutes)"),
     "unload_never": ("Nunca", "Never"),
-    "unload_help": ("Libera memoria cuando no dictas; se vuelve a cargar al hablar. En modo palabra clave "
-                    "sigue cargado mientras se detecta voz.",
+    "unload_help": ("Libera memoria cuando no dictas y se vuelve a cargar cuando hablas. Con palabra clave "
+                    "sigue cargado mientras oiga voz.",
                     "Frees memory while you are not dictating; it loads again when you speak. In keyword mode "
                     "it stays loaded while speech is detected."),
     "autostart": ("Iniciar con Windows", "Start with Windows"),
@@ -138,8 +143,8 @@ STRINGS = {
     # Calibration
     "train_title": ("Calibrar mi voz", "Calibrate my voice"),
     "cal_welcome": ("Vamos a conocernos", "Let's get to know each other"),
-    "cal_intro": ("Lee en voz alta unos textos breves, unos 3 minutos. Con ellos me adapto a tu voz, tu "
-                  "micrófono y el ruido de este lugar. Tu voz se queda en tu PC.",
+    "cal_intro": ("Léeme en voz alta unos textos cortos, como 3 minutos. Con eso me acostumbro a tu voz, a "
+                  "tu micrófono y al ruido de donde estás. Tu voz se queda en tu PC, punto.",
                   "Read a few short texts aloud, about 3 minutes. They let me adapt to your voice, your "
                   "microphone and the noise around you. Your voice stays on your PC."),
     "cal_language": ("Idioma en el que dictas", "Language you dictate in"),
@@ -156,11 +161,11 @@ STRINGS = {
                       "If you skip it, you can do it anytime in Settings → Model."),
     "cal_skip": ("Omitir por ahora", "Skip for now"),
     "cal_start": ("Empezar", "Start"),
-    "cal_read_hint": ("Lee con naturalidad, como hablas siempre.", "Read naturally, the way you always talk."),
+    "cal_read_hint": ("Lee como hablas siempre, sin ponerte formal.", "Read naturally, the way you always talk."),
     "cal_again": ("Repetir", "Start over"),
     "cal_done": ("Terminado", "Done"),
     "cal_cheer0": ("Buen inicio", "Good start"),
-    "cal_cheer1": ("Vamos avanzando", "Making progress"),
+    "cal_cheer1": ("Vamos bien", "Making progress"),
     "cal_cheer2": ("Te escucho cada vez mejor", "I can hear you better and better"),
     "cal_cheer3": ("Cada vez más cerca", "Getting closer"),
     "cal_cheer4": ("Ya casi", "Almost there"),
@@ -178,8 +183,8 @@ STRINGS = {
                    "On a test text, my errors went from {before:.1f}% to {after:.1f}%."),
     "cal_no_gain": ("Esta vez no mejoré, así que me quedo con el modelo original.",
                     "It didn't improve this time, so I'm keeping the original model."),
-    "cal_failed_title": ("No pude terminar", "I couldn't finish"),
-    "cal_failed": ("Tus lecturas están guardadas. Detalles en {path}", "Your readings are saved. Details in {path}"),
+    "cal_failed_title": ("Metí la pata, no pude terminar", "I couldn't finish"),
+    "cal_failed": ("Tus lecturas no se perdieron. Los detalles están en {path}", "Your readings are saved. Details in {path}"),
     "cal_skipped_tip": ("Puedes calibrar tu voz cuando quieras en Opciones → Modelo.",
                         "You can calibrate your voice anytime in Settings → Model."),
     "cal_applied": ("Tu calibración ya está activa.", "Your calibration is now active."),
@@ -215,18 +220,18 @@ STRINGS = {
     "update_skip": ("Omitir esta versión", "Skip this version"),
     "excluded": ("Apps excluidas (ej. keepass.exe, banco.exe)", "Excluded apps (e.g. keepass.exe, bank.exe)"),
     "retention": ("Borrar datos con más de (días)", "Delete data older than (days)"),
-    "privacy_note": ("Tu voz, tu texto y tus palabras se cifran con age y solo se abren con tu contraseña. "
-                     "Nunca se guarda lo que dictas en campos de contraseña. Tu modelo de voz entrenado no se "
-                     "cifra, porque hace falta para dictar.",
-                     "Your voice, text and words are encrypted with age and only open with your password. Nothing "
-                     "dictated in password fields is ever kept. Your trained voice model is not encrypted, because "
+    "privacy_note": ("Tu voz, tu texto y tus palabras se cifran con age y solo se abren con tu contraseña o tu "
+                     "código de recuperación. Lo que dictas en campos que Windows reconoce como de contraseña "
+                     "nunca se guarda, punto. Tu modelo de voz entrenado no se cifra, porque hace falta para dictar.",
+                     "Your voice, text and words are encrypted with age and only open with your password or your "
+                     "recovery code. Nothing dictated in fields Windows reports as password fields is ever kept. Your trained voice model is not encrypted, because "
                      "dictation needs it."),
     "password_set": ("Crear contraseña…", "Create password…"),
     "password_change": ("Cambiar contraseña…", "Change password…"),
-    "password_setup": ("Crea una contraseña para proteger lo que Cotorreando aprende de ti. Puedes guardarla en "
-                       "tu administrador de contraseñas. Sin ella puedes dictar, pero no se aprende nada.",
-                       "Create a password to protect what Cotorreando learns from you. You can keep it in your "
-                       "password manager. Without it you can dictate, but nothing is learnt."),
+    "password_setup": ("Crea una contraseña para proteger lo que Cotorreando aprende de ti. Sin ella no guardo "
+                       "nada de tu voz ni de lo que dictas, punto. Puedes dictar igual, pero no aprendo.",
+                       "Create a password to protect what Cotorreando learns from you. Without it nothing of your "
+                       "voice or of what you dictate is kept. You can still dictate, but I won't learn."),
     "password_create": ("Crear", "Create"),
     "password_new_hint": ("Contraseña (mínimo 8 caracteres)", "Password (at least 8 characters)"),
     "password_again": ("Repítela", "Repeat it"),
@@ -234,17 +239,18 @@ STRINGS = {
     "password_generate": ("Generar una segura", "Generate a strong one"),
     "password_mismatch": ("Las contraseñas no coinciden.", "The passwords do not match."),
     "password_short": ("Debe tener al menos 8 caracteres.", "It must have at least 8 characters."),
-    "password_weak": ("Es demasiado fácil de adivinar.", "It is too easy to guess."),
+    "password_weak": ("Esa la adivina hasta el gato. Prueba otra.", "It is too easy to guess."),
     "password_forgot": ("La olvidé", "I forgot it"),
     "password_wait": ("Demasiados intentos. Espera {seconds} segundos.", "Too many tries. Wait {seconds} seconds."),
-    "recovery_show": ("Este es tu código de recuperación. Guárdalo en un lugar seguro: solo se muestra ahora y "
-                      "es la única forma de entrar si olvidas tu contraseña.",
-                      "This is your recovery code. Keep it somewhere safe: it is only shown now and it is the "
-                      "only way in if you forget your password."),
+    "recovery_show": ("Este es tu código de recuperación. Solo te lo enseño ahora y es la única forma de entrar "
+                      "si olvidas tu contraseña. Imprímelo. En un archivo de texto no, por favor, no seas así. "
+                      "Cuídalo.",
+                      "This is your recovery code. It is only shown now and it is the only way in if you forget "
+                      "your password. Print it. Not in a text file, please. Take care of it."),
     "recovery_saved": ("Ya lo guardé", "I saved it"),
     "recovery_prompt": ("Escribe tu código de recuperación y una contraseña nueva.",
                         "Enter your recovery code and a new password."),
-    "recovery_wrong": ("Código de recuperación incorrecto.", "Wrong recovery code."),
+    "recovery_wrong": ("Ese código no es. Revísalo con calma.", "Wrong recovery code."),
     "notice_unlock": ("Escribe tu contraseña para activar tus correcciones.",
                       "Enter your password to turn on your corrections."),
     "notice_setup": ("Crea una contraseña para que Cotorreando pueda aprender de ti.",
@@ -254,10 +260,10 @@ STRINGS = {
     "unlock_menu": ("Activar mis correcciones…", "Turn on my corrections…"),
     "later": ("Después", "Later"),
     "password_prompt": ("Contraseña de Cotorreando", "Cotorreando password"),
-    "password_new": ("Nueva contraseña. Si la olvidas, tus datos guardados no se pueden recuperar.",
+    "password_new": ("Contraseña nueva. Si la olvidas y no tienes el código, tus datos no se recuperan. Cuídala.",
                      "New password. If you forget it, your saved data cannot be recovered."),
     "password_current": ("Escribe tu contraseña:", "Enter your password:"),
-    "password_wrong": ("Contraseña incorrecta.", "Wrong password."),
+    "password_wrong": ("Esa no es tu contraseña.", "Wrong password."),
     "data_view": ("Ver mis datos…", "View my data…"),
     "export": ("Exportar…", "Export…"),
     "export_password": ("Contraseña del archivo. Puede ser la misma que la de Cotorreando; la necesitarás para "
@@ -268,7 +274,7 @@ STRINGS = {
     "export_dictations_note": ("El archivo será mucho más grande y guardará tu voz.",
                                "The file will be much larger and will hold your voice."),
     "export_done": ("Listo. Tus ajustes y palabras se exportaron.", "Done. Your settings and words were exported."),
-    "export_failed": ("No se pudo exportar.", "Could not export."),
+    "export_failed": ("Vaya Tacubaya, no se pudo exportar.", "Could not export."),
     "import": ("Importar…", "Import…"),
     "import_password": ("Contraseña del archivo que vas a importar:", "Password of the file to import:"),
     "import_ok": ("Importar", "Import"),
@@ -283,7 +289,7 @@ STRINGS = {
                         "This file is not a Cotorreando export, or it comes from a newer version."),
     "import_done": ("Se importaron {words} palabras, {corrections} correcciones y {records} dictados.",
                     "Imported {words} words, {corrections} corrections and {records} dictations."),
-    "import_failed": ("No se pudo importar.", "Could not import."),
+    "import_failed": ("Vaya Tacubaya, no se pudo importar.", "Could not import."),
     "data_title": ("Datos guardados", "Saved data"),
     "data_delete": ("Borrar", "Delete"),
     "data_edit": ("Editar", "Edit"),
@@ -311,15 +317,16 @@ STRINGS = {
                         "Words the model was unsure of. Used for practice and training."),
     "words_hard_times": ("dudó {n} · leída {read}", "unsure {n} · read {read}"),
     "words_none": ("Nada por ahora.", "Nothing yet."),
-    "data_empty": ("Todavía no hay nada guardado.", "Nothing has been saved yet."),
+    "data_empty": ("Todavía no hay nada guardado. Ni un chisme.", "Nothing has been saved yet."),
     "data_delete_all": ("Borrar todo", "Delete everything"),
     "data_confirm": ("¿Borrar todas tus correcciones y lecturas guardadas? No se puede deshacer.",
                      "Delete all your saved corrections and readings? This cannot be undone."),
     "kind_correction": ("Corrección", "Correction"),
     "kind_panel": ("Lectura", "Reading"),
     # Shutdown training
-    "shut_title": ("¿Aprovechar para entrenar?", "Train before leaving?"),
-    "shut_text": ("Tengo cosas nuevas que aprender. Puedo entrenar ahora y después apagar o reiniciar la PC.",
+    "shut_title": ("¿Aprovecho para entrenar?", "Train before leaving?"),
+    "shut_text": ("Ya junté suficientes cosas nuevas que aprender. Puedo entrenar ahora y después apagar o "
+                  "reiniciar la PC.",
                   "I have new things to learn. I can train now and then shut down or restart the PC."),
     "shut_train_off": ("Entrenar y apagar", "Train and shut down"),
     "shut_train_restart": ("Entrenar y reiniciar", "Train and restart"),
@@ -343,22 +350,25 @@ STRINGS = {
     # Welcome (first run)
     "welcome_title": ("Bienvenido a Cotorreando", "Welcome to Cotorreando"),
     "welcome_text": (
-        "<p><b>Tu voz se procesa en esta PC.</b> Sin cuentas, sin telemetría, sin nube. Solo se conecta "
-        "para descargar el modelo de voz la primera vez (~670 MB: Parakeet TDT 0.6B v3 de NVIDIA, licencia "
-        "CC BY 4.0) y dos archivos pequeños que necesita.</p>"
-        "<p>Cotorreando escucha el micrófono mientras está activado y escribe simulando el teclado. "
-        "Si tecleas, se pausa.</p>"
-        "<p>Si lo permites y creas una contraseña, guarda audio y texto de tus correcciones para aprender "
-        "de tu voz, en <b>%LOCALAPPDATA%\\Cotorreando</b>, cifrado con tu contraseña. "
-        "Puedes verlo, borrarlo o desactivarlo en Opciones.</p>"
-        "<p>Una vez al día pregunta a GitHub si hay una versión nueva: una petición web normal, sin "
-        "datos tuyos. Nunca descarga ni instala nada por su cuenta; se apaga en Opciones › Privacidad.</p>"
+        "<p><b>Tu voz se queda en esta PC.</b> Sin cuentas, sin telemetría, sin nube. Solo me conecto "
+        "para bajar el modelo de voz la primera vez (~670 MB: Parakeet TDT 0.6B v3 de NVIDIA, licencia "
+        "CC BY 4.0) y dos archivitos que necesito. Si decides entrenar tu voz, bajo además las "
+        "herramientas para hacerlo (varios GB). Tu audio nunca se sube.</p>"
+        "<p>Mientras estoy activado oigo el micrófono y escribo como si fuera tu teclado. "
+        "Si tecleas, suelto la frase que ibas diciendo para no escribirte encima.</p>"
+        "<p>Si me dejas y creas una contraseña, guardo el audio y el texto de tus correcciones para "
+        "aprender de tu voz, en <b>%LOCALAPPDATA%\\Cotorreando</b>, cifrado con tu contraseña. "
+        "Lo puedes ver, borrar o apagar en Opciones.</p>"
+        "<p>Una vez al día le pregunto a GitHub si hay versión nueva. Es una petición web normal, sin "
+        "datos tuyos, y nunca descargo ni instalo nada por mi cuenta. Lo apagas en Opciones › Privacidad.</p>"
+        "<p>Lo que dices es tuyo. Bueno, tuyo y tal vez del gato.</p>"
         "<p>Las licencias están en Acerca de.</p>",
         "<p><b>Your voice is processed on this PC.</b> No accounts, no telemetry, no cloud. It only "
         "connects to download the voice model the first time (~670 MB: Parakeet TDT 0.6B v3 by NVIDIA, "
-        "CC BY 4.0 license) and two small files it needs.</p>"
+        "CC BY 4.0 license) and two small files it needs. If you choose to train your voice, it also "
+        "downloads the tools for that (several GB). Your audio is never uploaded.</p>"
         "<p>Cotorreando listens to the microphone while it is on and types by simulating the keyboard. "
-        "If you type, it pauses.</p>"
+        "If you type, it drops the sentence you were saying so it never types over you.</p>"
         "<p>If you allow it and create a password, it saves audio and text of your corrections to learn "
         "your voice, in <b>%LOCALAPPDATA%\\Cotorreando</b>, encrypted with your password. "
         "You can view, delete or turn it off in Settings.</p>"

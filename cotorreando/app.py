@@ -130,6 +130,7 @@ class Cotorreando(QObject):
 
         self.blob = Blob(self.s.blob_size)
         self.blob.place(self.s.blob_x, self.s.blob_y)
+        self.blob.set_hotkey(self.s.hotkey)
         self.blob.moved.connect(self._remember_position)
         self.blob.menu_requested.connect(self._show_menu)
         self.level.connect(self.blob.set_level)
@@ -503,6 +504,7 @@ class Cotorreando(QObject):
             return
         set_language(self.s.ui_language)
         self.keyboard.set_hotkey(self.s.hotkey)
+        self.blob.set_hotkey(self.s.hotkey)
         self.blob.set_size(self.s.blob_size)
         set_autostart(self.s.autostart)
         self.holder.idle_s = self.s.model_unload_min * 60
