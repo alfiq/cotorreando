@@ -20,6 +20,9 @@ Revisa el registro antes de pegarlo y **no adjuntes grabaciones ni texto dictado
 de verdad quieras. La privacidad es la razón de ser del proyecto. Más en
 [docs/PRIVACIDAD.md](docs/PRIVACIDAD.md).
 
+Si el problema es una vulnerabilidad de seguridad, no abras un issue: repórtala en privado como se
+indica en [SECURITY.md](SECURITY.md).
+
 ## Proponer una idea
 
 Usa la plantilla **Proponer una idea**. Cuéntanos primero el problema y después la solución.
@@ -44,3 +47,5 @@ Si vas a mover la arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo e
 Si tocas la interfaz, los colores o las imágenes, sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md).
 
 Al contribuir aceptas que tu aporte se publique bajo la [licencia MIT](LICENSE) del proyecto.
+
+Participar en el proyecto implica seguir el [Código de conducta](CODE_OF_CONDUCT.md).

@@ -139,6 +139,8 @@ instala aparte, solo si tú se lo pides. Los detalles están en [docs/LORA.md](d
 - [docs/VERSIONES.md](docs/VERSIONES.md): cómo se numeran las versiones y cómo se publica una.
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): licencias y créditos.
 - [CONTRIBUTING.md](CONTRIBUTING.md): cómo reportar fallos, proponer ideas y aportar código.
+- [SECURITY.md](SECURITY.md): cómo reportar una vulnerabilidad en privado.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): las reglas de convivencia del proyecto.
 
 ## Créditos
 
