@@ -6,11 +6,17 @@ import pytest
 from cotorreando import learning
 from cotorreando.config import Settings
 from cotorreando.learning import (
-    Learner, Pending, custom_word_ok, find_corrections, fit_start, phrase_alpha, sound_alike,
-    _plain, _sound,
+    Learner,
+    Pending,
+    _plain,
+    _sound,
+    custom_word_ok,
+    find_corrections,
+    fit_start,
+    phrase_alpha,
+    sound_alike,
 )
 from cotorreando.vault import WrongPassword
-
 
 # -- pure text helpers --------------------------------------------------------------
 

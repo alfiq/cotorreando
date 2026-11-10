@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["nuitka"]
-test = ["pytest"]
+test = ["pytest", "ruff"]
 
 [project.urls]
 Homepage = "https://github.com/alfiq/cotorreando"
@@ -41,3 +41,16 @@ cotorreando = ["lora/datasets/*.txt", "lora/requirements-*.txt", "assets/*.png",
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = ["graft", "dist", "_site", "build", "cotorreando.egg-info"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = [
+    "E501",   # i18n strings, CSS and license tables are long on purpose; there is no formatter yet
+    "B905",   # zip(strict=...) would change behavior; lengths are matched by construction
+    "UP031",  # the Qt stylesheet is a %(NAME)s template filled from the palette
+]

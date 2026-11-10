@@ -10,16 +10,23 @@ from html import escape
 
 import numpy as np
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QProgressBar,
-                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
+from .. import palette
 from ..asr import Stream
 from ..audio import AudioInput, list_microphones
-from ..dialogs import Window
-from ..dialogs import UnlockDialog
+from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
 from ..mosaic import Mosaic
-from .. import palette
 from ..paths import DATA_DIR
 from ..vault import reading_path
 from . import env, job

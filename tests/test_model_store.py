@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import shutil
 import urllib.error
 from collections import namedtuple
 from types import SimpleNamespace
@@ -10,8 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from cotorreando import asr, model_store
-from cotorreando.model_store import (Cancelled, DownloadFailed, InvalidModel, NoConnection,
-                                     NotEnoughSpace)
+from cotorreando.model_store import Cancelled, DownloadFailed, InvalidModel, NoConnection, NotEnoughSpace
 
 BASE = "https://example.invalid/"
 FILES = {name: bytes([i + 1]) * (1000 * (i + 1)) for i, name in enumerate(model_store.FILES)}

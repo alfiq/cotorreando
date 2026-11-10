@@ -40,9 +40,10 @@ Para preparar el entorno y correr las pruebas:
 ```bash
 pip install -e ".[test]"
 python -m pytest -q
+python -m ruff check .
 ```
 
-Antes de enviar, revisa que las pruebas pasen y que tu código se parezca al que ya está.
+Antes de enviar, revisa que las pruebas y `ruff check .` pasen y que tu código se parezca al que ya está.
 Si vas a mover la arquitectura, [docs/DISENO.md](docs/DISENO.md) explica cómo encaja todo.
 Si tocas la interfaz, los colores o las imágenes, sigue [docs/IDENTIDAD.md](docs/IDENTIDAD.md).
 

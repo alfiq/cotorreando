@@ -5,7 +5,6 @@ from dataclasses import asdict
 from types import SimpleNamespace
 
 import numpy as np
-import pyrage
 import pytest
 from pyrage import passphrase
 
@@ -211,7 +210,7 @@ def test_merge_requires_unlock(unlocked_vault):
 def test_merge_is_all_or_nothing_on_bad_hard_word(unlocked_vault):
     seed(unlocked_vault)
     head = head_of(custom_words=["nuevo"], corrections={"a|b": 1}, hard_words={"x": {"count": 1}})
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017  any failure must leave the vault untouched
         transfer.merge(unlocked_vault, head, b"")
     assert unlocked_vault.load_private("custom_words", None) == []
     assert unlocked_vault.load_private("corrections", None) == {}
@@ -223,7 +222,7 @@ def test_merge_is_all_or_nothing_on_truncated_audio(unlocked_vault):
     head = head_of(custom_words=["nuevo"],
                    records=[{"id": "R1", "meta": {"kind": "correction", "text": "a"}, "samples": 4},
                             {"id": "R2", "meta": {"kind": "correction", "text": "b"}, "samples": 4}])
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017  any failure must leave the vault untouched
         transfer.merge(unlocked_vault, head, audio)
     assert unlocked_vault.record_ids() == []
     assert unlocked_vault.load_private("custom_words", None) == []

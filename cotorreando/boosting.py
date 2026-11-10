@@ -81,7 +81,7 @@ class BoostingTree:
                 ids[id(child)] = len(order) + 1
                 order.append(child)
                 queue.append(child)
-        for child in order:
+        for _ in order:
             self.arcs.append({})
             self.backoff_to.append(0)
             self.backoff_w.append(0.0)

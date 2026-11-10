@@ -25,18 +25,28 @@ from ctypes import wintypes
 from pathlib import Path
 
 import numpy as np
-
 from PySide6.QtCore import QAbstractNativeEventFilter, QObject, QPoint, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from . import asr, model_store
+from . import __version__, asr, model_store, palette, updates
 from .audio import AudioInput
 from .blob import Blob
 from .config import Settings
-from .dialogs import (AboutDialog, apply_theme, DownloadDialog, ModelErrorDialog, Notice, SettingsDialog,
-                      SetupDialog, UnlockDialog, WelcomeDialog, choose_model_folder, model_error_text,
-                      styled_menu)
+from .dialogs import (
+    AboutDialog,
+    DownloadDialog,
+    ModelErrorDialog,
+    Notice,
+    SettingsDialog,
+    SetupDialog,
+    UnlockDialog,
+    WelcomeDialog,
+    apply_theme,
+    choose_model_folder,
+    model_error_text,
+    styled_menu,
+)
 from .i18n import set_language, tr
 from .keyboard import KeyboardMonitor, foreground, ours_in_front, replace_text, type_text
 from .learning import Learner, fit_start
@@ -44,8 +54,6 @@ from .listener import Listener
 from .lora import env
 from .paths import DATA_DIR, MODELS_DIR
 from .residency import ModelHolder
-from . import __version__, updates
-from . import palette
 
 log = logging.getLogger(__name__)
 UPDATE_DELAY_MS = 30_000   # let the app settle before going online
@@ -519,7 +527,7 @@ class Cotorreando(QObject):
         self._prepare_model()
 
     def open_training(self) -> None:
-        from .lora.ui import CalibrationDialog   # rarely used, load lazily
+        from .lora.ui import CalibrationDialog  # rarely used, load lazily
         if self.calibration is not None:
             self.calibration.show()
             self.calibration.raise_()

@@ -9,6 +9,7 @@ reconocimiento corre en local (Parakeet sobre ONNX Runtime). Código en `cotorre
 ```bash
 pip install -e ".[test]"
 python -m pytest -q
+python -m ruff check .
 ```
 
 ## Reglas

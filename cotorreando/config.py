@@ -77,7 +77,7 @@ class Settings:
     hidden: bool = False
 
     @classmethod
-    def load(cls) -> "Settings":
+    def load(cls) -> Settings:
         try:
             data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
         except (OSError, ValueError):

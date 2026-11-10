@@ -195,7 +195,7 @@ class Parakeet:
         encoded, enc_len = self.encoder.run(None, {"audio_signal": features, "length": lengths})
         return encoded[0, :, :int(enc_len[0])]
 
-    def decode(self, encoded: np.ndarray, start: int, end: int, state: "DecoderState",
+    def decode(self, encoded: np.ndarray, start: int, end: int, state: DecoderState,
                trace: list | None = None) -> str:
         """Greedy TDT over frames ``start..end``, continuing from ``state``.
 

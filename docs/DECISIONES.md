@@ -36,6 +36,7 @@
 | Repositorio | [`github.com/alfiq/cotorreando`](https://github.com/alfiq/cotorreando), privado al principio. |
 | Distribución | Ejecutable con **Nuitka** (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
 | Reportes de seguridad y de conducta | Por el canal privado de GitHub, sin correo público en el repositorio: un solo canal que no hay que mantener ni que se filtre. Ver [SECURITY.md](https://github.com/alfiq/cotorreando/blob/main/SECURITY.md) y [CODE_OF_CONDUCT.md](https://github.com/alfiq/cotorreando/blob/main/CODE_OF_CONDUCT.md). |
+| Linter | **ruff** con las reglas E, F, I, B y UP, en CI antes de las pruebas. Se ignoran E501 (textos de interfaz, CSS y licencias largos a propósito), B905 (`strict=` en `zip` cambiaría el comportamiento) y UP031 (la hoja de estilos de Qt es una plantilla `%(NOMBRE)s`). El formateador se aplica aparte, en otro cambio; pyright vendrá después y solo como aviso. |
 | Sumas de verificación de los instaladores | Cada Release publica `SHA256SUMS.txt` con el SHA-256 del instalador con versión y del fijo. GitHub también muestra los digests, pero un archivo se puede comprobar sin conexión y winget lo usará. |
 
 ## Cambios sobre la marcha

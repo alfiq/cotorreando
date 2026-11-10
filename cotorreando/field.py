@@ -10,7 +10,8 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-from concurrent.futures import Future, TimeoutError as FutureTimeout
+from concurrent.futures import Future
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass
 from typing import Any
 

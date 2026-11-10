@@ -7,14 +7,22 @@ import threading
 
 import numpy as np
 from PySide6.QtCore import QPropertyAnimation, Qt, QTimer, Signal
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QProgressBar,
-                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
+from .. import palette
 from ..audio import AudioInput
 from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
 from ..mosaic import Mosaic
-from .. import palette
 from . import env, job
 
 log = logging.getLogger(__name__)

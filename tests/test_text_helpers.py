@@ -7,7 +7,6 @@ import pytest
 
 from cotorreando import vad
 
-
 # -- ensure_model --------------------------------------------------------------------
 
 @pytest.fixture

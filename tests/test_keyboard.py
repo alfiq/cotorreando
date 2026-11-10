@@ -3,8 +3,7 @@
 import pytest
 
 from cotorreando import keyboard
-from cotorreando.keyboard import (HotkeyRecorder, hotkey_from_vks, hotkey_label, hotkey_valid,
-                                  parse_hotkey)
+from cotorreando.keyboard import HotkeyRecorder, hotkey_from_vks, hotkey_label, hotkey_valid, parse_hotkey
 
 LCTRL, RCTRL, CTRL = 0xA2, 0xA3, 0x11
 LSHIFT, LALT, LWIN, RWIN = 0xA0, 0xA4, 0x5B, 0x5C

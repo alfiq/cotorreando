@@ -10,25 +10,40 @@ import time
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPalette
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDoubleSpinBox,
-                               QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QMenu, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
-                               QStackedWidget, QTabBar, QTextBrowser, QToolTip, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QMenu,
+    QPlainTextEdit,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QStackedWidget,
+    QTabBar,
+    QTextBrowser,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
+)
 
-from . import AUTHOR_URL, REPO_URL, __author__, __version__
+from . import AUTHOR_URL, REPO_URL, __author__, __version__, keyboard, model_store, palette, transfer, vault_legacy
 from .audio import RATE, Player, list_microphones
+from .config import Settings
 from .credits import CREDITS, TRAINING_CREDITS
 from .i18n import tr
-from . import keyboard
-from .config import Settings
 from .keyboard import HotkeyRecorder, hotkey_label, parse_hotkey
 from .learning import phrase_alpha
-from . import model_store
-from . import palette
 from .mosaic import Mosaic, logo_pixmap
 from .paths import MODELS_DIR, PACKAGE_DIR
-from . import transfer
-from . import vault_legacy
 from .vault import WrongPassword, password_problem
 
 log = logging.getLogger(__name__)

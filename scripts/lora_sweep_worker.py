@@ -19,10 +19,9 @@ import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "cotorreando" / "lora"))
-import train as T  # noqa: E402
-
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
+import train as T  # noqa: E402
 from torch import nn  # noqa: E402
 
 DEFAULTS = {"targets": "attn,ffn", "layers": "all", "rank": 4, "alpha": 8.0, "lr": 2e-4, "steps": 150,

@@ -605,7 +605,7 @@ def load_base(name: str):
 
 
 def main() -> None:
-    import nemo.collections.asr as nemo_asr
+    import nemo.collections.asr  # noqa: F401  fail early if NeMo is missing
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", type=Path)

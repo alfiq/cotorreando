@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-from cotorreando import i18n
 from cotorreando.i18n import STRINGS
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
