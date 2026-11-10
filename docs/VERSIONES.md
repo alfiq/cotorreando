@@ -80,6 +80,41 @@ versión pequeña que funciona que una grande a medias.
    pregunta por `releases/latest`, que ignora ambos, y compara su etiqueta (sin la `v`) con la
    versión instalada. Una etiqueta que no sea `vX.Y.Z` se ignora.
 
+## Botón de descarga del sitio
+
+La portada del sitio de documentación abre con un botón que descarga el instalador más reciente.
+El bloque (texto y estilos) está en `docs/conf.py`, en `DESCARGA` y en la hoja `CSS`.
+
+Cómo funciona:
+
+1. El botón apunta a
+   `https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe`. GitHub
+   redirige esa dirección al archivo con ese nombre de la última Release publicada (ni borradores
+   ni pre-releases).
+2. `build.ps1` deja el instalador con la versión en el nombre (`Cotorreando-X.Y.Z-setup.exe`), y
+   es el único que se sube a mano con `gh release create`.
+3. Al publicarse la Release, el workflow `.github/workflows/instalador-fijo.yml` descarga ese
+   instalador y lo vuelve a subir a la misma Release como `Cotorreando-setup.exe`. Da igual si es
+   parche, menor o mayor.
+
+Comprobar que funciona, tras publicar:
+
+```bash
+curl -sIL -o /dev/null -w "%{http_code}
+" https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe
+```
+
+Tiene que dar `200`. Si da `404`, a la última Release le falta el archivo con nombre fijo (el
+workflow falló o la Release se creó antes de que existiera). Se arregla lanzándolo a mano con la
+etiqueta; se puede repetir sin problema, porque reemplaza el archivo si ya estaba:
+
+```bash
+gh workflow run instalador-fijo.yml -f tag=vX.Y.Z
+```
+
+No hay que renombrar el instalador de `installer.iss` ni subir la copia a mano: el nombre con
+versión lo usan las personas que bajan una versión concreta, y el fijo solo existe para el botón.
+
 ## Búsqueda de actualizaciones
 
 La app, si está activado en Opciones › Privacidad, consulta una vez al día
