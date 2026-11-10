@@ -1,5 +1,15 @@
 # Cambios
 
+## 0.1.3 — 2026-11-09
+
+- Los textos de la app y de la documentación hablan de tú y con más soltura: avisos de error más
+  claros, una bienvenida más cercana y un recordatorio de imprimir el código de recuperación.
+- Al pasar el mouse sobre la cotorra sale un globito con una frase distinta cada vez y el atajo
+  para dictar.
+- La página de privacidad dice con más precisión qué revisa del teclado y el mouse, que al teclear
+  se descarta la frase en curso, qué lee del campo al empezar a dictar y dónde queda la caché del
+  entrenamiento. La versión en inglés ya dice lo mismo que la española. 
+
 ## 0.1.2 — 2026-11-09
 
 - Los colores de la interfaz, el blob y el icono de la bandeja salen ahora de la cotorra: verde,
