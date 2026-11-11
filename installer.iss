@@ -5,7 +5,7 @@
 ; doing the work; [Code] covers them with a single stage and changes its text.
 
 #include "dist\palette.iss"
-#define AppVersion "0.1.3"
+#define AppVersion "0.1.4"
 
 [Setup]
 AppId={{6F2C3B1E-8A4D-4C55-9E21-C0770EA2D0F1}

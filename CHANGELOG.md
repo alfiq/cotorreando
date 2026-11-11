@@ -1,19 +1,14 @@
 # Cambios
 
-## Sin publicar
+## 0.1.4 — 2026-11-10
 
-- El instalador ya no lleva la firma autofirmada, que Windows no reconocía. Cada Release se compila,
-  se prueba (instalación silenciosa, `--self-test` y desinstalación) y se publica desde GitHub
-  Actions al crear la etiqueta.
-- Cada Release trae `SHA256SUMS.txt` para comprobar el instalador.
-- La instalación silenciosa (`/VERYSILENT`) ya no se detiene en la página legal.
-- Nueva opción `--self-test`, que revisa que el ejecutable cargue todas sus bibliotecas sin abrir
-  la interfaz.
-- Versiones mínimas en `pyproject.toml` y `requirements.lock` con hashes para compilar siempre
-  con las mismas dependencias.
-- ruff (lint y formato) en CI y pyright como aviso.
-- Política de seguridad (`SECURITY.md`) y código de conducta (Contributor Covenant 2.1, traducción oficial), con reporte privado desde GitHub.
-- Manifiestos de winget listos; el paquete se publicará cuando Microsoft lo acepte.
+- El instalador ya no trae la firma autofirmada, que Windows no reconocía. Windows puede seguir
+  mostrando el aviso de SmartScreen; para comprobar que el instalador es el nuestro, cada versión
+  trae `SHA256SUMS.txt`.
+- Cada versión se compila y se prueba sola en GitHub antes de publicarse: se instala, se revisa que
+  arranque con todas sus piezas y se desinstala.
+- La instalación silenciosa (`/VERYSILENT`) ya no se queda detenida en la página legal.
+- Hay una política de seguridad para reportar fallos en privado y un código de conducta.
 
 ## 0.1.3 — 2026-11-09
 
