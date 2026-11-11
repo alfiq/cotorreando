@@ -283,7 +283,8 @@ begin
   else if CurPageID = StoryLegal.ID then begin
     Say('Legal', 'LegalText');
     WizardForm.NextButton.Caption := CustomMessage('Install');
-    WizardForm.NextButton.Enabled := AcceptBox.Checked;
+    // A silent install has no one to tick the box; like Inno's own license page, it counts as accepted.
+    WizardForm.NextButton.Enabled := AcceptBox.Checked or WizardSilent;
   end else if CurPageID = wpPreparing then
     Say('Closing', 'ClosingText')
   else if CurPageID = wpInstalling then
