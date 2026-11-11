@@ -1,0 +1,8 @@
+# Archivos binarios: sin conversión de finales de línea ni diffs de texto.
+*.png binary
+*.jpg binary
+*.ico binary
+*.bmp binary
+*.mp4 binary
+*.wav binary
+*.onnx binary
