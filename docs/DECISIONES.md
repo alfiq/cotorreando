@@ -94,6 +94,17 @@ Al pasar el mouse sobre la cotorra sale un globito con una frase distinta cada v
 que decir?», «Cuenta el chisme.», «A ver, cuéntamelo todo.») y el atajo al final. Los botones y
 menús se quedan sobrios; el juego va solo en los globitos.
 
+#### Video de presentación
+Un video de 31 s en la portada del sitio (`docs/_extra/cotorreando.mp4`). Para el README se sube
+por la web de GitHub, que solo así lo muestra como reproductor. Va en git y no en Git LFS: pesa
+2,5 MB y el workflow del sitio no baja archivos de LFS; `.gitattributes` lo marca como binario. La
+miniatura (`cotorreando.jpg`, también el primer cuadro del video) es la cotorra con sus plumas y no
+el logo, para no repetir el banner que va encima. La narración describe lo que se ve, para quien no ve, y los subtítulos van dentro
+de la imagen, para quien no oye; por eso no lleva pista de subtítulos aparte, que los duplicaría, y
+en su lugar el sitio muestra la transcripción en texto. La cotorra del video es el `Blob` real,
+renderizado cuadro a cuadro con el volumen de la narración, no una imitación. Voz sintética
+(Kokoro-82M, Apache-2.0) y música de Sascha Ende (CC BY 4.0), con crédito en el video y en el sitio.
+
 ## Pendientes
 
 - [ ] Confirmar con más grabaciones reales que el LoRA mejora. En el barrido mejoró en 2 de 6

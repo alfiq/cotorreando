@@ -98,6 +98,14 @@ h1, h2, h3, h4, .navbar-brand { font-weight: 600; }
 }
 .descarga .boton:hover { background: var(--pst-color-primary-bg); color: var(--pst-color-background); }
 .descarga .resto { margin: .75rem 0 0; color: var(--pst-color-text-muted); }
+.video { margin: 0 0 2rem; }
+.video video {
+  display: block; width: 100%; height: auto; border-radius: 12px;
+  border: 1px solid var(--pst-color-border); background: var(--pst-color-background);
+}
+.video details { margin-top: .75rem; }
+.video summary { cursor: pointer; color: var(--pst-color-link); }
+.video .creditos { margin: .5rem 0 0; font-size: .875rem; color: var(--pst-color-text-muted); }
 """
 
 _static = Path(tempfile.mkdtemp(prefix="cotorreando-docs-"))
@@ -111,6 +119,32 @@ DESCARGA = """
 <p>¿Vienes por la descarga? Aquí está, cotorro.</p>
 <a class="boton" href="https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe">Descargar Cotorreando para Windows</a>
 <p class="resto">¡Luego me cuentas cómo te fue! Y ahora, para los demás:</p>
+</div>
+"""
+
+# El video de presentación (docs/_extra, copiado a la raíz). Los subtítulos van dentro de la imagen,
+# así que no lleva pista aparte; la transcripción queda en texto para lectores de pantalla.
+VIDEO = """
+<div class="video">
+<video controls preload="metadata" poster="cotorreando.jpg" width="1920" height="1080"
+  aria-label="Video de presentación de Cotorreando, 31 segundos, con narración y subtítulos">
+<source src="cotorreando.mp4" type="video/mp4">
+<a href="cotorreando.mp4">Descargar el video de presentación (MP4, 3 MB)</a>
+</video>
+<details>
+<summary>Transcripción del video</summary>
+<p>Hablas, y el texto aparece donde tienes el cursor. <em>Una ventana de notas: las palabras
+aparecen mientras se dicen, y la cotorra pasa de escuchando a hablando y escribiendo.</em></p>
+<p>En el navegador, en el editor, en el chat. Con puntuación y mayúsculas. <em>Tres ventanas con
+frases dictadas; se marcan los signos y las mayúsculas.</em></p>
+<p>Todo pasa en tu computadora. Sin nube, sin cuentas y sin telemetría. Tu audio nunca se sube.
+<em>La cotorra dentro de un monitor, con esas tres promesas una a una.</em></p>
+<p>Un círculo flotante te dice en qué anda: escuchando, hablando, escribiendo. <em>Tres
+cotorras grises que se encienden, cada una en su estado.</em></p>
+<p>Cotorreando. Dictado por voz para Windows, de código abierto. <em>El logo se arma azulejo por
+azulejo.</em></p>
+</details>
+<p class="creditos">Voz: Kokoro-82M. Música: Sascha Ende, ende.app (CC BY 4.0).</p>
 </div>
 """
 
@@ -133,6 +167,7 @@ def _portada():
     return (
         "![Cotorreando](assets/banner.png)\n"
         + DESCARGA
+        + VIDEO
         + "\n"
         + cuerpo
         + "\n\n```{toctree}\n:hidden:\n:maxdepth: 1\n\n"
