@@ -162,3 +162,34 @@ jobs:
           gh release create $env:TAG $versionado Cotorreando-setup.exe SHA256SUMS.txt `
             --title $version --notes-file notas.md --verify-tag
           if ($LASTEXITCODE -ne 0) { throw "gh release create falló" }
+
+  # Abre el PR con la versión nueva en microsoft/winget-pkgs. Necesita el secreto WINGET_TOKEN
+  # (PAT clásico con public_repo) y que el paquete ya exista en winget-pkgs: la primera
+  # versión se envía a mano (docs/VERSIONES.md, sección winget). Sin el secreto, se omite.
+  winget:
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: {}
+    env:
+      # Los secretos no se pueden usar en `if:`; se pasan por el entorno del paso.
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: Comprobar el secreto WINGET_TOKEN
+        id: secreto
+        shell: bash
+        run: |
+          if [ -n "$WINGET_TOKEN" ]; then
+            echo "hay=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::WINGET_TOKEN no está configurado; se omite la publicación en winget."
+            echo "hay=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publicar en winget
+        if: steps.secreto.outputs.hay == 'true'
+        uses: vedantmgoyal9/winget-releaser@b7370d4d152efdce803a26cc6ca9eee58cb2ad54   # v2
+        with:
+          identifier: Alfiq.Cotorreando
+          installers-regex: 'Cotorreando-\d+\.\d+\.\d+-setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}

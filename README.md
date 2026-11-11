@@ -105,6 +105,13 @@ Antes de aceptar la carpeta, abre los tres grafos en ONNX Runtime y revisa sus e
 Ojo: con un modelo propio no se usan las adaptaciones LoRA, porque están entrenadas sobre el modelo
 de fábrica.
 
+### winget (pendiente)
+
+El paquete `Alfiq.Cotorreando` está preparado para el repositorio comunitario de winget, pero
+todavía no está publicado ahí. Por ahora, instala desde la
+[página de Releases](https://github.com/alfiq/cotorreando/releases). Cuando Microsoft lo acepte,
+bastará `winget install Alfiq.Cotorreando`; este apartado se actualizará entonces.
+
 ### Ejecutable
 
 ```bash

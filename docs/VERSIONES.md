@@ -139,6 +139,49 @@ Compara el valor `Hash` (en minúsculas o mayúsculas, da igual) con la línea d
 `SHA256SUMS.txt` que termina en `Cotorreando-setup.exe`. Si no coinciden, no ejecutes el
 instalador y vuelve a bajarlo.
 
+## winget
+
+[winget](https://learn.microsoft.com/windows/package-manager/) es el gestor de paquetes de Windows.
+Los paquetes salen del repositorio comunitario
+[microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs), donde cada versión es un PR con
+un manifiesto que apunta al instalador y a su SHA-256. Cuando Microsoft acepte el paquete,
+se instalará con `winget install Alfiq.Cotorreando`.
+
+El manifiesto usa siempre el instalador **con versión** (`Cotorreando-X.Y.Z-setup.exe`), nunca el de
+nombre fijo: el fijo cambia de contenido en cada Release y el SHA-256 dejaría de coincidir. El
+instalador es Inno Setup, por usuario y sin permisos de administrador. El `ProductCode` es el
+`AppId` de `installer.iss` más `_is1`. Los manifiestos de la 0.1.3 están en
+`winget/manifests/a/Alfiq/Cotorreando/0.1.3/`; se validan con
+`winget validate --manifest <carpeta>`.
+
+### Primera vez (a mano, solo la persona dueña del repositorio)
+
+El job `winget` de `release.yml` solo puede actualizar un paquete que ya existe en winget-pkgs,
+así que la primera versión se envía a mano. Esto no lo hace ningún workflow ni agente.
+
+1. Haz un fork de `microsoft/winget-pkgs` en tu cuenta (`alfiq`).
+2. Envía los manifiestos de la 0.1.3, con una de dos vías:
+   - `wingetcreate submit winget/manifests/a/Alfiq/Cotorreando/0.1.3` (pide un token de GitHub
+     la primera vez), o
+   - un PR a mano desde tu fork con esa carpeta copiada en
+     `manifests/a/Alfiq/Cotorreando/0.1.3/`.
+3. Atiende la revisión del PR (validación automática y revisión humana de winget-pkgs) hasta que
+   se acepte. Solo entonces el paquete existe en winget.
+4. Crea un token de acceso personal **clásico** con el alcance `public_repo` y guárdalo en el
+   repositorio `alfiq/cotorreando` como secreto `WINGET_TOKEN`
+   (Settings, Secrets and variables, Actions).
+
+### Después (automático)
+
+Al empujar una etiqueta `vX.Y.Z`, el job `winget` corre tras `publish`: usa
+[winget-releaser](https://github.com/vedantmgoyal9/winget-releaser) (fijado por SHA de commit) para
+tomar el instalador con versión de la Release, calcular su SHA-256 y abrir el PR de la versión
+nueva en winget-pkgs desde tu fork. Está en el mismo workflow porque las Releases creadas con
+`GITHUB_TOKEN` no disparan el evento `release` de otros workflows. Sin el secreto `WINGET_TOKEN`
+el job se omite con un aviso. El PR todavía lo revisa winget-pkgs; la versión llega a los usuarios
+cuando lo aceptan. No hace falta tocar `winget/manifests/` en cada versión: esa carpeta es
+la referencia de la primera.
+
 ## Actualizar dependencias
 
 Las versiones exactas viven en `requirements.lock`, con hashes SHA-256; `build.ps1` y CI (Python
