@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 build = ["nuitka>=4.3"]
-test = ["pytest>=9.2", "ruff>=0.17"]
+test = ["pytest>=9.2", "ruff>=0.17", "pyright>=1.1.414"]
 
 [project.urls]
 Homepage = "https://github.com/alfiq/cotorreando"
@@ -41,6 +41,18 @@ cotorreando = ["lora/datasets/*.txt", "lora/requirements-*.txt", "assets/*.png",
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.10"
+include = [
+    "cotorreando/vault.py",
+    "cotorreando/config.py",
+    "cotorreando/model_store.py",
+    "cotorreando/learning.py",
+    "cotorreando/boosting.py",
+    "cotorreando/transfer.py",
+]
 
 [tool.ruff]
 target-version = "py310"

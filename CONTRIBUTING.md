@@ -42,6 +42,7 @@ pip install -e ".[test]"
 python -m pytest -q
 python -m ruff check .
 python -m ruff format .
+python -m pyright   # solo aviso: no bloquea el CI
 ```
 
 Las versiones exactas de las dependencias están en `requirements.lock`. Si cambias las

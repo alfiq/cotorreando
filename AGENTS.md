@@ -11,6 +11,7 @@ pip install -e ".[test]"
 python -m pytest -q
 python -m ruff check .
 python -m ruff format .
+python -m pyright   # solo aviso: no bloquea el CI
 ```
 
 ## Reglas
