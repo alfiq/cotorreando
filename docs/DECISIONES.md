@@ -37,6 +37,8 @@
 | Distribución | Ejecutable con **Nuitka** (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
 | Reportes de seguridad y de conducta | Por el canal privado de GitHub, sin correo público en el repositorio: un solo canal que no hay que mantener ni que se filtre. Ver [SECURITY.md](https://github.com/alfiq/cotorreando/blob/main/SECURITY.md) y [CODE_OF_CONDUCT.md](https://github.com/alfiq/cotorreando/blob/main/CODE_OF_CONDUCT.md). |
 | Linter | **ruff** con las reglas E, F, I, B y UP, en CI antes de las pruebas. Se ignoran E501 (textos de interfaz, CSS y licencias largos a propósito), B905 (`strict=` en `zip` cambiaría el comportamiento) y UP031 (la hoja de estilos de Qt es una plantilla `%(NOMBRE)s`). También `ruff format` (líneas de 120), comprobado en CI; el commit de formato está en `.git-blame-ignore-revs` para que `git blame` lo salte; pyright vendrá después y solo como aviso. |
+| Firma del instalador | **Sin firma** por ahora. Se quitó la autofirmada (`CN=Alfiq`): Windows no confía en ella, SmartScreen avisaba igual que sin firma, ataba las compilaciones al certificado de una sola PC y puede estorbar la validación de winget. La forma de comprobar el instalador es `SHA256SUMS.txt`. Una firma reconocida (Authenticode de una autoridad o un servicio de firma para software libre) sigue pendiente. |
+| Release en CI | La compila, prueba y publica `.github/workflows/release.yml` al empujar una etiqueta `vX.Y.Z`: `build.ps1`, `--self-test` del ejecutable empaquetado, instalación y desinstalación silenciosas con `--self-test` del instalado, y Release con el instalador con versión, el fijo y `SHA256SUMS.txt`. Así no depende de una PC concreta y lo publicado es lo que se probó. A mano (`workflow_dispatch`) solo construye y prueba. |
 | Sumas de verificación de los instaladores | Cada Release publica `SHA256SUMS.txt` con el SHA-256 del instalador con versión y del fijo. GitHub también muestra los digests, pero un archivo se puede comprobar sin conexión y winget lo usará. |
 | Dependencias | `pyproject.toml` solo pone pisos (`>=`) sin techo, redondeados a lo instalado cuando se fijaron. `requirements.lock` fija cada paquete con hash SHA-256 y es lo que instalan `build.ps1` y el job de Python 3.12 de CI; el de 3.10 resuelve libre para detectar roturas de versiones nuevas. Dos pisos (`numpy`, `onnxruntime-directml`) quedan por debajo de lo instalado porque Python 3.10 no tiene wheels más nuevas. No se prueban las versiones mínimas: duplicaría la matriz de CI y los pisos se subirían igual en cuanto el código use algo nuevo. |
 
@@ -83,8 +85,8 @@ Configurable: pequeño, mediano o grande.
 
 #### Descarga directa en el sitio
 La portada del sitio abre con un botón que baja el instalador más reciente. Apunta a
-`releases/latest/download/Cotorreando-setup.exe`, y al publicar cada Release un workflow le sube una
-copia del instalador con ese nombre fijo. No usa la API de GitHub ni JavaScript.
+`releases/latest/download/Cotorreando-setup.exe`, y el workflow que publica cada Release le sube
+una copia del instalador con ese nombre fijo. No usa la API de GitHub ni JavaScript.
 
 #### Globito de la cotorra
 Al pasar el mouse sobre la cotorra sale un globito con una frase distinta cada vez («¿Tienes algo

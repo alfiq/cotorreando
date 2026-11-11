@@ -18,8 +18,8 @@ llevan una `v` delante (`v0.0.9`); los archivos, no (`0.0.9`).
 
 ## Cuándo lanzar
 
-Cuando hay un conjunto coherente de cambios en `main`, las pruebas pasan y el instalador se
-construye y se probó a mano en una PC. No hace falta esperar a juntar mucho: es mejor una
+Cuando hay un conjunto coherente de cambios en `main` y las pruebas pasan. CI construye y prueba
+el instalador antes de publicarlo. No hace falta esperar a juntar mucho: es mejor una
 versión pequeña que funciona que una grande a medias.
 
 ## Pasos
@@ -51,12 +51,14 @@ versión pequeña que funciona que una grande a medias.
    .venv\Scripts\python -m pytest -q
    ```
 
-4. **Construir** con `.\build.ps1`. Deja `dist\Cotorreando-0.0.9-setup.exe`. Instálalo y
-   pruébalo encima de la versión anterior.
+   Si quieres probar el instalador antes de etiquetar, `.uild.ps1` lo deja en
+   `dist\Cotorreando-0.0.9-setup.exe` (hace falta Inno Setup 6). Es opcional: CI lo vuelve a
+   construir. También puedes lanzar el workflow `release.yml` a mano (`gh workflow run
+   release.yml`), que construye y prueba sin publicar y deja el instalador como artefacto.
 
-5. **Unir a `main`** (PR o merge) y hacer commit de la versión si no estaba.
+4. **Commit en `main`** con la versión y el CHANGELOG (PR o merge).
 
-6. **Etiquetar y subir.**
+5. **Etiquetar y subir.**
 
    ```powershell
    git checkout main
@@ -65,20 +67,29 @@ versión pequeña que funciona que una grande a medias.
    git push origin main --tags
    ```
 
-7. **Crear el Release en GitHub** sobre la etiqueta `v0.0.9`, con el texto del CHANGELOG y el
-   `setup.exe` adjunto:
+6. **CI publica la Release.** Al llegar la etiqueta, `.github/workflows/release.yml`:
 
-   ```powershell
-   gh release create v0.0.9 dist\Cotorreando-0.0.9-setup.exe --title "0.0.9" --notes-file notas.md
-   ```
+   1. comprueba que la etiqueta coincide con la versión de `pyproject.toml`;
+   2. construye con `build.ps1`, que corre `Cotorreando.exe --self-test` sobre el programa
+      empaquetado y aborta si falla;
+   3. pasa las pruebas;
+   4. instala en silencio, corre `--self-test` sobre el programa instalado y desinstala en
+      silencio;
+   5. crea la Release `v0.0.9` con título `0.0.9`, las notas de su sección del CHANGELOG, y sube
+      `Cotorreando-0.0.9-setup.exe`, la copia `Cotorreando-setup.exe` y `SHA256SUMS.txt`.
 
-   Al publicarse, el workflow `instalador-fijo.yml` sube una copia con el nombre fijo
-   `Cotorreando-setup.exe`, que es a lo que apunta el botón de descarga del sitio
-   (`releases/latest/download/Cotorreando-setup.exe`). No hay que subirla a mano.
+   Si algo falla no se publica nada: se corrige, se borra la etiqueta (`git push --delete origin
+   v0.0.9` y `git tag -d v0.0.9`) y se vuelve a etiquetar.
 
-   No lo marques como borrador ni como pre-release: la búsqueda de actualizaciones de la app
+   La Release no sale como borrador ni como pre-release: la búsqueda de actualizaciones de la app
    pregunta por `releases/latest`, que ignora ambos, y compara su etiqueta (sin la `v`) con la
    versión instalada. Una etiqueta que no sea `vX.Y.Z` se ignora.
+
+`--self-test` también se puede correr a mano: `python -m cotorreando --self-test`, o
+`Cotorreando.exe --self-test --self-test-log salida.txt` (el ejecutable no tiene consola, así que
+las líneas van al archivo). Comprueba que cargan los módulos, ONNX Runtime con un modelo mínimo,
+livekit, PortAudio, tokenizers, cryptography, pyrage, comtypes y Qt, sin abrir ventanas ni tocar
+tus datos. Termina con código 0 si todo pasó.
 
 ## Botón de descarga del sitio
 
@@ -91,11 +102,9 @@ Cómo funciona:
    `https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe`. GitHub
    redirige esa dirección al archivo con ese nombre de la última Release publicada (ni borradores
    ni pre-releases).
-2. `build.ps1` deja el instalador con la versión en el nombre (`Cotorreando-X.Y.Z-setup.exe`), y
-   es el único que se sube a mano con `gh release create`.
-3. Al publicarse la Release, el workflow `.github/workflows/instalador-fijo.yml` descarga ese
-   instalador y lo vuelve a subir a la misma Release como `Cotorreando-setup.exe`. Da igual si es
-   parche, menor o mayor.
+2. `build.ps1` deja el instalador con la versión en el nombre (`Cotorreando-X.Y.Z-setup.exe`).
+3. El workflow `.github/workflows/release.yml` sube a la Release ese instalador y una copia llamada
+   `Cotorreando-setup.exe`. Da igual si es parche, menor o mayor.
 
 Comprobar que funciona, tras publicar:
 
@@ -104,20 +113,21 @@ curl -sIL -o /dev/null -w "%{http_code}
 " https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe
 ```
 
-Tiene que dar `200`. Si da `404`, a la última Release le falta el archivo con nombre fijo (el
-workflow falló o la Release se creó antes de que existiera). Se arregla lanzándolo a mano con la
-etiqueta; se puede repetir sin problema, porque reemplaza el archivo si ya estaba:
+Tiene que dar `200`. Si da `404`, a la última Release le falta el archivo con nombre fijo. Se
+arregla subiéndolo a esa Release (reemplaza el archivo si ya estaba):
 
 ```bash
-gh workflow run instalador-fijo.yml -f tag=vX.Y.Z
+gh release download vX.Y.Z --pattern 'Cotorreando-*-setup.exe'
+cp Cotorreando-X.Y.Z-setup.exe Cotorreando-setup.exe
+gh release upload vX.Y.Z Cotorreando-setup.exe --clobber
 ```
 
-No hay que renombrar el instalador de `installer.iss` ni subir la copia a mano: el nombre con
-versión lo usan las personas que bajan una versión concreta, y el fijo solo existe para el botón.
+No hay que renombrar el instalador de `installer.iss`: el nombre con versión lo usan las personas
+que bajan una versión concreta, y el fijo solo existe para el botón.
 
 ## Sumas de verificación
 
-Cada Release trae también `SHA256SUMS.txt`, que el mismo workflow sube con las sumas del
+Cada Release trae también `SHA256SUMS.txt`, que `release.yml` sube con las sumas del
 instalador con versión y del fijo, en el formato `<sha256>  <archivo>`. Para comprobar una
 descarga, en PowerShell:
 

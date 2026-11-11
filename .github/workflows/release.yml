@@ -1,0 +1,164 @@
+# Construye el instalador, lo prueba y, al subir una etiqueta vX.Y.Z, publica la Release.
+#
+# - Etiqueta v*: construye con build.ps1, instala en silencio, corre --self-test sobre el
+#   programa instalado, desinstala y publica la Release con Cotorreando-X.Y.Z-setup.exe,
+#   la copia con nombre fijo Cotorreando-setup.exe (el botón de descarga del sitio apunta a
+#   releases/latest/download/Cotorreando-setup.exe) y SHA256SUMS.txt.
+# - A mano (workflow_dispatch): solo construye y prueba; el instalador queda como artefacto del
+#   workflow. Nunca publica.
+#
+# Las Releases creadas con GITHUB_TOKEN no disparan el evento `release` de otros workflows; por
+# eso lo que deba pasar después de publicar (por ejemplo, winget) va en este mismo workflow.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      PYTHONUTF8: "1"
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0   # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Comprobar que la etiqueta coincide con la versión
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $version = (Select-String -Path pyproject.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          if ("${{ github.ref_name }}" -ne "v$version") {
+            throw "La etiqueta ${{ github.ref_name }} no coincide con la versión $version de pyproject.toml"
+          }
+
+      - name: Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Construir
+        run: .\build.ps1
+
+      - name: Pruebas
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LOCALAPPDATA: ${{ runner.temp }}
+        run: python -m pytest -q
+
+      - name: Instalar en silencio
+        run: |
+          $setup = Get-ChildItem dist\Cotorreando-*-setup.exe | Select-Object -First 1
+          $proc = Start-Process -FilePath $setup.FullName -Wait -PassThru `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$PWD\install.log`""
+          if ($proc.ExitCode -ne 0) { throw "El instalador terminó con código $($proc.ExitCode)" }
+
+      - name: Self-test del programa instalado
+        run: |
+          $exe = "$env:LOCALAPPDATA\Programs\Cotorreando\Cotorreando.exe"
+          if (-not (Test-Path $exe)) { throw "No se instaló $exe" }
+          $log = "$PWD\selftest.log"
+          $proc = Start-Process -FilePath $exe -Wait -PassThru -ArgumentList '--self-test', '--self-test-log', "`"$log`""
+          if (Test-Path $log) { Get-Content $log }
+          if ($proc.ExitCode -ne 0) { throw "El self-test terminó con código $($proc.ExitCode)" }
+
+      - name: Desinstalar en silencio
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\Cotorreando"
+          $proc = Start-Process -FilePath "$dir\unins000.exe" -Wait -PassThru `
+            -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+          if ($proc.ExitCode -ne 0) { throw "El desinstalador terminó con código $($proc.ExitCode)" }
+          # El desinstalador se relanza desde una copia temporal; se espera a que termine.
+          for ($i = 0; $i -lt 60 -and (Test-Path "$dir\Cotorreando.exe"); $i++) { Start-Sleep 2 }
+          if (Test-Path "$dir\Cotorreando.exe") { throw "La desinstalación dejó $dir\Cotorreando.exe" }
+
+      - name: Guardar los registros si algo falló
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02   # v4.6.2
+        with:
+          name: registros
+          path: |
+            install.log
+            selftest.log
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02   # v4.6.2
+        with:
+          name: instalador
+          path: dist/Cotorreando-*-setup.exe
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093   # v4.3.0
+        with:
+          name: instalador
+          path: dist
+
+      - name: Notas desde el CHANGELOG
+        run: |
+          $version = $env:TAG.Substring(1)
+          $notas = @()
+          $dentro = $false
+          foreach ($linea in Get-Content CHANGELOG.md -Encoding utf8) {
+            if ($linea -match '^## ') {
+              if ($dentro) { break }
+              $dentro = $linea -match ('^## ' + [regex]::Escape($version) + '\b')
+              continue
+            }
+            if ($dentro) { $notas += $linea }
+          }
+          $texto = ($notas -join "`n").Trim()
+          if (-not $texto) { throw "CHANGELOG.md no tiene notas para $version" }
+          [System.IO.File]::WriteAllText("$PWD/notas.md", $texto + "`n", [System.Text.UTF8Encoding]::new($false))
+
+      - name: Nombre fijo y sumas SHA-256
+        run: |
+          $versionado = Get-ChildItem -Path dist -Filter 'Cotorreando-*-setup.exe' | Select-Object -First 1
+          Copy-Item $versionado.FullName Cotorreando-setup.exe
+          $fijo = Get-Item -Path Cotorreando-setup.exe
+          $lineas = foreach ($f in @($versionado, $fijo)) {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower(), $f.Name
+          }
+          [System.IO.File]::WriteAllText("$PWD/SHA256SUMS.txt", (($lineas -join "`n") + "`n"), [System.Text.UTF8Encoding]::new($false))
+
+      - name: Publicar la Release
+        run: |
+          $version = $env:TAG.Substring(1)
+          $versionado = (Get-ChildItem -Path dist -Filter 'Cotorreando-*-setup.exe' | Select-Object -First 1).FullName
+          gh release create $env:TAG $versionado Cotorreando-setup.exe SHA256SUMS.txt `
+            --title $version --notes-file notas.md --verify-tag
+          if ($LASTEXITCODE -ne 0) { throw "gh release create falló" }

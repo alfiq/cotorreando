@@ -6,7 +6,9 @@ $ErrorActionPreference = "Stop"
 $env:PYTHONIOENCODING = "utf-8"
 # Exact, hashed versions (requirements.lock); regenerate it as described in its header.
 python -m pip install --require-hashes -r requirements.lock
+if ($LASTEXITCODE -ne 0) { throw "Could not install requirements.lock" }
 python -m pip install -e . --no-deps
+if ($LASTEXITCODE -ne 0) { throw "Could not install cotorreando" }
 python -m nuitka `
     --standalone `
     --enable-plugin=pyside6 `
@@ -25,6 +27,7 @@ python -m nuitka `
     --windows-icon-from-ico=cotorreando/icon.ico `
     --assume-yes-for-downloads `
     cotorreando
+if ($LASTEXITCODE -ne 0) { throw "Nuitka failed" }
 
 # Nuitka skips the native library livekit loads at runtime (noise suppression, AEC).
 $livekit = python -c "import livekit.rtc, os; print(os.path.dirname(livekit.rtc.__file__))"
@@ -35,25 +38,25 @@ Copy-Item "$livekit\resources\livekit_ffi.dll" $resources -Force
 python scripts\collect_licenses.py dist\cotorreando.dist\licenses
 if ($LASTEXITCODE -ne 0) { throw "Could not collect the license texts" }
 
-# Self-signed code-signing cert, created once in the user store and reused; Windows does not
-# treat it as a trusted publisher, so users will see SmartScreen (see README).
-$cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
-    Where-Object Subject -eq "CN=Alfiq" | Select-Object -First 1
-if (-not $cert) {
-    $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Alfiq" `
-        -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(5)
+# The packaged exe must load everything it needs. It is a windowed program, so PowerShell would
+# not wait for it: Start-Process -Wait, and its lines come through a log file.
+function Test-Build($exe) {
+    $log = Join-Path $env:TEMP "cotorreando-selftest-$PID.log"
+    $proc = Start-Process -FilePath (Resolve-Path $exe) -ArgumentList "--self-test", "--self-test-log", "`"$log`"" `
+        -Wait -PassThru -NoNewWindow
+    if (Test-Path $log) { Get-Content $log; Remove-Item $log }
+    if ($proc.ExitCode -ne 0) { throw "Self-test of $exe failed (exit code $($proc.ExitCode))" }
 }
-Export-Certificate -Cert $cert -FilePath dist\Cotorreando.cer | Out-Null
-function Sign($path) {
-    Set-AuthenticodeSignature -FilePath $path -Certificate $cert -HashAlgorithm SHA256 `
-        -TimestampServer "http://timestamp.digicert.com" | Out-Null
-}
-Sign dist\cotorreando.dist\Cotorreando.exe
+Test-Build dist\cotorreando.dist\Cotorreando.exe
 
 python scripts\installer_art.py dist\installer-art.bmp
+if ($LASTEXITCODE -ne 0) { throw "Could not draw the installer art" }
 
-# Inno Setup: winget install JRSoftware.InnoSetup
+# Inno Setup 6: winget install JRSoftware.InnoSetup (GitHub's windows runners already have it).
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
-          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+          "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $iscc) { $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source }
+if (-not $iscc) { throw "Inno Setup 6 (ISCC.exe) not found" }
 & $iscc installer.iss
-Sign (Get-ChildItem dist\Cotorreando-*-setup.exe | Sort-Object LastWriteTime | Select-Object -Last 1).FullName
+if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }

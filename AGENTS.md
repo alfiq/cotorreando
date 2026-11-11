@@ -24,5 +24,5 @@ python -m ruff format .
 - Si se resuelve una cuestión de diseño, se anota en [docs/DECISIONES.md](docs/DECISIONES.md).
 - Lanzar una versión: [docs/VERSIONES.md](docs/VERSIONES.md). El botón de descarga del sitio
   depende de que cada Release tenga `Cotorreando-setup.exe`, que sube el workflow
-  `instalador-fijo.yml`; no lo subas a mano ni cambies ese nombre.
+  `release.yml` al empujar una etiqueta `vX.Y.Z`; no lo subas a mano ni cambies ese nombre.
 - Arquitectura: [docs/DISENO.md](docs/DISENO.md). Contribuir: [CONTRIBUTING.md](CONTRIBUTING.md).
