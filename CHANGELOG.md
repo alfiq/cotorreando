@@ -6,6 +6,7 @@
   se prueba (instalación silenciosa, `--self-test` y desinstalación) y se publica desde GitHub
   Actions al crear la etiqueta.
 - Cada Release trae `SHA256SUMS.txt` para comprobar el instalador.
+- La instalación silenciosa (`/VERYSILENT`) ya no se detiene en la página legal.
 - Nueva opción `--self-test`, que revisa que el ejecutable cargue todas sus bibliotecas sin abrir
   la interfaz.
 - Versiones mínimas en `pyproject.toml` y `requirements.lock` con hashes para compilar siempre
