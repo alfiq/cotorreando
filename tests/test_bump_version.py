@@ -51,3 +51,12 @@ def test_twice_adds_one_heading(copy):
 def test_rejects_non_semver(copy):
     with pytest.raises(SystemExit):
         bump_version.bump("1.2", copy)
+
+
+@pytest.mark.parametrize("nl", ["\n", "\r\n"])
+def test_unreleased_section_becomes_the_version(copy, nl):
+    text = nl.join(["# Cambios", "", "## Sin publicar", "", "- Algo nuevo.", "", "## 0.0.1 — 2020-01-01", ""])
+    (copy / "CHANGELOG.md").write_bytes(text.encode("utf-8"))
+    bump_version.bump("9.8.7", copy, datetime.date(2030, 1, 2))
+    after = (copy / "CHANGELOG.md").read_bytes().decode("utf-8")
+    assert after == text.replace("## Sin publicar", "## 9.8.7 — 2030-01-02")

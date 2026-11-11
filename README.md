@@ -164,12 +164,11 @@ El código de Cotorreando tiene licencia MIT.
 
 ## El aviso de Windows al instalar
 
-Cotorreando no tiene un certificado de firma de una autoridad reconocida, así que Windows
-SmartScreen puede decirte «Windows protegió su PC». No te asustes: pulsa **Más información** y luego
+El instalador no va firmado, así que Windows SmartScreen puede decirte «Windows protegió su PC» y
+mostrarlo como de «Editor desconocido». No te asustes: pulsa **Más información** y luego
 **Ejecutar de todos modos**.
 
-El instalador no va firmado, así que Windows lo muestra como de «Editor desconocido». Para
-comprobar que es el que publicamos, compara su SHA-256 con el de `SHA256SUMS.txt`, que viene en cada
+Para comprobar que es el que publicamos, compara su SHA-256 con el de `SHA256SUMS.txt`, que viene en cada
 [Release](https://github.com/alfiq/cotorreando/releases):
 
 ```powershell

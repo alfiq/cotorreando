@@ -1,5 +1,19 @@
 # Cambios
 
+## Sin publicar
+
+- El instalador ya no lleva la firma autofirmada, que Windows no reconocía. Cada Release se compila,
+  se prueba (instalación silenciosa, `--self-test` y desinstalación) y se publica desde GitHub
+  Actions al crear la etiqueta.
+- Cada Release trae `SHA256SUMS.txt` para comprobar el instalador.
+- Nueva opción `--self-test`, que revisa que el ejecutable cargue todas sus bibliotecas sin abrir
+  la interfaz.
+- Versiones mínimas en `pyproject.toml` y `requirements.lock` con hashes para compilar siempre
+  con las mismas dependencias.
+- ruff (lint y formato) en CI y pyright como aviso.
+- Política de seguridad (`SECURITY.md`) y código de conducta, con reporte privado desde GitHub.
+- Manifiestos de winget listos; el paquete se publicará cuando Microsoft lo acepte.
+
 ## 0.1.3 — 2026-11-09
 
 - Los textos de la app y de la documentación hablan de tú y con más soltura: avisos de error más

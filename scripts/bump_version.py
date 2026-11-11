@@ -40,11 +40,17 @@ def bump(version: str, root: Path = ROOT, today: datetime.date | None = None) ->
         texts[name] = replace(text, pattern, version)
     changelog = root / "CHANGELOG.md"
     text = changelog.read_bytes().decode("utf-8")
-    if not re.search(rf"^## {re.escape(version)}\b", text, re.M):
+    date = (today or datetime.date.today()).isoformat()
+    if re.search(r"^## Sin publicar(?=[ \t]*\r?$)", text, re.M):
+        # Changes gathered under "Sin publicar" become this version's notes.
+        texts["CHANGELOG.md"] = re.sub(
+            r"^## Sin publicar(?=[ \t]*\r?$)", f"## {version} — {date}", text, count=1, flags=re.M
+        )
+    elif not re.search(rf"^## {re.escape(version)}\b", text, re.M):
         nl = "\r\n" if "\r\n" in text else "\n"
         first = re.search(r"^## ", text, re.M)
         at = first.start() if first else len(text)
-        heading = f"## {version} — {(today or datetime.date.today()).isoformat()}{nl}{nl}- {nl}{nl}"
+        heading = f"## {version} — {date}{nl}{nl}- {nl}{nl}"
         texts["CHANGELOG.md"] = text[:at] + heading + text[at:]
     for name, text in texts.items():
         (root / name).write_bytes(text.encode("utf-8"))

@@ -31,7 +31,8 @@ versión pequeña que funciona que una grande a medias.
    ```
 
    Escribe la versión en los cuatro lugares donde vive y agrega a `CHANGELOG.md` un
-   encabezado vacío `## 0.0.9 — AAAA-MM-DD`. A mano, son estos:
+   encabezado vacío `## 0.0.9 — AAAA-MM-DD`. Si arriba hay una sección `## Sin publicar`, la renombra a
+   ese encabezado y sus viñetas pasan a ser las notas de la versión. A mano, son estos:
 
    | Archivo | Línea |
    |---|---|

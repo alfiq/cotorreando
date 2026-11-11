@@ -96,6 +96,5 @@ menús se quedan sobrios; el juego va solo en los globitos.
 
 ## Pendientes
 
-- [ ] Hacer público el repositorio.
 - [ ] Confirmar con más grabaciones reales que el LoRA mejora. En el barrido mejoró en 2 de 6
       grupos y no empeoró en ninguno, pero con pocas grabaciones.
