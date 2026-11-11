@@ -12,7 +12,7 @@
 - Versiones mínimas en `pyproject.toml` y `requirements.lock` con hashes para compilar siempre
   con las mismas dependencias.
 - ruff (lint y formato) en CI y pyright como aviso.
-- Política de seguridad (`SECURITY.md`) y código de conducta, con reporte privado desde GitHub.
+- Política de seguridad (`SECURITY.md`) y código de conducta (Contributor Covenant 2.1, traducción oficial), con reporte privado desde GitHub.
 - Manifiestos de winget listos; el paquete se publicará cuando Microsoft lo acepte.
 
 ## 0.1.3 — 2026-11-09
