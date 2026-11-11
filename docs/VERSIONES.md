@@ -151,21 +151,21 @@ se instalará con `winget install Alfiq.Cotorreando`.
 El manifiesto usa siempre el instalador **con versión** (`Cotorreando-X.Y.Z-setup.exe`), nunca el de
 nombre fijo: el fijo cambia de contenido en cada Release y el SHA-256 dejaría de coincidir. El
 instalador es Inno Setup, por usuario y sin permisos de administrador. El `ProductCode` es el
-`AppId` de `installer.iss` más `_is1`. Los manifiestos de la 0.1.3 están en
-`winget/manifests/a/Alfiq/Cotorreando/0.1.3/`; se validan con
+`AppId` de `installer.iss` más `_is1`. Los manifiestos de la 0.1.4 están en
+`winget/manifests/a/Alfiq/Cotorreando/0.1.4/`; se validan con
 `winget validate --manifest <carpeta>`.
 
 ### Primera vez (a mano, solo la persona dueña del repositorio)
 
 El job `winget` de `release.yml` solo puede actualizar un paquete que ya existe en winget-pkgs,
-así que la primera versión se envía a mano. Esto no lo hace ningún workflow ni agente.
+así que la primera versión se envía a mano. Esto no lo hace ningún workflow; un agente solo lo hace con tu aprobación explícita.
 
 1. Haz un fork de `microsoft/winget-pkgs` en tu cuenta (`alfiq`).
-2. Envía los manifiestos de la 0.1.3, con una de dos vías:
-   - `wingetcreate submit winget/manifests/a/Alfiq/Cotorreando/0.1.3` (pide un token de GitHub
+2. Envía los manifiestos de la 0.1.4, con una de dos vías:
+   - `wingetcreate submit winget/manifests/a/Alfiq/Cotorreando/0.1.4` (pide un token de GitHub
      la primera vez), o
    - un PR a mano desde tu fork con esa carpeta copiada en
-     `manifests/a/Alfiq/Cotorreando/0.1.3/`.
+     `manifests/a/Alfiq/Cotorreando/0.1.4/`.
 3. Atiende la revisión del PR (validación automática y revisión humana de winget-pkgs) hasta que
    se acepte. Solo entonces el paquete existe en winget.
 4. Crea un token de acceso personal **clásico** con el alcance `public_repo` y guárdalo en el
