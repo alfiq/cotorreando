@@ -1,5 +1,10 @@
 # Cambios
 
+## 0.1.7 — 2026-11-18
+
+- Tus datos no salen de tu equipo: el entrenamiento personalizado de voz tiene desactivada
+  cualquier telemetría, para que no se envíe nada a nadie.
+
 ## 0.1.6 — 2026-11-18
 
 - La calibración de voz funciona en los 25 idiomas: lees los que elegiste al empezar, todos o uno
