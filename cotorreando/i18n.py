@@ -168,13 +168,13 @@ STRINGS = {
     "train_title": ("Calibrar mi voz", "Calibrate my voice"),
     "cal_welcome": ("Vamos a conocernos", "Let's get to know each other"),
     "cal_intro": (
-        "Léeme en voz alta unos textos cortos, como 3 minutos. Con eso me acostumbro a tu voz, a "
+        "Léeme en voz alta unos textos cortos, como 3 minutos por idioma. Con eso me acostumbro a tu voz, a "
         "tu micrófono y al ruido de donde estás. Tu voz se queda en tu PC, punto.",
-        "Read a few short texts aloud, about 3 minutes. They let me adapt to your voice, your "
+        "Read a few short texts aloud, about 3 minutes per language. They let me adapt to your voice, your "
         "microphone and the noise around you. Your voice stays on your PC.",
     ),
-    "cal_language": ("Idioma en el que dictas", "Language you dictate in"),
-    "cal_both": ("Ambos (unos 6 minutos)", "Both (about 6 minutes)"),
+    "cal_language": ("Qué vas a leer", "What you will read"),
+    "cal_all": ("Todos mis idiomas (unos {minutes} minutos)", "All my languages (about {minutes} minutes)"),
     "cal_cost": (
         "La primera vez se descargan de internet unos 6 GB: herramientas y paquetes de Python (GitHub, PyPI, "
         "PyTorch) y modelos de Hugging Face. Tu audio no se sube. El ajuste tarda unos minutos.",
@@ -482,6 +482,7 @@ STRINGS = {
         "¿En qué idiomas vas a hablar? Marca todos los que quieras; arriba están los de tu teclado.",
         "Which languages will you speak? Tick as many as you like; the ones on your keyboard come first.",
     ),
+    "spoken_languages": ("Idiomas que hablas", "Languages you speak"),
     "langs_search": ("Buscar idioma", "Search language"),
     "langs_none": ("Marca al menos uno.", "Tick at least one."),
     # About

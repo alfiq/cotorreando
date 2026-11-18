@@ -1,0 +1,15 @@
+# Slovak (Slovenčina) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Mestský ples sa teší vysokej účasti i úspešnosti u návštevníkov. V Tibete založil údajne prvý budhistický kláštor. Fyzické osoby by mali mať kontrolu nad svojimi vlastnými osobnými údajmi.
+Organizácia kolektívnej správy účtuje príjmy z neidentifikovaných odmien oddelene. S plochou je Španielsko druhou najväčšou krajinou západnej Európy a Európskej únie po Francúzsku.
+Tú zastupujú environmentálne organizácie i spoločnosti zaoberajúce sa ochranou ľudských práv i zdravia. V takejto podobe pretrvala veža do súčasnosti.
+Príčinou ich záujmu boli bohaté zlaté bane. Otvorená konštrukcia neposkytuje takú izoláciu od okolitého prostredia ako plne uzavreté slúchadlá. Za dôležitý faktor sa pokladá výskum ich jazyka.
+Rola v tomto filme mu zabezpečila úspech. Tam je najvyššia intenzita využívania sociálnych sietí. Ďalším výrazným motívom je motív Cesty. Tá sa dá vyjadriť nasledovne.
+Štát investoval do rozsiahlej bytovej výstavby. Nákladná železničná doprava v prevádzke. V slnečnej sústave poznáme osem planét. Všetko také pochúťky, ktoré sa zrovna protivia nášmu vkusu.
+Bratislavský a Košický dištrikt tak zhruba kopírovali historicky vymedzené územie Slovenska. Tento zvyk sa zachoval až do konca prvej svetovej vojny. Dá sa to overiť napr. kvapnutím kyseliny na piesok.
+Skalný podklad východnej Antarktídy leží prevažne nad hladinou mora. Posledné z nich zmenil na Kompas. Vzdialenosť od úst je napriek pevnosti úchytu ľahko nastaviteľná.
+Prvé etnicky známe obyvateľstvo Záhorskej nížiny boli Kelti. Najvyšší podiel využívania sociálnych sietí bol zistený v Bratislavskom kraji. Zlúčením oboch osád vznikol Liptovský Hrádok.
+Nože uchop nožnice a vystrihni rukavice! Tento roh mu niekedy mierne smeroval dopredu. Pustíme sa do zvyšovania kapacity diskových úložísk a prenosovej kapacity sieťovej infraštruktúry.
+Objekt je národnou kultúrnou pamiatkou. Náklady na vybudovanie infraštruktúry sú niekoľkonásobne vyššie. Naopak najnižší v kraji Trnavskom. Ej bisťu, vieš sa Ty ale valaškou oháňať!
+Mne sa viac osvedčilo používať viacbodovú expozíciu - multi. Ide o dokument vnímaný sluchom v rôznych formátoch alebo na rôznych nosičoch. Jedným z kľúčových pojmov biológie je princíp evolúcie.

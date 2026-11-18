@@ -1,0 +1,15 @@
+# Estonian (Eesti) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Kaunilt ehitatud piirdeaed loob privaatsust ja tekitab maja ümber ka turvalise keskkonna. Pealtnäha laitmatu renomeega toonane linnapea on teinud muljet avaldavat karjääri.
+Töö- ja terviseminister Jevgeni Ossinovski keeldus sellele lisadokumendile alla kirjutamast. Nendega vestlesin peamiselt noortesüsteemide loomisest. Päev hiljem samas kohas toimuv kontsert on juba välja müüdud.
+Kanada mullakaitse nõukogu käis selle mõtte välja hiljutisel üleriigilisel mullakaitse nädalal. Kannatanule osutasid esmalt väljakul esmaabi kohalik tuletõrjuja ja kiirabiarst.
+Need ained hoiavad pilgu terava ja vähendavad kollatähni kärbumise riski. Sestap on laiem muinasjutuvestmise traditsioon hääbumas. Kurja juur oli väge täis paavian.
+Inimsmugeldajad viskasid migrandid merre, sest kartsid, et võimuesindajad vahistavad nad kaldal. Kui sa ise ka ei tea, mida hotellilt ootad, on raske õiget välja valida.
+Võib kindel olla, et sellisel viisil haripunkti jõudmine pakub kordades suuremat ja kestvamat naudingut. Ma ei kahetse mitte midagi, mis seal raamatus kirjas on.
+Pehmust ja veekindlust aitab taastada saapaviks. Tihti lõppesid need ränkade verevalamistega. Lisaks on regulaarselt värskes õhus viibivad inimesed sotsiaalsemad ja hindavad rohkem meeskonnatööd.
+Positiivsel juhul oled äärmiselt loominguline. Sõna võtab stahhaanovlane rahvasaadik sm. Alumiiniumahjudel on pikem eluiga kui roostevabast terasest ahjudel.
+Tartu Ülikooli rektorina jätkab järgmised viis aastat Volli Kalm, nii otsustas tänane valimiskogu. Esmapilgul võib raamat tunduda liiga lihtsana, kuid ei tasu lasta ennast sellest tundest petta.
+Vastane mängis tegelikult väga hästi. Ning huulepulkasid armastavad nad kõik. Perioodi lõpul tempo raugeb, võid tunda mõningast laiskust, soovi lihtsalt vedeleda ja elu nautida.
+Kas selles olukorras on kedagi ka süüdistada? Uustulnukat on müügile oodata umbes aasta pärast. Viimane arv esineb mälestustes kõige sagedamini. Tundub jube imelik, aga neid senimaani pole.
+Kuigi võiks eeldada, et see jääb rahanappuse taha, ei pruugi see väide alati tõele vastata. Selle ajaga on hakatud aru saama kõigest, mis on teksti edasiandmisel vajalik.

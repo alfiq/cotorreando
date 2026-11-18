@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..asr import Parakeet, model_dir
+from ..languages import HAND_WRITTEN, LANGUAGES
 from ..paths import MODELS_DIR, PACKAGE_DIR
 from ..vault import VAULT_DIR, reading_path
 from . import env
@@ -39,7 +40,11 @@ class Result:
 
 
 def read_panels(language: str) -> list[str]:
-    lines = (DATASET_DIR / f"{language}.txt").read_text(encoding="utf-8").splitlines()
+    try:
+        lines = (DATASET_DIR / f"{language}.txt").read_text(encoding="utf-8").splitlines()
+    except OSError:  # a missing file must not stop the other languages
+        log.error("No calibration panels for %s", language)
+        return []
     return [line.strip() for line in lines if line.strip() and not line.startswith("#")]
 
 
@@ -50,7 +55,7 @@ def _holds_out(index: int) -> bool:
 
 def _readings(vault) -> list[dict]:
     rows = []
-    for language in ("es", "en"):
+    for language in LANGUAGES:
         for index, text in enumerate(read_panels(language)):
             if reading_path(language, index).exists():
                 rows.append(
@@ -68,7 +73,7 @@ def _readings(vault) -> list[dict]:
 
 def has_evaluation_set() -> bool:
     return any(
-        reading_path(lang, i).exists() and _holds_out(i) for lang in ("es", "en") for i in range(len(read_panels(lang)))
+        reading_path(lang, i).exists() and _holds_out(i) for lang in LANGUAGES for i in range(len(read_panels(lang)))
     )
 
 
@@ -227,7 +232,7 @@ def _changed_words(row: dict) -> list[tuple[str, str]]:
 def write_panels(learner, language: str, log_line=log.info) -> list[dict]:
     """Short texts containing the words to practise; empty if Qwen cannot run here."""
     words = learner.words_to_practice(MAX_PANELS)
-    if not words or not env.has_nvidia():
+    if not words or not env.has_nvidia() or language not in HAND_WRITTEN:
         return []
     panels: list[dict] = []
 

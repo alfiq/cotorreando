@@ -26,6 +26,7 @@ from ..asr import Stream
 from ..audio import AudioInput, list_microphones
 from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
+from ..languages import calibration_languages, label
 from ..mosaic import Mosaic
 from ..paths import DATA_DIR
 from ..vault import reading_path
@@ -88,9 +89,21 @@ class CalibrationDialog(Window):
         title = QLabel(tr("cal_welcome"), objectName="title", wordWrap=True)
         text = QLabel(tr("cal_intro"), objectName="body", wordWrap=True)
         self.language = QComboBox()
-        for value, label in (("es", "Español"), ("en", "English"), ("both", tr("cal_both"))):
-            self.language.addItem(label, value)
-        self.language.setCurrentIndex(max(self.language.findData(self.s.lora_language), 0))
+        chosen = calibration_languages("all", self.s.languages)
+        for code in chosen:
+            self.language.addItem(label(code, self.s.ui_language), code)
+        if len(chosen) > 1:  # last: with many languages it is long
+            self.language.addItem(tr("cal_all").format(minutes=3 * len(chosen)), "all")
+        if self.s.lora_language == "both" and len(chosen) > 2 and {"es", "en"} <= set(chosen):
+            both = " + ".join(label(c, self.s.ui_language) for c in ("es", "en"))
+            self.language.addItem(both, "both")  # the choice from before languages were asked
+        # A choice not in the list ("both" with just es and en, or a language no longer chosen)
+        # shows what calibration_languages reads instead: every chosen one, or the first of many.
+        fallback = calibration_languages(self.s.lora_language, self.s.languages)
+        index = self.language.findData(self.s.lora_language)
+        if index < 0:
+            index = self.language.findData(fallback[0] if len(fallback) == 1 else "all")
+        self.language.setCurrentIndex(max(index, 0))
         self.mic = QComboBox()
         self.mic.addItem(tr("default"), "")
         for name in list_microphones():
@@ -193,7 +206,7 @@ class CalibrationDialog(Window):
     def _start_reading(self) -> None:
         self.s.lora_language = self.language.currentData()
         self.s.microphone = self.mic.currentData()
-        languages = ("es", "en") if self.s.lora_language == "both" else (self.s.lora_language,)
+        languages = calibration_languages(self.s.lora_language, self.s.languages)
         self.items = [(lang, i, text) for lang in languages for i, text in enumerate(job.read_panels(lang))]
         missing = [n for n, (lang, i, _) in enumerate(self.items) if not reading_path(lang, i).exists()]
         self.index = missing[0] if missing else 0  # resume, or start a new calibration over

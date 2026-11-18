@@ -22,6 +22,7 @@ from .. import palette
 from ..audio import AudioInput
 from ..dialogs import UnlockDialog, Window
 from ..i18n import tr
+from ..languages import HAND_WRITTEN, calibration_languages
 from ..mosaic import Mosaic
 from . import env, job
 
@@ -170,9 +171,12 @@ class TrainingScreen(QWidget):
         try:
             env.ensure_installed(log.info)
             self.share.emit(PREPARE_SHARE / 2)
-            self.stage.emit(tr("screen_panels"))
-            language = "en" if self.s.lora_language == "en" else "es"
-            panels = job.write_panels(self.learner, language) if not self.leaving else []
+            chosen = calibration_languages(self.s.lora_language, self.s.languages)
+            language = next((c for c in chosen if c in HAND_WRITTEN), None)  # the only ones Qwen writes in
+            panels = []
+            if language and not self.leaving:
+                self.stage.emit(tr("screen_panels"))
+                panels = job.write_panels(self.learner, language)
         except Exception:
             log.exception("Could not prepare the training")
             panels = []

@@ -279,7 +279,7 @@ def test_languages_accept_saves_and_picks_calibration(isolated_data):
     dialog = dialogs.LanguagesDialog(settings, detected=["es", "en", "de"])
     dialog.accept()
     saved = Settings.load()
-    assert saved.languages == ["es", "en", "de"] and saved.lora_language == "both"
+    assert saved.languages == ["es", "en", "de"] and saved.lora_language == "es"  # three: the first, not 9 minutes
 
 
 def test_languages_refuse_none(isolated_data):
@@ -288,3 +288,82 @@ def test_languages_refuse_none(isolated_data):
     dialog.list.item(0).setCheckState(dialogs.Qt.Unchecked)
     dialog.accept()
     assert settings.languages == []
+
+
+def test_languages_click_toggles_once(isolated_data):
+    dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
+    item = dialog.list.item(0)
+    assert not item.flags() & dialogs.Qt.ItemIsUserCheckable  # else Qt flips it a second time
+    dialog.list.itemClicked.emit(item)
+    assert dialog.chosen() == []
+
+
+def test_languages_closing_keeps_the_interface_language(isolated_data):
+    settings = Settings(ui_language="en")
+    dialog = dialogs.LanguagesDialog(settings, detected=["es"])
+    dialog.list.item(0).setCheckState(dialogs.Qt.Unchecked)
+    dialog.reject()
+    assert settings.languages == ["en"] and dialog.result() == dialogs.QDialog.Accepted
+
+
+def test_languages_space_toggles(isolated_data):
+    from PySide6.QtGui import QKeyEvent
+
+    dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
+    dialog.list.setCurrentRow(0)
+    event = QKeyEvent(dialogs.QEvent.KeyPress, dialogs.Qt.Key_Space, dialogs.Qt.NoModifier, " ")
+    assert dialog.eventFilter(dialog.list, event)
+    assert dialog.chosen() == []
+
+
+@pytest.mark.parametrize(
+    "old, codes, new",
+    [("es", ["es", "de"], "es"), ("both", ["es", "en"], "both"), ("both", ["es"], "all"), ("en", ["de"], "all")],
+)
+def test_languages_keep_a_calibration_choice_that_fits(isolated_data, old, codes, new):
+    settings = Settings(lora_language=old)
+    dialog = dialogs.LanguagesDialog(settings, detected=codes)
+    dialog.accept()
+    assert settings.lora_language == new
+
+
+def test_languages_space_ignores_a_hidden_item(isolated_data):
+    from PySide6.QtGui import QKeyEvent
+
+    dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
+    dialog.list.setCurrentRow(0)
+    dialog.search.setText("deutsch")
+    event = QKeyEvent(dialogs.QEvent.KeyPress, dialogs.Qt.Key_Space, dialogs.Qt.NoModifier, " ")
+    dialog.eventFilter(dialog.list, event)
+    assert dialog.chosen() == ["es"]
+
+
+def test_languages_from_the_options_cancel_without_saving(isolated_data):
+    settings = Settings(languages=["de"])
+    dialog = dialogs.LanguagesDialog(settings, detected=["es"], required=False)
+    dialog.reject()
+    assert settings.languages == ["de"] and dialog.result() == dialogs.QDialog.Rejected
+
+
+def test_options_show_the_spoken_languages(settings_dialog):
+    settings, dialog = settings_dialog
+    dialog.spoken_settings.languages = ["es", "en", "de", "fr"]
+    dialog._show_languages()
+    assert dialog.spoken.text() == "Español, English, Deutsch +1"
+
+
+def test_options_languages_apply_only_with_the_options(settings_dialog):
+    settings, dialog = settings_dialog
+    before = list(settings.languages)
+    dialog.spoken_settings.languages = ["de"]
+    dialog.spoken_changed = True
+    assert settings.languages == before  # not until the options are accepted
+    dialog._accept()
+    assert settings.languages == ["de"]
+
+
+def test_options_keep_a_calibration_choice_made_meanwhile(settings_dialog):
+    settings, dialog = settings_dialog
+    settings.lora_language = "en"  # e.g. chosen in the calibration while the options were open
+    dialog._accept()
+    assert settings.lora_language == "en"

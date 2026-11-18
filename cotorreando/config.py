@@ -18,7 +18,7 @@ CHOICES = {
     "ui_language": {"es", "en"},
     "mode": {"open", "ptt", "activation"},
     "activation": {"voice", "keyword"},
-    "lora_language": {"es", "en", "both"},
+    "lora_language": {"all", "both", *LANGUAGES},
     "boost_mode": {"auto", "on", "off"},
     "blob_size": {"small", "medium", "large"},
 }
@@ -67,7 +67,7 @@ class Settings:
     # Model
     custom_model: str = ""  # folder of the user's own model; empty = the downloaded one
     lora_adapter: str = ""  # empty = stock model
-    lora_language: str = "es"  # "es" | "en" | "both"
+    lora_language: str = "all"  # a language code, "all" chosen ones, or "both" (es and en, older files)
     calibrated: bool = False  # finished or skipped the first calibration
 
     # Learning
@@ -113,7 +113,9 @@ class Settings:
             if type(value) is not kind:
                 continue
             if kind is list:
-                value = [code for code in dict.fromkeys(value) if isinstance(code, str) and code in LANGUAGES]
+                value = list(dict.fromkeys(code for code in value if isinstance(code, str) and code in LANGUAGES))
+                if not value:  # e.g. an imported file: keep what is here rather than asking again
+                    continue
             if f.name in CHOICES and value not in CHOICES[f.name]:
                 continue
             low, high = RANGES.get(f.name, (None, None))

@@ -1,0 +1,15 @@
+# Slovenian (Slovenščina) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Pita se deli na velike kose. Bila je diagnosticirana z rakom maternice, leomiosarkmom. Speča lisica kokoši ne ujame. Pol hleba je bolje od nobenega. Lepota ni le lep obraz.
+Bolje brez žlice kot brez juhe. V jezeru so našli potapljača. Poljubljali so se kar na dvorišču. Nikoli ne dovolite, da bi sonce padlo na Merkur. Hvala, ker si me poslušal. Zlat si.
+Zjutraj jej kot kralj, opoldne kot meščan, zvečer kot berač. Med ljudmi bodi človek, med psi bodi volk. Nehajte že ves čas govoriti! Ali mi lahko pomagate s tem vprašanjem?
+Kaj se spet sliši rasti travo? Beseda prihaja iz enih ust in pride do tisoč ušes. Ne morete kuhati čaja v hladnem loncu. Leopard ne spremeni svojih madežev.
+Ali ste kaseto prevrteli nazaj na začetek? Resnica se počasi jasni, tako kot se počasi dani. Lepi načrti ne uspejo brez sreče. Njena torbica je bila polna neuporabnih smeti.
+Izkušnja je učitelj bedakov in razum modrih. Ta slika je čista umetnost. Ne morete vendar odstraniti jajc iz recepta. Če je več mlinarjev, je manj moke.
+Brez iluzij bi življenje ugasnilo od dolgočasja. Ne brani vrabčku piti iz studenca, saj ga ne bo popil! Nariši sliko s črnimi črtami. Oh, mislim, da imaš prav.
+Poročite se v naglici, če želite imeti na poroki malo ljudi. Oči so prvi sel ljubezni. Cev je mastna zaradi olja. NASA namerava jutri zagnati raketo. Mislim, da se je kar slikovito izrazil.
+Bog te obvaruj zlih sosedov in začetnika na violini. Ksenofobi imajo predsodke proti tujcem. Kaj se bo zgodilo z njim? Ne, povedal ji bom sam. Prej morda, zdaj nikoli več!
+Koruzo lahko uporabite za vžiganje ognja. Hitri človek lahko premaga to oznako poti. Ali veste kaj o tem? Kdor v jezi in žalosti molči, nikdar dolgo ne živi.
+Želim ti dati samo en veliko objem! Vzpenjaj se vedno više in vedi, da tudi najvišji lahko pade. Lena je prav tako čutna kot on. Kdor hrepeni po domovini, rad vpraša za pot.
+Nesreče morajo biti, če hudič vozi. Trava je zaviti okoli ograje. Liama bom prosil, če mi bo pomagal pogledati domačo nalogo. Norec izreče vse svoje misli.

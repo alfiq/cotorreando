@@ -30,6 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from cotorreando.asr import Parakeet, model_dir  # noqa: E402
+from cotorreando.languages import LANGUAGES  # noqa: E402
 from cotorreando.lora import env  # noqa: E402
 from cotorreando.lora.job import _readings, error_rate  # noqa: E402
 from cotorreando.paths import DATA_DIR  # noqa: E402
@@ -84,7 +85,7 @@ def unlock() -> Vault:
 def gather(vault: Vault, folds: int, language: str) -> tuple[list[dict], dict]:
     rows, audio = [], {}
     for row in _readings(vault):
-        if language != "both" and row["language"] != language:
+        if language != "all" and row["language"] != language:
             continue
         samples = vault.read_reading(row["language"], row["index"])
         row = {"id": row["id"], "text": row["text"], "samples": int(samples.size)}
@@ -128,7 +129,7 @@ def main() -> None:
     ap.add_argument("--phase", type=int, choices=sorted(PHASES), required=True)
     ap.add_argument("--base", default="{}", help="JSON fixed for every run (the winners of earlier phases)")
     ap.add_argument("--folds", type=int, default=6)
-    ap.add_argument("--language", choices=("es", "en", "both"), default="both")
+    ap.add_argument("--language", choices=("all", *LANGUAGES), default="all")
     ap.add_argument("--only", help="comma-separated config names of the phase to run")
     args = ap.parse_args()
     if not env.installed():

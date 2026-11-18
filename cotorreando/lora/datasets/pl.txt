@@ -1,0 +1,15 @@
+# Polish (Polski) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Usiadłem na jednej z ławek i utonąłem w zadumie. Pendolino dojadę tam w niecałe dwie godziny. A tu nagle — już zapomniałeś nawet —- i nagle znalazłeś.
+Ale nie obliczyłem się z siłami. Ojciec wziął jednego za uszy. Nagle odwróciła się i skierowała kroki ku drzwiom. Wejście do autobusu jest możliwe tylko środkowymi drzwiami.
+Teraz neurolog po raz pierwszy popatrzył na Emila. Pojawiają się zjawy zwierzęce, morskie potwory, jakiś jakby znany mi brodacz. Kali ocalił im poprostu życie.
+Siarka jest jednym z pierwiastków biogennych. Rozsunęli się nieco, ustąpili i Cezary znalazł wolne miejsce na ławce. Setki komunikatorów obejmują cały nasz świat.
+Zmarnujesz sobie na nic swój tor wyścigowy. Oddać ją żołnierzom ku zabawie. Co ma wisieć, nie utonie. Jedynym źródłem strachu była dla niej własna jej istota.
+Siadaj, a ja zagotuję wodę na herbatę. Dwa dodać dwa to cztery, co nie? Lecz Zosia nie słuchała, strasznie się wstydziła. Ale mało kto dzisiaj to robi.
+Przysiągłeś, że bez bójki się usuniesz! — krzyknął jednoręki, grożąc spuchniętą lewicą. Drugi tłumaczył babci, że ma czyste ręce i szyję, tylko opalone.
+Rwały naprzód konie, lekko bujała się kareta na gumowych obręczach. Wokoło chodzą uważnie strażniczki cienia — prostytutki. Rzecz rozciąga się na długie lata — odpowiedział z mocniejszym rumieńcem.
+Mam nadzieję, że nie jesteś chyba chory? Znowu daliśmy odmowną, ale też i uprzejmą odpowiedź. Chowali go, chronili, by nie wpadł we wrogie ręce. Zamiłowanie do muzyki wyssałam z mlekiem matki.
+Wściekłością zdjęty rozkazał żonie natychmiast wracać do domu. Smok cierpiał widocznie wskutek tej niejasności. Są uprzejmi nawet wobec mnie: to jest najgorsze.
+Jest godzina piąta czterdzieści pięć. W ciemnościach krążyły dwa lwy. On nie robił z tego tajem nicy. Twierdzi, że wraca za trzy miesiące. Czy właściwie w nim samym była jakaś złość piekielna?
+Wczoraj lat sześćdziesiąt — jutro dwadzieścia, nie! Między dwoma kamieniami spłowiała flaga. O mało nie upadł i był zły. Gdybyście wiedzieli! — powtarzała sobie w duchu.

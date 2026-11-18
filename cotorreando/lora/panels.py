@@ -39,6 +39,7 @@ def main() -> None:
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     job = json.loads(sys.stdin.readline())
+    # job.write_panels only sends es or en (HAND_WRITTEN); the fallback is just a guard.
     language = job["language"] if job["language"] in ASK else "es"
     tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION)
     quantization = BitsAndBytesConfig(

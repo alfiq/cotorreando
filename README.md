@@ -130,8 +130,8 @@ Usa `onnxruntime-directml`, que corre en CPU y aprovecha cualquier GPU con Direc
 ## Entrenar tu voz (LoRA)
 
 Mientras más te conoce, mejor te entiende. En el menú elige **Calibrar mi voz…**, o ve a
-**Opciones → Modelo**: lees en voz alta 12 textos cortos, unos 3 minutos por idioma (español o
-inglés), y con eso se entrena un adaptador LoRA para el modelo.
+**Opciones → Modelo**: lees en voz alta 12 textos cortos, unos 3 minutos por cada idioma que
+elegiste al empezar (cualquiera de los 25 que entiende el modelo), y con eso se entrena un adaptador LoRA para el modelo.
 
 Para entrenar hacen falta PyTorch y NeMo (~6 GB). **No vienen incluidos**: la app te avisa y los
 instala aparte, solo si tú se lo pides. Los detalles están en [docs/LORA.md](docs/LORA.md).

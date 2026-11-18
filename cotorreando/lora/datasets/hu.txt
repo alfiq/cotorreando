@@ -1,0 +1,15 @@
+# Hungarian (Magyar) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Hiba volt, hogy ezt mondta. Így vélekedtek a társai is, és nyomban odébbálltak. Én meg itt rostokolhatok tovább. A leányka fölébe hajolt, és szeretettel megsimogatta.
+Már lent loholt a rakparton, és aggódva pislantott körbe valami élőlényt keresve. Hogy lehet ilyen haszontalanságokkal tölteni egy estét? Ez a kép abban az időben készült.
+És a válasz természetesen az óriás-mágnesellenállás. Aztán sóhajtottak, s egyet gondoltak. Így szólt valahogy: Férjhez megyek én, miért is ne mennék! Ez úgyis egy publikus szoba, rögzítve van.
+Ki a más ember lovának vermet ás, az önnön lovának nyaka szakad bele. A vadvirágoknak olyan fűszeres szaguk volt, hogy tüsszentenem kellett, és a hurkára gondoltam.
+Te sem vagy jobb a Deákné vásznánál. Bújkálunk az elől a nagy, hülye gyík izé elől. A fene ezt a Martint meg a nőjét. Ó, ha tudná, hogy én voltam az élete megmentője!
+Monda is szól erről a vén fűzről. Ha az ólomkatona elkiáltja magát: itt vagyok! Nem tudok lőni, álcázom magam. Nesze, itt van az útra két kenyér meg egy sonka, ha megéhezel!
+De azért higgye el, a torpedóromboló Jeanette felejthetetlen élményt jelentett számomra! Négy hét múlva lakodalmat ültök! Fogd ezt a kést, a boszorkány adta!
+Diamant Oktáv türelmetlenül visszafordult Lórika, a világ egyetlen szakállas pincére felé. Korán meglátszik, mely tejből lesz jó túró. Szigonyos Pityu felderült, mikor meglátta a különterembe belépő Bobbyt.
+Fel is út, le is út. Felveri a szállót a pimasz! A kutya elloholt, s egy szempillantás múlva vissza is tért. Csak a szeme maradt csukva. Mert az előbb úgy értettem, hogy engem!
+Igen, de az három hete volt. Ez a Martin is megválogathatná magának. De hirtelen magától kicsapódott az ablaktábla, és egy öregasszony nézett be a szobába.
+Bizony, az utazás nem volt kellemes. Erre minden oka megvolt, mert a láda estében kinyílt, és tartalma kiborult a földre. Este lefeküdt, és nem kelt föl többé.
+Nicsak, ki döntött úgy, hogy nem lesz egy komplett fasz. Aztán álomra hajtotta a fejét. Amikor feltöltöttem a minihűtőt a cuccal, azt hittem sok lesz.

@@ -31,6 +31,14 @@ CREDITS = [
         "© Silero Team",
     ),
     (
+        "Mozilla Common Voice",
+        "Calibration texts in 23 languages (all but Spanish and English)",
+        "CC0 1.0 (public domain)",
+        "https://github.com/common-voice/common-voice",
+        "https://creativecommons.org/publicdomain/zero/1.0/",
+        "Sentences written and reviewed by Common Voice contributors. No attribution required; credited anyway.",
+    ),
+    (
         "ONNX Runtime",
         "Neural network inference",
         "MIT",

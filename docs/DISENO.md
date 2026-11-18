@@ -27,6 +27,7 @@ bocinas ────────┘ (loopback, referencia para el eco)
 | `dialogs.py` | Opciones, Acerca de y estilos. |
 | `credits.py` | Lista única de créditos y licencias. |
 | `i18n.py` | Textos en español e inglés. |
+| `languages.py` | Los 25 idiomas del modelo, los que usa Windows y la búsqueda; el diálogo que los pregunta al primer arranque está en `dialogs.py`. |
 | `lora/` | Grabación, entorno de entrenamiento, script de entrenamiento y frases. |
 
 ## Decisiones técnicas

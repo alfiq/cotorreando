@@ -1,5 +1,19 @@
 # Cambios
 
+## 0.1.6 — 2026-11-18
+
+- La calibración de voz funciona en los 25 idiomas: lees los que elegiste al empezar, todos o uno
+  solo. Los textos de español e inglés están escritos a mano; los demás son frases de Mozilla
+  Common Voice, de dominio público. Los textos de práctica con tus palabras difíciles siguen solo
+  en español e inglés.
+- En la lista de idiomas, hacer clic en la casilla ya la marca (antes se desmarcaba sola).
+- Cerrar la lista de idiomas ya no cierra la app: se queda con los marcados.
+- La lista de idiomas se puede usar con el teclado (la barra espaciadora marca y desmarca).
+- Si ya calibrabas en un idioma, elegir tus idiomas no cambia esa elección.
+- Puedes cambiar tus idiomas cuando quieras, en Opciones › General.
+- Si eliges más de dos idiomas, la calibración lee solo el primero; "Todos mis idiomas" sigue
+  disponible al final de la lista.
+
 ## 0.1.5 — 2026-11-18
 
 - Al empezar, Cotorreando te pregunta en qué idiomas vas a hablar, entre los 25 que entiende el

@@ -1,0 +1,15 @@
+# Lithuanian (Lietuvių) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Abu Dabio emyratas yra didžiausias ir turtingiausias iš visų Jungtinių Emyratų. Jauni ūgliai yra vartojami kaip daržovė. Egipte išliko daug įrašų su jo vardu.
+Auga ant žemės ūksminguose miškuose. Kompanijos pavadinimas kilo iš vieno vinilinių plokštelių grotuvo parametro. Jo dalis paskelbta leidinyje „Mūsų senovė“.
+Kai kuriuose kūriniuose yra lietuvių išeivių buities realijų. Ginkluotųjų pajėgų panaudojimą tiriantis mokslas vadinamas karyba. Konrado Adenauerio tėvas buvo Kelno kanceliarijos tarėjas.
+Finansų apskaita kaip ir Vadybos ir kaštų apskaita yra buhalterinės apskaitos rūšis. Laivas priklauso Rusijos mokslų institutui. Izraelio okupuota teritorija ginčijama tarp Izraelio ir Sirijos.
+Jie vieninteliai buvo išgelbėti nuo sunaikinimo. Gamtoje sūkuriai dažniausiai susidaro ore ir vandenyje. Antrojo pasaulinio karo metais baigė Naujosios Vilnios gimnaziją.
+Atlanto vandenynas nutįsęs iš šiaurės į pietus ir išsidėstęs „S“ raidės forma. Ir per penketą dienų šios pajėgos pasiekė Minską. Iš čia jie atsinešė daug tradicijų.
+Dalį kapinyno per potvynius nuplovė vanduo. Laidotuvių apeigas atliko kunigas Povilas Jakubėnas. Gimė buvusio politinio kalinio šeimoje. Dėl to Protagoras savo mokiniui iškėlė bylą.
+Dugną dengia karbonatingas ir sapropelingas dumblas. Giria driekiasi banguota ir smėlinga Aukštaičių aukštuma bei Žeimenos lyguma. Atomams su daug elektronų toks žymėjimas tampa gan ilgas.
+Jis yra tarp geriausių gynėjų lygoje. Baigė Kauno Pilėnų vidurinę mokyklą. Ji buvo pakeista vokaliste iš Lisabonos konservatorijos Susana. Maitinasi vienas arba negausiomis grupėmis.
+Atvykimo metu užėmė antrą vietą ir pretendavo kilti į elito divizioną. Garsėja kaip charakterinių vaidmenų atlikėjas. Galinį tašką pasiekusį gaubtą suspaustų spyruoklių energija ima grąžinti pirmyn.
+Kreodontai turėjo bendrus protėvius su plėšriųjų žinduolių būriu "Carnivora". Abu ugnikalniai pastaruosius du tūkstantmečius nebuvo aktyvūs. Jie išsidėstę užpakalyje ir virš prieangio.
+Karachanidų imperija yra laikoma ypač reikšminga Vidurinės Azijos kultūros istorijoje. Koplyčia priskirtina vidutinio dydžio šios rūšies Lietuvos statiniams.

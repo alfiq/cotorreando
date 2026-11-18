@@ -112,8 +112,26 @@ ya marcados, los de los teclados y el formato regional de Windows; el resto, en 
 Una búsqueda filtra por el nombre propio, el español, el inglés o el código, sin distinguir
 acentos ni mayúsculas. Se pregunta en la app y no en el instalador para que el texto viva en
 `i18n.py`. El modelo detecta el idioma por sí solo, así que la elección no cambia el
-reconocimiento: hoy decide la calibración (solo hay textos en español e inglés) y queda guardada
-en `languages` para lo que venga.
+reconocimiento: decide qué se lee en la calibración y queda guardada en `languages`.
+
+#### Textos de calibración en los 25 idiomas
+Los de español e inglés están escritos a mano. Los otros 23 los arma `scripts/build_panels.py` con
+frases de la colección de Common Voice (CC0, revisadas por hablantes de cada idioma), fijada a un
+commit para que se puedan regenerar idénticos: frases de 5 a 18 palabras, sin cifras ni enlaces,
+unidas en 12 paneles de 150 a 210 caracteres, el largo de los escritos a mano (por palabras
+salían el doble en idiomas como el ruso o el griego). Nadie del proyecto habla esos idiomas, así que no se
+eligieron por cobertura fonética como los dos escritos a mano; si alguien los revisa, mejor. Cada
+idioma toma unos 3 minutos. Con uno o dos elegidos, la calibración lee todos; con más, solo el
+primero, para no pedir 24 minutos de lectura con ocho. "Todos mis idiomas" sigue disponible, al
+final de la lista. Los idiomas se cambian después desde Opciones y se aplican con el resto de las opciones: cerrar
+la ventana o cancelar Opciones los deja como estaban. Las grabaciones de calibración se guardan
+por idioma y número de panel, no por texto: si se regeneran los paneles de un idioma con
+`build_panels.py`, sus grabaciones viejas quedarían unidas a otro texto, así que hay que cambiar
+de commit de Common Voice solo junto con una forma de descartarlas. Los paneles de práctica que escribe Qwen siguen solo en español e inglés. Si el usuario ya
+calibraba en un idioma que sigue eligiendo (o en "ambos", con español e inglés), se respeta; un
+idioma que dejó de elegir cuenta como "todos". Cerrar la ventana de idiomas equivale a aceptar lo
+marcado, o el idioma de la interfaz si no hay nada: así quien actualiza nunca se queda sin poder
+abrir la app.
 
 ## Pendientes
 

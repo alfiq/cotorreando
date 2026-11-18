@@ -1,0 +1,15 @@
+# Romanian (Română) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Trebuie să regândim sistemul de guvernare mondială. Situaţia este instabilă din multe puncte de vedere. Adesea, acestora nu li se oferă ajutor. Prin urmare, am votat împotriva proiectului final.
+Solicităm ambelor bănci să facă un efort uriaş. N-are nicio legătură unul cu altul. Totuşi, aceasta nu este o propunere legislativă. Aceasta nu este viziunea noastră despre viitor.
+Să fim sinceri în această privinţă. Vă mulţumesc pentru programul pe care l-aţi prezentat. Următorul punct se referă la lichide. Le-am citit şi, într-adevăr, ne sunt de ajutor.
+Este vorba despre o luptă istorică. Aceste concluzii vor viza trei teme principale. Dorim să asistăm la întoarcerea la normalitate. Să sperăm că îl vom putea aduce înapoi.
+Situaţia plăţilor rămâne, însă, una eterogenă. Această chestiune nu a fost rezolvată încă. Am început să lucrăm în septembrie. Aviaţia rămâne o ţintă pentru terorişti.
+Stabilitatea şi securitatea depind deseori de acestea. Aceasta este un fel de sclavie modernă. Parlamentul va fi exclus din proces. Cu toate acestea, trebuie să vorbesc deschis.
+Antrenorul lui Dinamo și-a făcut temele înaintea meciului de astăzi. Este vorba de un sistem privat. Poporul american a făcut acest lucru prin alegeri.
+Nu vreau ca şedinţa să fie perturbată. Reţelele transeuropene nu au avut întotdeauna succes. Vă mulțumesc foarte mult, dle președinte. E mare bogăţie săte mulţumeşti cu puţin.
+În vârstă de patruzeci și șase de ani. Am două observații referitor la acest lucru. Acestea au fost, de asemenea, votate azi. Acesta va fi un fapt sigur.
+Nu suntem lipsiți de perspectivă, ci doar pragmatici. Nu există o politică comună, nu-i așa? Aceste măsuri au mai multe implicații. Creșterea bugetară propusă este absolut necesară.
+Trebuie să se pună capăt impunității. Când se va sfârşi acest lucru? Ne crapă casele și nu avem liniște deloc. Nu mai există limite pentru punctele de plecare.
+Vom avea o misiune de observare a alegerilor. În plus condițiile de muncă sunt precare. Doresc să clarific foarte bine acest aspect. Acestea au fost propuse de ceva vreme!

@@ -1,0 +1,15 @@
+# Latvian (Latviešu) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Tagad, tev pakaļ dzenoties, pa kaimiņu valstīm dzirdēju, kādas nekādas baumas par viņu. Un es iešu un iešu! Labāki man kaut kur, nekā te, pirkstus tirpināt.
+Ja es nesaprotu, tad laikam ar manu apziņu kaut kas nav kārtībā. Viņš pat nezina, kā to darīt. Solīji, ka runāsim par darbu. Visi, kas tikuši pie varas, baidās to zaudēt.
+Šķiet, viņam tā bija goda lieta. Tas ir stulbi, bet citādi zaudēšu viņu. Mums jātiek laukā. Mums viņš jāatrod. Vai varam aprunāties aci pret aci? Mājā ir divas signalizācijas sistēmas.
+Es gribu iet tev līdzi! Ne citam dod, ne pats ņem. Vai tu apsoli, ka mēs vienmēr būsim kopā? Es teiktu, viņam nav humora izjūtas. Tad mums vairs nav glābiņa!
+Ne tā, kā Jūs sakāt. Metru uz priekšu, metru atpakaļ. Esmu pazinis drosmīgākus ļaudis par tevi. Es gribu, lai tu zini, ka es nekad negribēšu to kafijas galdiņu ar ratu.
+Sargies pats, tad dievs tevi sargās. Kur ir manas golfa bumbiņas? Viņa ir jauna, bet paskaties, ko viņa ir izdarījusi. Slinkums saēd cilvēka garu vairāk nekā rūsa dzelzi.
+Tev vairs nav astoņi gadi. Tev ir trīsdesmit pieci. Visi tik sportiski, diez kur palika bezjēdzīgā dirnēšana pie telefoniem. Viņi tikko nopirka ēdamistabas galdu.
+Es tā priecājos, ka esi te. Kas citam bedri rok, pats iekrīt. Un lazdiņa, ložņātāja, zināms arī netrūkst! Re, kur viņa ir. Raizējos, ka neatnāksi. Kas smejas pēdējais, smejas visgardāk.
+Es biju prom, pirms viņa pamodās. Nezinu. Lai viņi iet ellē. Atstāj man to un mēs būsim draugi. Ko viens nevar, var otrs. Jā, jo zināms, ka tu esi nejauka.
+Neatkārto, lūdzu, atbildi. Vai tu gribētu iet ar mani šovakar uz kino? Kur domā būs vislabāki, tur taisni iznāk vissliktāki. Nekā nebija, es stāvēšu rindā.
+Es ielavījos viņas ciemā, paslēpos aiz koka un skatījos, kā viņa mazgā drēbes. Toms domāja, ka es neizdabūšu no tevis to reklāmas saukli šonakt. Mammu, tēti, neuztraucieties, es tikšu galā!
+Ir jau te visādu kungu Dieva svētība: lielu un mazu, tievu un resnu. Tas jau man no grebšanas. Nevaru ne pirkstu kustināt. Parādu atdos, kad pūcei aste ziedēs.

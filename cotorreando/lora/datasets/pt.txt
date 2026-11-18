@@ -1,0 +1,15 @@
+# Portuguese (Português) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Um grupo de pessoas está fazendo aeróbica no oceano. Eu sinto que deveria pelo menos tirar algum proveito disso. Uma garota de camisa rosa está esparramando seus membros no ar.
+O progresso é obtido trabalhando. Repetia ele com os olhos no papel. Deve ser algum tipo de piada. A equipe de resgate na montanha desistiu de seu trabalho.
+A nova família chegou aos parentes. Amantes e ladrões buscam a escuridão e os cantos. Dois homens filetam um peixe em uma pia enquanto outros assistem.
+Rabanetes e espinafre, em setembro plantados. Você precisa mesmo de quarenta caixas de papelão? Um casal está dançando enquanto outros assistem a um concerto em um coreto.
+Mas o inglês estava exultante. Minha lacuna de currículo de sete anos está marcada como "Não Drogas". Véspera de Natal à meia noite? Uma criança está sorrindo enquanto está em um balanço.
+Dois homens que têm o divertimento que skydiving. O vento forte extingue o fogo, mas ainda inflama se o vento estiver fraco. O determinante é o produto de todos os autovetores de uma matriz.
+Isso vem crescendo como um incêndio! Eu disse que gostaria de nunca ter nascido. E se vivêssemos no carbonífero? Sábado, minha família e eu vamos assar biscoitos juntos.
+Função: estender o som, sem prejudicar as pessoas próximas. Os milicianos entraram em guerra contra os traficantes. Acho que a gente deve entrar. Ele estava tão envergonhado que queria chorar.
+Teste o desempenho, experimentando processos criativos. Por outro lado, o caso basco é extraordinariamente interessante. Isso permite que os usuários finais os instalem no sistema.
+Você sacrificaria a vida de um humano se isso salvasse muitas outras vidas? Diferentes gotas para pessoas diferentes. Dois meninos em uniformes ensacando mantimentos em uma mercearia.
+Quem pagou pelos seus estudos? O que ela deveria fazer? Três pessoas em um barco flutuam na água ao pôr do sol. Os presságios lhe disseram isso. A apresentação de um novo pedido de destino substitui o anterior.
+Não há luta contra o destino. Pense no excesso de tangerinas e laranjas grossas com carne fria e assada. Não havia voos diretos para Barcelona. O arrependimento tardio traz novo dano.

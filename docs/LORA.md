@@ -55,6 +55,12 @@ esto es una señal, no una prueba. Por eso el paso 4 sigue tirando el adaptador 
 los fonemas, no todos los difonos posibles. También incluyen números, fechas, puntuación,
 comandos de edición y anglicismos.
 
+Los otros 23 idiomas (`bg.txt` … `uk.txt`) los genera `scripts/build_panels.py` con frases de
+Mozilla Common Voice (dominio público, CC0 1.0): 12 paneles de 150 a 210 caracteres, tan largos
+como los escritos a mano. Los eligió un script, no un hablante, y `coverage.py` no mide su
+cobertura. La calibración lee los idiomas que el usuario eligió al empezar, todos o uno solo. Los
+paneles de práctica que escribe Qwen siguen solo en español e inglés.
+
 ## Dependencias (solo al entrenar)
 
 | Paquete | Licencia | Tamaño |

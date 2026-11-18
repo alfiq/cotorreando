@@ -1,0 +1,15 @@
+# Swedish (Svenska) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Jag för min del kan inte förklara saken på annat sätt. Av dem som ligger bakom teknologin. Men det är min födelsedag så det är jag som bestämmer. Hon lutade sig bakåt och korsade benen.
+Och det skådespelet uppvägde hundra lyckade skott. Jag står i stor tacksamhetsskuld till hennes föräldrar. Allt eftersom författningsregleringen ökat har sedvanerätten som rättskälla minskat i betydelse.
+Han tyckte, att han ville dö av blygsel. Förslaget innebär på så vis en utvidgning av det straffbara området. Gåskarlen hade nog bara gått vilse i dimman.
+Hon jobbar med data nu, i Fjollträsk. Vad fan håller du på med? Inger föreslås bli ny chef för radions vetenskapliga redaktion. En fångvaktare tyckte teckningarna var oroande.
+Min gräns drogs någonstans norr om Dalälven. Betänkandet bereds för närvarande inom Regeringskansliet. Jag kom tillbaka från Istanbul i morse. Femtio miljoner dollar kommer att verka billigt.
+Åke tyckte det var rimligt att Djurgården skulle betala skatt. Du gav mig det jag tyckte var mitt livs värsta dag. På grund av coronapandemin har flertalet möten och andra kontakter genomförts digitalt.
+Jakten går inte att styra. I detta mål har samebyn inte påstått att den äger området. Allt känns så främmande i minusgrader och kallt ljus. Jag vet ett ställe fullt med heta tjejer.
+Högsta domstolen ogillade åtalet och anförde i domskälen följande. Det är kanske därför hon inte är med mig nu. Om jag nu bara kunde få ett bra nattkvarter!
+Myndigheternas säkerhetsskyddsklassificerade uppgifter fördelar sig på olika säkerhetsskyddsklasser. Väckarklockan kunde han lita på. Tobak som såg ut som mjölkchoklad.
+Kom nu, så går vi! Du har ju hela helgen på dig! Plötsligen hejdade de plogarna och satte sig ner för att äta frukost. En fullständig prövning kan då inte göras av ärendet.
+Det här blir succé, jag vet det. Tar du in tillbringaren till stora bordet? Media var närvarande när utställningen öppnades. Utredningen har hämtat in statistik och ett urval av beslut från Migrationsverket.
+Har du någon serie du kan rekommendera? Så länge ingen tar skada är det väl helt okej? Jag får lov att säga dem min mening rent ut. Moderata politiker ville sänka utgifter.

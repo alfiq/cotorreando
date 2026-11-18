@@ -1,0 +1,15 @@
+# Croatian (Hrvatski) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Ako pretežu rudne čestice, tada je tlo pjeskovito, laporasto, ilovasto, i tako dalje. Eda li može po drugi put ući u utrobu matere svoje i roditi se? Vidio sam mnogo lukova i strelica i mnogo robova okovanih.
+Il' se opet on u hladu ponajbolje zamisli. Svjetlo je biljci također neophodno potrebno. Opet ti je došla baka? Koji te udari po obrazu, okreni mu i drugi.
+Ako potres zatoči nas troje, sutra popodne nestat će hrane. Ti bi vjerojatno mogla i to. No nastaju samo ondje, gdje već ima škroba ili sličnih spojeva.
+Da snime taj film, išao bih ga pogledati. Kotač je bio sjajna ideja. Uspostavit ću dominaciju oči u oči. Ja sam koji s tobom govorim. Opazio dobro starac, kuda sve to ide.
+To je bila tvoja ideja. Podigne ga u zrak i ispraši ga dobro brezovačom. A tko istinu čini ide k vidjelu, da se vide djela njegova. A sad nemaš ni života.
+Došavši pred kolibu, sjedoše na kamen i kazivahu djedu, što im se desilo. Sve spojeve u kojima ne ima dušika, zovemo bezdušični. Iziđoše na jedno mjesto, sa kojega se vidjelo drugo brdo.
+Ni zahvatiti nemaš čim, a studenac je dubok. Meni ni to nikada ne kaže. Jučer u sedmom satu pusti ga groznica. Da ide šumom tražiti mlade grabiće i tamne javore.
+Koji pravdu tvori pravednik je. Nije me briga hoće li pogoditi. Ne, čestitke će biti u redu. Dotle je stajao već sav krov u plamenu kao baklja. I eto tako lutahu za svojim poslom.
+Što je time htjela reći? Al' uto već bijaše progovorio. Ne čudite se, braćo moja, ako svijet mrzi na vas. Ako tko reče ja ljubim Boga, a mrzi na brata svojega, laža je.
+Ako nam zazire srce naše, Bog je veći od srca našega, i zna sve. Žao mi je. Jesam li te uvrijedio? Do mjesta koje bijaše kao mala ravan među stijenama.
+Lahka su tla: pjeskovito, crnično i vapnenasto tlo. Al' kad to vidje bijes, sjede pod grm. Samo želim biti dobar susjed. Može li slijepac slijepca voditi?
+Zalud onda ispod zemlje kliju. Ovo je bolje nego da si došao na nastup. I čuše ga oba učenika kad govoraše, i otidoše za Isusom. Mjesto gdje se đaci ili djeca klizaju, zovu klizalištem ili klizalicom.

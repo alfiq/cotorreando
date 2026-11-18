@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import dataclasses
 import logging
 import secrets
 import threading
@@ -828,6 +829,11 @@ class SettingsDialog(Window):
         line.addWidget(self.hotkey, 1)
         line.addWidget(reset)
         self.blob_size = self._combo([(k, tr(k)) for k in ("small", "medium", "large")], self.s.blob_size)
+        # Edited on a copy, applied with the rest of the options: Cancel leaves them as they were.
+        self.spoken_settings = dataclasses.replace(self.s, languages=list(self.s.languages))
+        self.spoken_changed = False  # else accepting would undo a calibration choice made meanwhile
+        self.spoken = QPushButton(objectName="ghost", clicked=self._choose_languages)
+        self._show_languages()
         self.use_gpu = QCheckBox(tr("use_gpu"), checked=self.s.use_gpu)
         self.autostart = QCheckBox(tr("autostart"), checked=self.s.autostart)
         return self._groups(
@@ -838,11 +844,24 @@ class SettingsDialog(Window):
                     (tr("activation"), self.activation),
                     (tr("keyword"), self.keyword),
                     (tr("hotkey"), hotkey_row),
+                    (tr("spoken_languages"), self.spoken),
                 ],
             ),
-            (tr("appearance"), [(tr("language"), self.language), (tr("blob_size"), self.blob_size)]),
+            (
+                tr("appearance"),
+                [(tr("language"), self.language), (tr("blob_size"), self.blob_size)],
+            ),
             (tr("system"), [self.use_gpu, self.autostart]),
         )
+
+    def _show_languages(self) -> None:
+        names = [languages.LANGUAGES[code][0] for code in self.spoken_settings.languages]
+        self.spoken.setText(", ".join(names[:3]) + (f" +{len(names) - 3}" if len(names) > 3 else ""))
+
+    def _choose_languages(self) -> None:
+        if LanguagesDialog(self.spoken_settings, self, required=False, save=False).exec():
+            self.spoken_changed = True
+            self._show_languages()
 
     def _audio(self):
         self.mic = self._combo([("", tr("default"))] + [(m, m) for m in list_microphones()], self.s.microphone)
@@ -1061,6 +1080,8 @@ class SettingsDialog(Window):
             self.hotkey.setFocus()
             return
         s = self.s
+        if self.spoken_changed:
+            s.languages, s.lora_language = self.spoken_settings.languages, self.spoken_settings.lora_language
         s.ui_language, s.mode, s.activation = (
             self.language.currentData(),
             self.mode.currentData(),
@@ -1474,9 +1495,10 @@ class WelcomeDialog(Window):
 class LanguagesDialog(Window):
     """First run: which of the model's languages the user speaks, with the PC's own first."""
 
-    def __init__(self, settings, parent=None, detected=None):
+    def __init__(self, settings, parent=None, detected=None, required=True, save=True):
         super().__init__(parent)
-        self.s = settings
+        self.s, self.persist = settings, save
+        self.required = required  # at startup: closing it accepts; from the options it cancels
         self.setWindowTitle(tr("langs_title"))
         self.setFixedWidth(420)
         detected = languages.system_languages() if detected is None else detected
@@ -1495,10 +1517,12 @@ class LanguagesDialog(Window):
         for code in [*detected, *rest]:
             item = QListWidgetItem(languages.label(code, ui))
             item.setData(Qt.UserRole, code)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)  # a click toggles it once, below
             item.setCheckState(Qt.Checked if code in chosen else Qt.Unchecked)
             self.list.addItem(item)
+        # Not user-checkable: Qt would flip a click on the box and itemClicked would flip it back.
         self.list.itemClicked.connect(self._toggle)
+        self.list.installEventFilter(self)  # and the space bar, which itemClicked does not cover
         layout.addWidget(self.list)
         self.warning = QLabel(tr("langs_none"), objectName="note", visible=False)
         layout.addWidget(self.warning)
@@ -1509,6 +1533,14 @@ class LanguagesDialog(Window):
 
     def _toggle(self, item) -> None:
         item.setCheckState(Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked)
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.list and event.type() == QEvent.KeyPress and event.key() == Qt.Key_Space:
+            item = self.list.currentItem()
+            if item is not None and not item.isHidden():
+                self._toggle(item)
+                return True
+        return super().eventFilter(watched, event)
 
     def _filter(self, query: str) -> None:
         for row in range(self.list.count()):
@@ -1525,9 +1557,27 @@ class LanguagesDialog(Window):
             self.warning.show()
             return
         self.s.languages = codes
-        self.s.lora_language = languages.calibration_choice(codes)
-        self.s.save()
+        # Keep a calibration choice that still fits. A new one reads every chosen language if there
+        # are one or two (3-6 minutes), or else just the first: reading eight would take 24.
+        old = self.s.lora_language
+        if not (old in codes or (old == "both" and {"es", "en"} <= set(codes))):
+            self.s.lora_language = "all" if len(codes) <= 2 else codes[0]
+        if self.persist:
+            self.s.save()
         super().accept()
+
+    def reject(self):
+        """At startup, closing it keeps what is ticked, or the interface language: the app must not
+        stay shut. Opened from the options, it just cancels."""
+        if not self.required:
+            super().reject()
+            return
+        if not self.chosen():
+            for row in range(self.list.count()):
+                item = self.list.item(row)
+                if item.data(Qt.UserRole) == self.s.ui_language:
+                    item.setCheckState(Qt.Checked)
+        self.accept()
 
 
 class AboutDialog(Window):

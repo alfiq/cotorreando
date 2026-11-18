@@ -1,0 +1,15 @@
+# Finnish (Suomi) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Epähuomiossa nojauduin sekä vihreään että punaiseen nappiin yhtaikaa. Amsterdamin sopimus on edistysaskel tiellä kohti yhtäläisiä mahdollisuuksia. Se tekee sietämättömästä tuskasta hieman siedettävämpää.
+Nuo sanat saivat minut pois tolaltani. Jotainhan niidenkin on kyettävä itse tekemään. Olin huomannut, että Polohassa ei liiemmin ihmistä palvottu. Hän katoaa sisälle kodan ovesta.
+Uskonto on oopiumia, totesi Marxkin aikanaan. Äänestän tänään tämän päätöslauselman puolesta. Ammattiyhdistyksien oikeuksiin liittyvät saavutukset ovat heikot.
+Ja hän voi joutua vieläkin pitemmälle. Se että olisi joutunut jonkin toisen olennon naposteltavaksi oli aivan poissuljettu ajatus. Lonkeroinen oli nostanut sen nopeasti ylös.
+Juostessamme alusta kohti, katsoin taakse. Hänellä ylimalkaan ei ollut mitään aikeita. Osta niillä vehnäsiä, tuolta kioskeista. Soihtu osui luolan suulle, joka vieläkin sihahteli puuhirviön sylkemästä haposta.
+Todellisuudessa kaikki alukset kaapattiin ja kuljetettiin Marsiin. Intoa täynnä lähdin juoksemaan kaukaa kantautuvaa askeleiden ääntä kohti. Kuvittelimme olevamme elämämme kunnossa arkissa, mutta toisin kävi.
+Saara on innostunut kertomaan tervahöyrystä. Miltä tuntuu olla iloinen tai vihainen? Olin jo päässyt kävelymatkallani tappiaiskaupungin pääaukiolle. Algerian kuolonuhrit ovat meidänkin kuolonuhrejamme.
+Hän valmiina odotti äidin viimeistä käskyä. Hän menee tuvan taakse kalliolta katsomaan. Olihan se tärkeää, että punkerokin pysyisi tilanteen tasalla. Mitä jos arkissa olisi toimintahäiriö?
+Sarkkisen kartanolla leikkimajan ja tytöt siellä. Yhtä harmaata ja vähäpätöistä kaikki. Tätäkin tietoa oli Jaanalta pantattu ja hän sattui vain kuulemaan asiasta ohimennen.
+Niin tapaus juoksi kuin vanhaa latuaan. Ne olivat jotain uusia koivuja. Levyn sisältö oli täynnä salakirjoitettua dataa, joka sisälsi viestintää arkkien ja Marssin välillä.
+Amsterdamin sopimuksen valmisteluun valittu menetelmä osoitti heikkoutensa. Vuoteella hän oli päivän toisensa jälkeen. Jälleen kerran onnistuin valehtelemaan itselleni.
+Mutta Hellu ymmärsi sen itsestään. Meillä ei olisi varaa käydä sotaa samaan aikaan kahdella rintamalla. Makeaa se on Aapelin sieraimissa. Albiinot joutuvat usein syrjinnän ja vainon uhreiksi.

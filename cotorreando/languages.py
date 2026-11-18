@@ -38,8 +38,9 @@ LANGUAGES = {
     "uk": ("Українська", "Ucraniano", "Ukrainian"),
 }
 
-# The ones with calibration texts in lora/datasets.
-CALIBRATION = ("es", "en")
+# Every language has calibration texts in lora/datasets; these two are hand-written, and only these
+# two get the practice panels that Qwen writes.
+HAND_WRITTEN = ("es", "en")
 
 
 def label(code: str, ui_language: str) -> str:
@@ -88,8 +89,14 @@ def system_languages() -> list[str]:
     return found
 
 
-def calibration_choice(codes: list[str]) -> str:
-    """The calibration that fits the chosen languages: "es", "en" or "both"."""
-    if "es" in codes and "en" in codes:
-        return "both"
-    return "en" if "en" in codes else "es"
+def calibration_languages(choice: str, chosen: list[str]) -> list[str]:
+    """What a calibration reads: one language, every chosen one ("all"), or Spanish and English
+    ("both", from before languages were asked)."""
+    if choice == "both" and {"es", "en"} <= set(chosen):
+        return ["es", "en"]
+    if choice in LANGUAGES and (choice in chosen or not chosen):
+        return [choice]
+    chosen = [code for code in chosen if code in LANGUAGES] or ["es"]
+    if choice == "all" or len(chosen) <= 2:
+        return chosen
+    return chosen[:1]  # a choice that no longer fits, with many languages: the first, as a new one

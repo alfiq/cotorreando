@@ -1,0 +1,15 @@
+# French (Français) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Elle a l’air en forme. Vous étiez au bureau hier ? Cet enragé Béarnais s'acheminait vers Paris. En définitive, ce sont encore les familles qui ont trinqué sous ce quinquennat.
+Alliance de la prose et de la poésie. Tu es sûr que tu aimas. Brisson ne donnait nul prétexte, sauf quelques paroles légères. Je priai donc Ned de me laisser réfléchir avant d'agir.
+Il y a des étoiles dans le ciel. Il est quand même hallucinant que le travail parlementaire soit à ce point dévalorisé. Il est déjà huit heures et demi, je ne pense pas qu’ils viendront.
+Ben ! oui, mais ça me donne le vertige, à moi, de marcher comme ça ! La parole est à Madame Bérengère Poletti, pour soutenir l’amendement numéro trois cent quarante-sept.
+Je voulais savoir où il en était et quelles conclusions vous en tiriez. Elle y serait apparue inutile, salissante, dans toute sa monstruosité farouche.
+Je dois y aller maintenant. L'expulsion de ses fils est de mille trois cent vingt-neuf. La parole est à Monsieur le ministre, pour soutenir l’amendement numéro cinquante-quatre.
+Il ne me voit pas… il creuse. Le capitaine largue les amarres au coucher du soleil. A peine s'était-il éloigné, que l'incendie mal éteint, se ranima. Les mères qui ont eu trois enfants.
+Vous proposez d’aller plus loin. Je suis en train d’ouvrir, je ne suis pas en train d’ouvrir. Il fit tache dans cette maison. Madame Montaudoin, Fernande, Joséphine Joséphine , devant la glace, à gauche.
+Tu viens pour la vache ? Si les enfants ne peuvent pas jouer. Le domestique se sauve à droite. Elle ne trouvait pas un mot pour consoler la malheureuse enfant.
+Oh ! monsieur, il ne me gêne pas ! Les deux premiers noms qu'écrivit l'enfant furent ceux d'Albert du Rocher et de Clarice Gray. Cependant il sentait qu'il perdait du temps.
+Pardon, mon ami, dit Espérance, vous oubliez de me laisser la lampe. Tu es sûr qu’on aima. À défaut, nous serions exposés à un risque d’ordre constitutionnel.
+Aimable ! aimable ! Le jour où vous l'avez trouvée aimable, vous deviez fuir. Le serveur de fichier ne répond plus à partir de vingt heures. Cet homme la rend folle.

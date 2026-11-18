@@ -1,0 +1,15 @@
+# Maltese (Malti) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Dan l-Abbozz ta' Liġi huwa insult għall-Parlament! Din hija perċezzjoni li hija kompletament żbaljata imma li sfortunatament hija mifruxa sew. L-iSpeaker ma rahx, jiġifieri ma jistax jgħid hekk.
+L-ilbiesi jinsabu għall-wiri f'Londra bejn illum u nhar it-Tlieta. Nitolbu biex jagħmel mistoqsija bil-miktub għax din l-informazzjoni addizzjonali trid tinġabar.
+Jiġifieri għandek dak l-aspett ukoll. Fuq liema proġett qed titkellem hawnhekk? Iva, imma jiena qed nispjega. F'liema dixxiplini tispeċjalizza fl-atletika u liema waħda tippreferi?
+L-Ambaxxatur ma setax jirritorna Tripoli għaliex ingħalaq l-ajruport. Jiġifieri dan ma nistgħux niċħduh. X'inhi l-idea tiegħek dwar dawn l-antennae tal-mobile phones?
+U hekk qed jiġri, kif se jkompli jiġri matul is-sena. Rigward il-kamp ta' taħriġ ma rridx nieħu l-mertu kollu jien. Dan wara kważi erba' xhur fil-gvern.
+Hi użat għajnejja minflok dawk tagħha! Minflokhom issa hemm ħames saċerdoti. Semmejt ukoll li biddilt il-mużika li kont tisma', x'kienet? Jien kelli okkażjoni nikteb fil-blog tiegħi fuq dan.
+Dan l-aġir partikolari minn Easygas mhux xi każ iżolat. Din hi meqjusa rebħa għad li fadal xi jsir biex il-militanti jingħelbu. Jien dejjem inwissihom fuq hekk.
+It-triq ingħalqet għat-traffiku u saret tfittxija fil-karozza li baqgħet sejra. Issa se ngħid xi ħaġa rigward il-punt tal-flessibilità. Il-baħar inħobbu ħafna u nixtieq ingawdih iżjed.
+Il-ħalliel ħalla warajh nuċċali tax-xemx. Nitlob lill-Viċi Prim Ministru biex, jekk jogħġbu, iressaq l-Aġġornament. Ikun żball jekk tiżen naħa waħda u tagħlaq għajnejk għal aspetti oħra.
+Malta Fashion Week se ssir fil-Belt Valletta. Il-poplu jevolvi meta l-kritika tittieħed bħala kostruttiva u mhux bħala tmaqdir. Dan tal-aħħar qal li ma setax jifhem għalfejn kien aggredit.
+Jista' l-Ministru jpoġġi fuq il-Mejda tal-Kamra l-kuntratt relattiv? Dan l-att se jkun qed jiġi mressaq mis-Segretarju Parlamentari Owen Bonnici. Possibbli wasalna għal dan l-istat f'Malta?
+Tiddejqu tisimgħu lil min jikkritikakom. Jeħtieġ li anke min jinsab f'din is-sitwazzjoni isib rispett mill-oħrajn. Dan eskala għal protesti, ftit sigħat biss qabel il-ftuħ.

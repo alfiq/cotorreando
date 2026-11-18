@@ -754,7 +754,6 @@ def main() -> int:
             return 0
     if not settings.languages:  # also once for those who installed before this was asked
         set_language(settings.ui_language)
-        if not LanguagesDialog(settings).exec():
-            return 0
+        LanguagesDialog(settings).exec()  # closing it accepts what is ticked
     app._cotorreando = Cotorreando(app)  # noqa: SLF001 - keep it alive
     return app.exec()

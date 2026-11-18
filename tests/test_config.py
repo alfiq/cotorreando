@@ -94,5 +94,11 @@ def test_non_object_json_gives_defaults(isolated_data, content):
 
 def test_languages_keep_only_known_codes(isolated_data):
     s = Settings()
-    s.update({"languages": ["es", "xx", 3, "es", "de"]})
+    s.update({"languages": ["es", "xx", 3, ["en"], {"a": 1}, "es", "de"]})  # nothing unhashable breaks it
     assert s.languages == ["es", "de"]
+
+
+def test_languages_ignore_an_empty_or_unknown_list(isolated_data):
+    s = Settings(languages=["de"])
+    s.update({"languages": ["xx"]})
+    assert s.languages == ["de"]

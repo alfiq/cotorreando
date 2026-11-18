@@ -1,0 +1,15 @@
+# Danish (Dansk) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+Ingen dele af det menneskelige legeme, ingen celler, ikke den mindste molekyle kan patenteres. Vi har alle set, at han helhjertet går ind for søtransport.
+Han gik ad byen til for at sælge sin hestehud. Ja, sagde lille Claus, min troldmand kan alt, hvad jeg vil forlange. I grunden var det rigtigere af os at holde får, end holde ko.
+Nu er han glemt og borte, tænkte den onde broder. Der lød latter og hundehyl, der var stor fråsen og sviren. Det er føget med komplimenter her. Vi har for øvrigt agiteret herimod sammen med mange kolleger.
+Antibiotika må ikke dæmoniseres, men anvendes med forsigtighed hos både mennesker og dyr. Mest af alt vil det være semidemokratisk sminke til en udemokratisk institution.
+Du har bestemt selv engang set det! Jeg faldt på cykel og hjulet blev ekset. Det var en dejlig cykeltur, da der var helt vindstille. Orgelet spillede og folk sang så smukt derinde.
+Spørgsmålet om donation fra levende donorer har været den største udfordring. Der var engang en fattig Prinds. Det bliver værre for udviklingslandene, fordi udbredelsen af ørknerne rammer dem i særlig grad.
+Du skal dreje til højre nede ved isboden, der har det røde tag. Han var en digternatur, han blev knubset og kysset. Hver ordfører har jo lige så mange stemmer, som der er medlemmer i gruppen.
+Væk er de ubehagelige sprøjter, de ildelugtende piber og den afslørende røglugt. De er en uhøflig gammel herre! Heri er altid en trøst! Hvem der dog kunne få noget med!
+Inde i bondehuset boede to unge folk. Betænkningen lader det være usagt, hvilke motiver der ligger bag en nærmere samordning. Danse skal du, danse -! Rensdyret sprang højt af glæde.
+Han fik et piskesmæld i bilulykken. Uden skovbrug er der ingen træindustri. Aftalen indeholder heldigvis også stærke incitamenter vedrørende elektriske biler eller hybridbiler.
+I politik møder vi af og til snydeemballager. Jeg hørte hanerne gale, fornam, at solen kom op, klokkerne klang. Princippet med dobbelt flertal er ikke et sagnvæsen.
+I ligkisten skal han lægges, men ikke nu. Det gamle tømmer, der var ormstukket og svampet, lå i støv og aske. Det problem, vi drøfter, er både teknisk og politisk.

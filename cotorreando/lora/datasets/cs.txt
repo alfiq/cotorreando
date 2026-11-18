@@ -1,0 +1,15 @@
+# Czech (Čeština) calibration panels: one panel per line, about 15-20 seconds of reading each.
+# Sentences from the Common Voice sentence collection (CC0), commit 159d0badbda5;
+# picked and joined by scripts/build_panels.py, not by a speaker of the language.
+To nemože bejt a dost. V principu je ale možné postupovat stejným principem. A nyní ti dopovím o Márince. Mnohdy by to člověk nečekal. Prošli jsme přes recepci a ubytovali se.
+Hlavně pokud jste technicky zkušenější uživatel. To je ohavné, co děláte! Používá váš kód nějakou knihovnu? V Česku definujeme trošku jinak. Já vydělávám peníze a nosím je domů.
+Tady se vůbec nesmí chodit. V příloze ještě posílám skoro konečnou verzi příloh. Přednáška jeho byla subjektivně pro něj, a pro nikoho jiného. To byla nešťastná náhoda, co?
+Ba i socha byla jednomu z tvého kmene už postavena. Co to bylo za trapas? Pohlédla jsem na hodinky, bylo skoro půl šesté. Po chvíli vzmáhala se ve mně opět nedůvěra.
+Prasata totiž vypadají jako lidé. Vždyť je to děvče lehké jako chmýřko. Jen tak si polehávám v posteli. Zde čti, co lidé o tobě povídají. Destruktor musí být virtulální, jinak se nebude volat.
+Vláda se zavazuje upravit legislativní proces tak, aby zvýšila kvalitu a odpovědnost právní regulace. Tedy jsem se ho přece dočkal. Jenže obliba šachů stále stoupala, až nás, zájemců o ně, bylo asi sto šedesát.
+Nebyl jsem v Anglii dobrých deset let. Aspoň ne po delší dobu. Je to spíš drobnější seskupení. Dobrý dne, možná se domluvíme, ale nějak jsem nepochopil souvislost.
+Podobných míst je na hlavní obrazovce víc. Je dobré mít tento faktor jako parametr spolu s velikostí posunutí okna. Ale proč mi řekla to druhé? Byl v tváři bledý jak stěna.
+Tak teď čtu několik knih najednou, podle chuti. V rámci Evropské unie se bude vláda zasazovat o odbourání protekcionistických bariér. Prosím, přestaňte podobné nesmysly šířit.
+Smáli se mu, že se s těmi knihami namohl. Možná to není dost srozumitelné, proto uvedu příklad. V té době se přistěhoval do Staré Boleslavi další dobrý šachista.
+Leč v poslední sluj z desíti mne hnala. Pokud to něco udělá, přidej ho prosím. Z počátku z toho bylo mnoho zlé krve. Hrad Stulbach byl postaven k ochraně majetku biskupů olomuckých.
+A teď hybaj z toho lesa, tady dnes já lovím! Pardon, vy jste se ptala dříve. Tenkrát mě vzal k manželům Hruškovým. A to ještě není zdaleka všechno... S nikým nižžším se nespokojí.
