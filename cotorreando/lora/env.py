@@ -33,6 +33,12 @@ LOCK_CPU = PACKAGE_DIR / "lora" / "requirements-cpu.txt"
 TRAIN_SCRIPT = PACKAGE_DIR / "lora" / "train.py"
 PANELS_SCRIPT = PACKAGE_DIR / "lora" / "panels.py"
 NO_WINDOW = subprocess.CREATE_NO_WINDOW
+# NeMo arrastra one-logger y OpenTelemetry como dependencias transitivas. one-logger ya
+# queda desactivado aqui por construccion: solo exporta si el rango actual esta activado
+# (RANK=0) y nosotros lanzamos un unico proceso sin RANK, asi que no crea ningun exporter.
+# OTEL_SDK_DISABLED es la variable estandar que vuelve no-op el SDK de OpenTelemetry (trace,
+# metrics y logs) pase lo que pase; la fijamos como cinturon y tirantes.
+NO_TELEMETRY = {"OTEL_SDK_DISABLED": "true"}
 _process: subprocess.Popen | None = None
 _install_lock = threading.Lock()
 
@@ -73,7 +79,7 @@ def _stream(cmd: list[str], log, payload: bytes | None = None, extra_env: dict |
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         creationflags=NO_WINDOW,
-        env={**os.environ, "PYTHONUTF8": "1", **(extra_env or {})},
+        env={**os.environ, "PYTHONUTF8": "1", **NO_TELEMETRY, **(extra_env or {})},
     )
 
     def feed():
