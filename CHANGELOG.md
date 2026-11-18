@@ -1,5 +1,11 @@
 # Cambios
 
+## 0.1.5 — 2026-11-18
+
+- Al empezar, Cotorreando te pregunta en qué idiomas vas a hablar, entre los 25 que entiende el
+  modelo. Arriba salen, ya marcados, los de tu teclado, y puedes buscar cualquiera por su nombre en
+  español o en inglés. Si ya tenías la app, te lo pregunta una vez.
+
 ## 0.1.4 — 2026-11-10
 
 - El instalador ya no trae la firma autofirmada, que Windows no reconocía. Windows puede seguir

@@ -90,3 +90,9 @@ def test_every_field_is_json_serialisable():
 def test_non_object_json_gives_defaults(isolated_data, content):
     config.CONFIG_FILE.write_text(content, encoding="utf-8")
     assert Settings.load() == Settings()
+
+
+def test_languages_keep_only_known_codes(isolated_data):
+    s = Settings()
+    s.update({"languages": ["es", "xx", 3, "es", "de"]})
+    assert s.languages == ["es", "de"]

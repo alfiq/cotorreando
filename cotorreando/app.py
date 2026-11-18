@@ -36,6 +36,7 @@ from .config import Settings
 from .dialogs import (
     AboutDialog,
     DownloadDialog,
+    LanguagesDialog,
     ModelErrorDialog,
     Notice,
     SettingsDialog,
@@ -750,6 +751,10 @@ def main() -> int:
     if not settings.welcome_accepted:  # before anything is downloaded or recorded
         set_language(settings.ui_language)
         if not WelcomeDialog(settings).exec():
+            return 0
+    if not settings.languages:  # also once for those who installed before this was asked
+        set_language(settings.ui_language)
+        if not LanguagesDialog(settings).exec():
             return 0
     app._cotorreando = Cotorreando(app)  # noqa: SLF001 - keep it alive
     return app.exec()

@@ -105,6 +105,16 @@ en su lugar el sitio muestra la transcripción en texto. La cotorra del video es
 renderizado cuadro a cuadro con el volumen de la narración, no una imitación. Voz sintética
 (Kokoro-82M, Apache-2.0) y música de Sascha Ende (CC BY 4.0), con crédito en el video y en el sitio.
 
+#### Idiomas que habla el usuario
+Al primer arranque (y una vez a quien ya lo tenía instalado) se pregunta en qué idiomas va a
+hablar, entre los 25 que entiende Parakeet TDT 0.6B v3 (`cotorreando/languages.py`). Arriba van,
+ya marcados, los de los teclados y el formato regional de Windows; el resto, en orden alfabético.
+Una búsqueda filtra por el nombre propio, el español, el inglés o el código, sin distinguir
+acentos ni mayúsculas. Se pregunta en la app y no en el instalador para que el texto viva en
+`i18n.py`. El modelo detecta el idioma por sí solo, así que la elección no cambia el
+reconocimiento: hoy decide la calibración (solo hay textos en español e inglés) y queda guardada
+en `languages` para lo que venga.
+
 ## Pendientes
 
 - [ ] Confirmar con más grabaciones reales que el LoRA mejora. En el barrido mejoró en 2 de 6

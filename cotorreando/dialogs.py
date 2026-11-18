@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QMenu,
     QPlainTextEdit,
     QPushButton,
@@ -35,7 +36,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import AUTHOR_URL, REPO_URL, __author__, __version__, keyboard, model_store, palette, transfer, vault_legacy
+from . import (
+    AUTHOR_URL,
+    REPO_URL,
+    __author__,
+    __version__,
+    keyboard,
+    languages,
+    model_store,
+    palette,
+    transfer,
+    vault_legacy,
+)
 from .audio import RATE, Player, list_microphones
 from .config import Settings
 from .credits import CREDITS, TRAINING_CREDITS
@@ -1455,6 +1467,65 @@ class WelcomeDialog(Window):
     def accept(self):
         self.s.learning = self.learning.isChecked()
         self.s.welcome_accepted = True
+        self.s.save()
+        super().accept()
+
+
+class LanguagesDialog(Window):
+    """First run: which of the model's languages the user speaks, with the PC's own first."""
+
+    def __init__(self, settings, parent=None, detected=None):
+        super().__init__(parent)
+        self.s = settings
+        self.setWindowTitle(tr("langs_title"))
+        self.setFixedWidth(420)
+        detected = languages.system_languages() if detected is None else detected
+        chosen = set(settings.languages or detected or [settings.ui_language])
+        ui = settings.ui_language
+        rest = sorted((c for c in languages.LANGUAGES if c not in detected), key=lambda c: languages.label(c, ui))
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 8, 24, 20)
+        layout.setSpacing(12)
+        layout.addWidget(QLabel(tr("langs_text"), wordWrap=True))
+        self.search = QLineEdit(placeholderText=tr("langs_search"), clearButtonEnabled=True)
+        self.search.textChanged.connect(self._filter)
+        layout.addWidget(self.search)
+        self.list = QListWidget()
+        self.list.setMinimumHeight(280)
+        for code in [*detected, *rest]:
+            item = QListWidgetItem(languages.label(code, ui))
+            item.setData(Qt.UserRole, code)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Checked if code in chosen else Qt.Unchecked)
+            self.list.addItem(item)
+        self.list.itemClicked.connect(self._toggle)
+        layout.addWidget(self.list)
+        self.warning = QLabel(tr("langs_none"), objectName="note", visible=False)
+        layout.addWidget(self.warning)
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(QPushButton(tr("welcome_accept"), clicked=self.accept, default=True))
+        layout.addLayout(buttons)
+
+    def _toggle(self, item) -> None:
+        item.setCheckState(Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked)
+
+    def _filter(self, query: str) -> None:
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            item.setHidden(not languages.matches(item.data(Qt.UserRole), query))
+
+    def chosen(self) -> list[str]:
+        items = (self.list.item(row) for row in range(self.list.count()))
+        return [item.data(Qt.UserRole) for item in items if item.checkState() == Qt.Checked]
+
+    def accept(self):
+        codes = self.chosen()
+        if not codes:
+            self.warning.show()
+            return
+        self.s.languages = codes
+        self.s.lora_language = languages.calibration_choice(codes)
         self.s.save()
         super().accept()
 

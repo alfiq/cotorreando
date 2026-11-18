@@ -476,6 +476,14 @@ STRINGS = {
     "welcome_learning": ("Guardar datos para aprender de mi voz", "Save data to learn from my voice"),
     "welcome_accept": ("Aceptar y continuar", "Accept and continue"),
     "welcome_exit": ("Salir", "Exit"),
+    # Languages (first run)
+    "langs_title": ("Tus idiomas", "Your languages"),
+    "langs_text": (
+        "¿En qué idiomas vas a hablar? Marca todos los que quieras; arriba están los de tu teclado.",
+        "Which languages will you speak? Tick as many as you like; the ones on your keyboard come first.",
+    ),
+    "langs_search": ("Buscar idioma", "Search language"),
+    "langs_none": ("Marca al menos uno.", "Tick at least one."),
     # About
     "about_title": ("Acerca de Cotorreando", "About Cotorreando"),
     "tagline": ("Dictado por voz para todo Windows.", "Voice dictation for all of Windows."),

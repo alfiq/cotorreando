@@ -257,3 +257,34 @@ def test_escape_without_recording_is_not_taken_by_the_field(settings_dialog):
     dialog.hotkey.keyPressEvent(event)
     assert not event.isAccepted()
     assert not dialog.hotkey._owns_escape(_esc("press"))
+
+
+def test_languages_put_the_pc_ones_first_and_tick_them(isolated_data):
+    dialog = dialogs.LanguagesDialog(Settings(), detected=["fr", "en"])
+    assert [dialog.list.item(i).data(dialogs.Qt.UserRole) for i in (0, 1)] == ["fr", "en"]
+    assert dialog.chosen() == ["fr", "en"]
+
+
+@pytest.mark.parametrize("query", ["ingles", "English", "INGLÉS", "en"])
+def test_languages_search_in_either_language(isolated_data, query):
+    dialog = dialogs.LanguagesDialog(Settings(), detected=[])
+    dialog.search.setText(query)
+    visible = [dialog.list.item(i).data(dialogs.Qt.UserRole) for i in range(dialog.list.count())]
+    visible = [c for i, c in enumerate(visible) if not dialog.list.item(i).isHidden()]
+    assert "en" in visible and "de" not in visible
+
+
+def test_languages_accept_saves_and_picks_calibration(isolated_data):
+    settings = Settings()
+    dialog = dialogs.LanguagesDialog(settings, detected=["es", "en", "de"])
+    dialog.accept()
+    saved = Settings.load()
+    assert saved.languages == ["es", "en", "de"] and saved.lora_language == "both"
+
+
+def test_languages_refuse_none(isolated_data):
+    settings = Settings()
+    dialog = dialogs.LanguagesDialog(settings, detected=["es"])
+    dialog.list.item(0).setCheckState(dialogs.Qt.Unchecked)
+    dialog.accept()
+    assert settings.languages == []

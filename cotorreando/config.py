@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 
+from .languages import LANGUAGES
 from .paths import CONFIG_FILE
 
 log = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class Settings:
     # General
     welcome_accepted: bool = False  # saw and accepted the first-run privacy notice
     ui_language: str = "es"  # "es" | "en"
+    languages: list = field(default_factory=list)  # the ones the user speaks; empty = not asked yet
     mode: str = "activation"  # "open" | "ptt" | "activation"
     activation: str = "voice"  # "voice" | "keyword"
     keyword: str = "oye cotorro"
@@ -110,6 +112,8 @@ class Settings:
                 value = float(value)
             if type(value) is not kind:
                 continue
+            if kind is list:
+                value = [code for code in dict.fromkeys(value) if isinstance(code, str) and code in LANGUAGES]
             if f.name in CHOICES and value not in CHOICES[f.name]:
                 continue
             low, high = RANGES.get(f.name, (None, None))
