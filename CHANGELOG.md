@@ -1,5 +1,15 @@
 # Cambios
 
+## 0.1.8 — 2026-11-19
+
+- Si abres Cotorreando como administrador y luego se abre otra copia normal (por ejemplo con
+  «Iniciar con Windows»), la nueva se cierra sola en lugar de quedar dos copias escribiendo a la vez.
+- En documentos largos, Cotorreando se fija en el texto que está justo antes del cursor, no en el
+  principio del documento, para decidir mayúsculas y espacios.
+- Cancelar la lista de idiomas siempre te deja con un idioma válido.
+- Si falla la descarga del *tokenizer*, ya no la reintenta cada vez que cambias tus palabras.
+- Corrige un pequeño salto en el audio entre bloques al convertirlo a 16 kHz.
+
 ## 0.1.7 — 2026-11-18
 
 - Tus datos no salen de tu equipo: el entrenamiento personalizado de voz tiene desactivada
