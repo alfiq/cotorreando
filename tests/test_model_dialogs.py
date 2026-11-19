@@ -84,3 +84,8 @@ def test_settings_model_page_keeps_the_custom_folder(isolated_data):
     dialog._set_model("")
     dialog._accept()
     assert settings.custom_model == ""
+
+
+def test_settings_dialog_requires_a_learner():
+    with pytest.raises(TypeError):
+        dialogs.SettingsDialog(Settings())

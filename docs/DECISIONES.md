@@ -36,7 +36,7 @@
 | Repositorio | [`github.com/alfiq/cotorreando`](https://github.com/alfiq/cotorreando), privado al principio. |
 | Distribución | Ejecutable con **Nuitka** (Apache-2.0, salida sin restricciones) y opción de iniciar con Windows. |
 | Reportes de seguridad y de conducta | Por el canal privado de GitHub, sin correo público en el repositorio: un solo canal que no hay que mantener ni que se filtre. Ver [SECURITY.md](https://github.com/alfiq/cotorreando/blob/main/SECURITY.md) y [CODE_OF_CONDUCT.md](https://github.com/alfiq/cotorreando/blob/main/CODE_OF_CONDUCT.md). |
-| Linter | **ruff** con las reglas E, F, I, B y UP, en CI antes de las pruebas. Se ignoran E501 (textos de interfaz, CSS y licencias largos a propósito), B905 (`strict=` en `zip` cambiaría el comportamiento) y UP031 (la hoja de estilos de Qt es una plantilla `%(NOMBRE)s`). También `ruff format` (líneas de 120), comprobado en CI; el commit de formato está en `.git-blame-ignore-revs` para que `git blame` lo salte; también **pyright** en modo `basic` como aviso (`continue-on-error` en CI, solo con Python 3.12), limitado a `vault`, `config`, `model_store`, `learning`, `boosting` y `transfer` (lista en `[tool.pyright]`); hoy reporta 13 errores sin corregir, casi todos por stubs ausentes de `pyrage` y estrechamiento de `None`, y no bloquea nada. |
+| Linter | **ruff** con las reglas E, F, I, B y UP, en CI antes de las pruebas. Se ignoran E501 (textos de interfaz, CSS y licencias largos a propósito), B905 (`strict=` en `zip` cambiaría el comportamiento) y UP031 (la hoja de estilos de Qt es una plantilla `%(NOMBRE)s`). También `ruff format` (líneas de 120), comprobado en CI; el commit de formato está en `.git-blame-ignore-revs` para que `git blame` lo salte; también **pyright** en modo `basic` como aviso (`continue-on-error` en CI, solo con Python 3.12), limitado a `vault`, `config`, `model_store`, `learning`, `boosting` y `transfer` (lista en `[tool.pyright]`); reporta 0 errores. Los 14 falsos positivos que tenía se silencian línea por línea con `# pyright: ignore[regla]`, nunca con un `ignore` sin regla ni apagando reglas en `[tool.pyright]`: los de `pyrage` (`reportAttributeAccessIssue`, en `vault.py` y `transfer.py`) porque el paquete no trae stubs y sus funciones vienen de una extensión en Rust; los de `model_store.py`, `boosting.py` y `config.py` porque pyright no ve el estrechamiento que el código ya hace (`None` descartado con `all(...)` o con una comprobación previa, y el `type(value) is kind` de la carga de configuración). Un aviso nuevo es, por tanto, real. Sigue sin bloquear el CI. |
 | Firma del instalador | **Sin firma** por ahora. Se quitó la autofirmada (`CN=Alfiq`): Windows no confía en ella, SmartScreen avisaba igual que sin firma, ataba las compilaciones al certificado de una sola PC y puede estorbar la validación de winget. La forma de comprobar el instalador es `SHA256SUMS.txt`. Una firma reconocida (Authenticode de una autoridad o un servicio de firma para software libre) sigue pendiente. |
 | Release en CI | La compila, prueba y publica `.github/workflows/release.yml` al empujar una etiqueta `vX.Y.Z`: `build.ps1`, `--self-test` del ejecutable empaquetado, instalación y desinstalación silenciosas con `--self-test` del instalado, y Release con el instalador con versión, el fijo y `SHA256SUMS.txt`. Así no depende de una PC concreta y lo publicado es lo que se probó. A mano (`workflow_dispatch`) solo construye y prueba. |
 | Sumas de verificación de los instaladores | Cada Release publica `SHA256SUMS.txt` con el SHA-256 del instalador con versión y del fijo. GitHub también muestra los digests, pero un archivo se puede comprobar sin conexión y winget lo usará. |
@@ -131,7 +131,14 @@ de commit de Common Voice solo junto con una forma de descartarlas. Los paneles 
 calibraba en un idioma que sigue eligiendo (o en "ambos", con español e inglés), se respeta; un
 idioma que dejó de elegir cuenta como "todos". Cerrar la ventana de idiomas equivale a aceptar lo
 marcado, o el idioma de la interfaz si no hay nada: así quien actualiza nunca se queda sin poder
-abrir la app.
+abrir la app. Si el idioma de la interfaz tampoco está en la lista, se marca el primero (el del PC, si se
+detectó), para que cerrar siempre termine con un estado válido.
+
+### Tokenizer sin red
+
+Si la descarga del tokenizer falla, `Parakeet.set_phrases` no vuelve a intentarla durante 10 minutos
+(o hasta reiniciar): cada intento espera hasta 30 s y se repetiría con cada cambio de frases. Mientras
+tanto no hay refuerzo de frases.
 
 ## Pendientes
 

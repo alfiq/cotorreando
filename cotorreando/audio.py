@@ -51,7 +51,8 @@ class Resampler:
         taps = np.sinc(2 * cutoff * n) * np.hamming(self.TAPS)
         self.taps = (taps / taps.sum()).astype(np.float32)
         self.history = np.zeros(self.TAPS - 1, np.float32)
-        self.phase = 0.0
+        self.phase = 0.0  # position of the next output sample in this block; may be just before it
+        self.last = np.float32(0)  # last filtered sample of the previous block
 
     def __call__(self, data: bytes) -> np.ndarray:
         x = np.frombuffer(data, np.float32).reshape(-1, self.channels).mean(axis=1)
@@ -62,7 +63,11 @@ class Resampler:
         y = np.convolve(x, self.taps, mode="valid")
         positions = np.arange(self.phase, len(y) - 1, self.step)
         self.phase = positions[-1] + self.step - len(y) if len(positions) else self.phase - len(y)
-        return np.interp(positions, np.arange(len(y)), y).astype(np.float32)
+        # a negative phase falls between the previous block's last sample and this block's first
+        out = np.interp(positions + 1, np.arange(len(y) + 1), np.concatenate([[self.last], y]))
+        if len(y):
+            self.last = y[-1]
+        return out.astype(np.float32)
 
 
 class _Stream:

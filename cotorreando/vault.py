@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pyrage
-from pyrage import passphrase, x25519
+from pyrage import passphrase, x25519  # pyright: ignore[reportAttributeAccessIssue]
 
 from .audio import RATE
 from .paths import DATA_DIR, RECORDINGS_DIR
@@ -113,7 +113,7 @@ class Vault:
     def _open_key(self, path: Path, password: str) -> x25519.Identity:
         try:
             return x25519.Identity.from_str(passphrase.decrypt(path.read_bytes(), password).decode("ascii"))
-        except pyrage.DecryptError as err:
+        except pyrage.DecryptError as err:  # pyright: ignore[reportAttributeAccessIssue]
             raise WrongPassword from err
 
     def unlock(self, password: str) -> None:
@@ -138,12 +138,12 @@ class Vault:
 
     def seal(self, data: bytes) -> bytes:
         recipient = x25519.Recipient.from_str(RECIPIENT_FILE.read_text(encoding="ascii"))
-        return pyrage.encrypt(data, [recipient])
+        return pyrage.encrypt(data, [recipient])  # pyright: ignore[reportAttributeAccessIssue]
 
     def open(self, sealed: bytes) -> bytes:
         if self._identity is None:
             raise Locked
-        return pyrage.decrypt(sealed, [self._identity])
+        return pyrage.decrypt(sealed, [self._identity])  # pyright: ignore[reportAttributeAccessIssue]
 
     # -- word lists and journal -----------------------------------------------
 

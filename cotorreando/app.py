@@ -529,7 +529,7 @@ class Cotorreando(QObject):
 
     def open_settings(self) -> None:
         old = (self.s.use_gpu, self.s.lora_adapter, self.s.custom_model)
-        dialog = SettingsDialog(self.s, self.listener, self.learner)
+        dialog = SettingsDialog(self.s, self.listener, learner=self.learner)
         accepted = dialog.exec()
         if dialog.calibrate_requested:
             self.open_training()

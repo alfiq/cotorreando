@@ -4,6 +4,9 @@ import pytest
 
 pytest.importorskip("PySide6")
 
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtWidgets import QDialog, QPushButton
+
 from cotorreando import config, dialogs
 from cotorreando.config import Settings
 from cotorreando.i18n import set_language
@@ -103,14 +106,14 @@ class FakeListener:
 def settings_dialog(isolated_data, monkeypatch, unlocked_vault):
     from cotorreando import learning
 
-    monkeypatch.setattr(dialogs, "list_microphones", lambda: ["Test Mic"])
-    monkeypatch.setattr(dialogs, "MODELS_DIR", isolated_data / "models")
+    monkeypatch.setattr(dialogs.settings_pages, "list_microphones", lambda: ["Test Mic"])
+    monkeypatch.setattr(dialogs.settings_pages, "MODELS_DIR", isolated_data / "models")
     monkeypatch.setattr(learning, "FieldReader", lambda: None)
     monkeypatch.setattr(learning.Learner, "_watch", lambda self: None)
     learner = learning.Learner(Settings())
     learner.vault = unlocked_vault
     settings = Settings()
-    return settings, dialogs.SettingsDialog(settings, FakeListener(), learner)
+    return settings, dialogs.SettingsDialog(settings, FakeListener(), learner=learner)
 
 
 def test_settings_dialog_builds_and_keeps_values(settings_dialog):
@@ -151,7 +154,7 @@ def test_settings_dialog_saves_a_recorded_hotkey(settings_dialog, monkeypatch):
 def test_hotkey_reset_button_restores_the_default(settings_dialog):
     settings, dialog = settings_dialog
     dialog.hotkey.setValue("ctrl+alt+a")
-    reset = next(b for b in dialog.findChildren(dialogs.QPushButton) if b.text() == dialogs.tr("hotkey_reset"))
+    reset = next(b for b in dialog.findChildren(QPushButton) if b.text() == dialogs.tr("hotkey_reset"))
     reset.click()
     assert dialog.hotkey.value() == "ctrl+win" and dialog.hotkey.text() == "Ctrl+Win"
 
@@ -261,7 +264,7 @@ def test_escape_without_recording_is_not_taken_by_the_field(settings_dialog):
 
 def test_languages_put_the_pc_ones_first_and_tick_them(isolated_data):
     dialog = dialogs.LanguagesDialog(Settings(), detected=["fr", "en"])
-    assert [dialog.list.item(i).data(dialogs.Qt.UserRole) for i in (0, 1)] == ["fr", "en"]
+    assert [dialog.list.item(i).data(Qt.UserRole) for i in (0, 1)] == ["fr", "en"]
     assert dialog.chosen() == ["fr", "en"]
 
 
@@ -269,7 +272,7 @@ def test_languages_put_the_pc_ones_first_and_tick_them(isolated_data):
 def test_languages_search_in_either_language(isolated_data, query):
     dialog = dialogs.LanguagesDialog(Settings(), detected=[])
     dialog.search.setText(query)
-    visible = [dialog.list.item(i).data(dialogs.Qt.UserRole) for i in range(dialog.list.count())]
+    visible = [dialog.list.item(i).data(Qt.UserRole) for i in range(dialog.list.count())]
     visible = [c for i, c in enumerate(visible) if not dialog.list.item(i).isHidden()]
     assert "en" in visible and "de" not in visible
 
@@ -285,7 +288,7 @@ def test_languages_accept_saves_and_picks_calibration(isolated_data):
 def test_languages_refuse_none(isolated_data):
     settings = Settings()
     dialog = dialogs.LanguagesDialog(settings, detected=["es"])
-    dialog.list.item(0).setCheckState(dialogs.Qt.Unchecked)
+    dialog.list.item(0).setCheckState(Qt.Unchecked)
     dialog.accept()
     assert settings.languages == []
 
@@ -293,7 +296,7 @@ def test_languages_refuse_none(isolated_data):
 def test_languages_click_toggles_once(isolated_data):
     dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
     item = dialog.list.item(0)
-    assert not item.flags() & dialogs.Qt.ItemIsUserCheckable  # else Qt flips it a second time
+    assert not item.flags() & Qt.ItemIsUserCheckable  # else Qt flips it a second time
     dialog.list.itemClicked.emit(item)
     assert dialog.chosen() == []
 
@@ -301,9 +304,17 @@ def test_languages_click_toggles_once(isolated_data):
 def test_languages_closing_keeps_the_interface_language(isolated_data):
     settings = Settings(ui_language="en")
     dialog = dialogs.LanguagesDialog(settings, detected=["es"])
-    dialog.list.item(0).setCheckState(dialogs.Qt.Unchecked)
+    dialog.list.item(0).setCheckState(Qt.Unchecked)
     dialog.reject()
-    assert settings.languages == ["en"] and dialog.result() == dialogs.QDialog.Accepted
+    assert settings.languages == ["en"] and dialog.result() == QDialog.Accepted
+
+
+def test_languages_closing_with_an_unlisted_interface_language_still_closes(isolated_data):
+    settings = Settings(ui_language="xx")  # not one of the model's languages
+    dialog = dialogs.LanguagesDialog(settings, detected=["es"])
+    dialog.list.item(0).setCheckState(Qt.Unchecked)
+    dialog.reject()
+    assert settings.languages == ["es"] and dialog.result() == QDialog.Accepted and not dialog.warning.isVisible()
 
 
 def test_languages_space_toggles(isolated_data):
@@ -311,7 +322,7 @@ def test_languages_space_toggles(isolated_data):
 
     dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
     dialog.list.setCurrentRow(0)
-    event = QKeyEvent(dialogs.QEvent.KeyPress, dialogs.Qt.Key_Space, dialogs.Qt.NoModifier, " ")
+    event = QKeyEvent(QEvent.KeyPress, Qt.Key_Space, Qt.NoModifier, " ")
     assert dialog.eventFilter(dialog.list, event)
     assert dialog.chosen() == []
 
@@ -333,7 +344,7 @@ def test_languages_space_ignores_a_hidden_item(isolated_data):
     dialog = dialogs.LanguagesDialog(Settings(), detected=["es"])
     dialog.list.setCurrentRow(0)
     dialog.search.setText("deutsch")
-    event = QKeyEvent(dialogs.QEvent.KeyPress, dialogs.Qt.Key_Space, dialogs.Qt.NoModifier, " ")
+    event = QKeyEvent(QEvent.KeyPress, Qt.Key_Space, Qt.NoModifier, " ")
     dialog.eventFilter(dialog.list, event)
     assert dialog.chosen() == ["es"]
 
@@ -342,7 +353,7 @@ def test_languages_from_the_options_cancel_without_saving(isolated_data):
     settings = Settings(languages=["de"])
     dialog = dialogs.LanguagesDialog(settings, detected=["es"], required=False)
     dialog.reject()
-    assert settings.languages == ["de"] and dialog.result() == dialogs.QDialog.Rejected
+    assert settings.languages == ["de"] and dialog.result() == QDialog.Rejected
 
 
 def test_options_show_the_spoken_languages(settings_dialog):
