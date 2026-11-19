@@ -13,15 +13,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QVBoxLayout,
 )
 
-from .. import (
-    model_store,
-)
+from .. import model_store
 from ..i18n import tr
 from ..mosaic import Mosaic
-from .base import Prompt, Window
+from .base import Window, button_row, dialog_layout, ghost_button, inform
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +43,7 @@ def choose_model_folder(parent=None, start: str = "") -> str | None:
     finally:
         QApplication.restoreOverrideCursor()
     if problem:
-        Prompt(parent, tr("model_invalid", reason=problem), ok="OK", cancel=False).exec()
+        inform(parent, tr("model_invalid", reason=problem), ok="OK")
         return None
     return path
 
@@ -79,17 +76,12 @@ class DownloadDialog(Window):
         self.setFixedWidth(460)
         self.mosaic = Mosaic(5, 0.0)
         self.label = QLabel(tr("dl_starting"), objectName="note", alignment=Qt.AlignCenter)
-        self.cancel = QPushButton(tr("cancel"), objectName="ghost", clicked=self.reject)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 12, 24, 20)
-        layout.setSpacing(14)
+        self.cancel = ghost_button(tr("cancel"), clicked=self.reject)
+        layout = dialog_layout(self, top=12)
         layout.addWidget(self.mosaic, 0, Qt.AlignCenter)
         layout.addWidget(QLabel(tr("dl_intro"), wordWrap=True))
         layout.addWidget(self.label)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        buttons.addWidget(self.cancel)
-        layout.addLayout(buttons)
+        layout.addLayout(button_row(self.cancel))
         self._progress.connect(self._show)
         self._ended.connect(self._finish)
 
@@ -155,12 +147,10 @@ class ModelErrorDialog(Window):
         self.choice = "quit"
         self.setWindowTitle(tr("model_problem"))
         self.setFixedWidth(480)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 12, 24, 20)
-        layout.setSpacing(14)
+        layout = dialog_layout(self, top=12)
         layout.addWidget(QLabel(text, wordWrap=True))
         buttons = QHBoxLayout()
-        buttons.addWidget(QPushButton(tr("quit"), objectName="ghost", clicked=self.reject))
+        buttons.addWidget(ghost_button(tr("quit"), clicked=self.reject))
         buttons.addStretch()
         for i, (choice, label) in enumerate(options):
             last = i == len(options) - 1

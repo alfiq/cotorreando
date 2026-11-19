@@ -9,7 +9,6 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -17,15 +16,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import (
-    transfer,
-    vault_legacy,
-)
+from .. import transfer, vault_legacy
 from ..i18n import tr
 from ..vault import WrongPassword, password_problem
-from .base import COOLDOWN_S, MAX_FAILURES, Prompt, Window
+from .base import Prompt, Window, button_row, dialog_layout, ghost_button, note_label
 
 log = logging.getLogger(__name__)
+
+MAX_FAILURES, COOLDOWN_S = 5, 60  # wrong passwords in a row, then this many seconds of waiting
 
 
 class NewPassword(QWidget):
@@ -35,7 +33,7 @@ class NewPassword(QWidget):
         super().__init__(parent)
         self.first = QLineEdit(echoMode=QLineEdit.Password, placeholderText=tr("password_new_hint"))
         self.second = QLineEdit(echoMode=QLineEdit.Password, placeholderText=tr("password_again"))
-        generate = QPushButton(tr("password_generate"), objectName="ghost", clicked=self._generate)
+        generate = ghost_button(tr("password_generate"), clicked=self._generate)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.first)
@@ -63,21 +61,18 @@ class NewPassword(QWidget):
 class _Form(Window):
     """Text, a body and buttons; ``_submit`` decides whether the dialog is done."""
 
+    new: NewPassword  # the dialogs that ask for a new password set it; see _new_password_ok
+
     def __init__(self, parent, text, ok):
         super().__init__(parent)
         self.setWindowTitle(tr("password_prompt"))
         self.setFixedWidth(460)
-        self.body = QVBoxLayout(self)
-        self.body.setContentsMargins(24, 8, 24, 20)
-        self.body.setSpacing(12)
+        self.body = dialog_layout(self, spacing=12)
         self.body.addWidget(QLabel(text, wordWrap=True))
-        self.error = QLabel(objectName="note", wordWrap=True)
+        self.error = note_label("")
         self.error.hide()
-        self.buttons = QHBoxLayout()
-        self.buttons.addStretch()
-        self.buttons.addWidget(QPushButton(tr("cancel"), objectName="ghost", clicked=self.reject))
         self.ok = QPushButton(ok, clicked=self._submit, default=True)
-        self.buttons.addWidget(self.ok)
+        self.buttons = button_row(ghost_button(tr("cancel"), clicked=self.reject), self.ok)
 
     def _finish_layout(self):
         self.body.addWidget(self.error)
@@ -86,6 +81,13 @@ class _Form(Window):
     def _show_error(self, text):
         self.error.setText(text)
         self.error.show()
+
+    def _new_password_ok(self) -> bool:
+        """Whether the new password in ``self.new`` is acceptable; if not, says why."""
+        problem = self.new.problem()
+        if problem:
+            self._show_error(problem)
+        return not problem
 
 
 def show_recovery_code(parent, code: str) -> None:
@@ -113,9 +115,7 @@ class SetupDialog(_Form):
         self._finish_layout()
 
     def _submit(self):
-        problem = self.new.problem()
-        if problem:
-            self._show_error(problem)
+        if not self._new_password_ok():
             return
         vault = self.learner.vault
         old = self.old.text() if self.old else None
@@ -148,7 +148,7 @@ class UnlockDialog(_Form):
         self.learner = learner
         self.field = QLineEdit(echoMode=QLineEdit.Password)
         self.body.addWidget(self.field)
-        self.buttons.insertWidget(0, QPushButton(tr("password_forgot"), objectName="ghost", clicked=self._forgot))
+        self.buttons.insertWidget(0, ghost_button(tr("password_forgot"), clicked=self._forgot))
         self._finish_layout()
         self.field.setFocus()
 
@@ -184,9 +184,7 @@ class RecoverDialog(_Form):
         self._finish_layout()
 
     def _submit(self):
-        problem = self.new.problem()
-        if problem:
-            self._show_error(problem)
+        if not self._new_password_ok():
             return
         try:
             self.learner.recover(self.code.text(), self.new.password())
@@ -205,9 +203,7 @@ class _ChangePassword(_Form):
         self._finish_layout()
 
     def _submit(self):
-        problem = self.new.problem()
-        if problem:
-            self._show_error(problem)
+        if not self._new_password_ok():
             return
         self.vault.change_password(self.new.password())
         self.accept()
@@ -223,15 +219,12 @@ class _Export(_Form):
         self.dictations = QCheckBox(tr("export_dictations"))
         self.body.addWidget(self.new)
         self.body.addWidget(self.dictations)
-        self.body.addWidget(QLabel(tr("export_dictations_note"), objectName="note", wordWrap=True))
+        self.body.addWidget(note_label(tr("export_dictations_note")))
         self._finish_layout()
 
     def _submit(self):
-        problem = self.new.problem()
-        if problem:
-            self._show_error(problem)
-            return
-        self.accept()
+        if self._new_password_ok():
+            self.accept()
 
 
 class _Import(_Form):
@@ -248,7 +241,7 @@ class _Import(_Form):
         self.mode.addItem(tr("import_replace"), True)
         self.body.addWidget(self.field)
         self.body.addWidget(self.mode)
-        self.body.addWidget(QLabel(tr("import_mode_note"), objectName="note", wordWrap=True))
+        self.body.addWidget(note_label(tr("import_mode_note")))
         self.body.addWidget(self.settings)
         self._finish_layout()
         self.field.setFocus()

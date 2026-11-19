@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import logging
-
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import (
     QCheckBox,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -17,19 +14,10 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from .. import (
-    AUTHOR_URL,
-    REPO_URL,
-    __author__,
-    __version__,
-    languages,
-    palette,
-)
+from .. import AUTHOR_URL, REPO_URL, __author__, __version__, languages, palette
 from ..credits import CREDITS, TRAINING_CREDITS
 from ..i18n import tr
-from .base import Window, privacy_link
-
-log = logging.getLogger(__name__)
+from .base import Window, button_row, dialog_layout, ghost_button, privacy_link
 
 
 class WelcomeDialog(Window):
@@ -40,18 +28,17 @@ class WelcomeDialog(Window):
         self.s = settings
         self.setWindowTitle(tr("welcome_title"))
         self.setFixedWidth(500)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 8, 24, 20)
-        layout.setSpacing(14)
+        layout = dialog_layout(self)
         layout.addWidget(QLabel(tr("welcome_text"), wordWrap=True))
         layout.addWidget(privacy_link())
         self.learning = QCheckBox(tr("welcome_learning"), checked=settings.learning)
         layout.addWidget(self.learning)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        buttons.addWidget(QPushButton(tr("welcome_exit"), objectName="ghost", clicked=self.reject))
-        buttons.addWidget(QPushButton(tr("welcome_accept"), clicked=self.accept, default=True))
-        layout.addLayout(buttons)
+        layout.addLayout(
+            button_row(
+                ghost_button(tr("welcome_exit"), clicked=self.reject),
+                QPushButton(tr("welcome_accept"), clicked=self.accept, default=True),
+            )
+        )
 
     def accept(self):
         self.s.learning = self.learning.isChecked()
@@ -73,9 +60,7 @@ class LanguagesDialog(Window):
         chosen = set(settings.languages or detected or [settings.ui_language])
         ui = settings.ui_language
         rest = sorted((c for c in languages.LANGUAGES if c not in detected), key=lambda c: languages.label(c, ui))
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 8, 24, 20)
-        layout.setSpacing(12)
+        layout = dialog_layout(self, spacing=12)
         layout.addWidget(QLabel(tr("langs_text"), wordWrap=True))
         self.search = QLineEdit(placeholderText=tr("langs_search"), clearButtonEnabled=True)
         self.search.textChanged.connect(self._filter)
@@ -94,10 +79,7 @@ class LanguagesDialog(Window):
         layout.addWidget(self.list)
         self.warning = QLabel(tr("langs_none"), objectName="note", visible=False)
         layout.addWidget(self.warning)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        buttons.addWidget(QPushButton(tr("welcome_accept"), clicked=self.accept, default=True))
-        layout.addLayout(buttons)
+        layout.addLayout(button_row(QPushButton(tr("welcome_accept"), clicked=self.accept, default=True)))
 
     def _toggle(self, item) -> None:
         item.setCheckState(Qt.Unchecked if item.checkState() == Qt.Checked else Qt.Checked)
@@ -167,9 +149,6 @@ class AboutDialog(Window):
         )
         text = QTextBrowser(openExternalLinks=True)
         text.setHtml(html)
-        close = QHBoxLayout()
-        close.addStretch()
-        close.addWidget(QPushButton(tr("cal_finish"), clicked=self.accept))
         layout = QVBoxLayout(self)
         layout.addWidget(text)
-        layout.addLayout(close)
+        layout.addLayout(button_row(QPushButton(tr("cal_finish"), clicked=self.accept)))

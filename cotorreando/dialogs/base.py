@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ctypes
-import logging
 
 from PySide6.QtCore import QEvent, QRect, Qt, QTimer
 from PySide6.QtGui import QColor, QPalette
@@ -15,20 +14,16 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMenu,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import (
-    palette,
-)
+from .. import palette
 from ..i18n import tr
 from ..paths import PACKAGE_DIR
 
-log = logging.getLogger(__name__)
-
 TITLE_BAR_HEIGHT = 36
-MAX_FAILURES, COOLDOWN_S = 5, 60
 NOTICE_MS = 20000
 DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND = 33, 2
 _ASSETS = (PACKAGE_DIR / "assets").as_posix()
@@ -117,6 +112,61 @@ def styled_menu() -> QMenu:
     return menu
 
 
+def ghost_button(text: str, **props) -> QPushButton:
+    """The quiet button, for what is not the main action."""
+    return QPushButton(text, objectName="ghost", **props)
+
+
+def button_row(*buttons: QWidget) -> QHBoxLayout:
+    """Buttons together at the right edge of a dialog."""
+    row = QHBoxLayout()
+    row.addStretch()
+    for button in buttons:
+        row.addWidget(button)
+    return row
+
+
+def dialog_layout(window: QWidget, top: int = 8, spacing: int = 14) -> QVBoxLayout:
+    """The column of a small dialog: text, fields, then its buttons."""
+    layout = QVBoxLayout(window)
+    layout.setContentsMargins(24, top, 24, 20)
+    layout.setSpacing(spacing)
+    return layout
+
+
+def footer_bar() -> tuple[QFrame, QHBoxLayout]:
+    """The strip along the bottom of the big dialogs; the caller fills the layout."""
+    footer = QFrame(objectName="footer")
+    layout = QHBoxLayout(footer)
+    layout.setContentsMargins(24, 12, 24, 12)
+    return footer, layout
+
+
+def note_label(text: str) -> QLabel:
+    return QLabel(text, objectName="note", wordWrap=True)
+
+
+def inline_row(*items: QWidget | tuple[QWidget, int], spacing: int | None = None, trailing_stretch=False) -> QWidget:
+    """Widgets side by side; an item may be ``(widget, stretch)``."""
+    row = QWidget()
+    line = QHBoxLayout(row)
+    line.setContentsMargins(0, 0, 0, 0)
+    if spacing is not None:
+        line.setSpacing(spacing)
+    for item in items:
+        widget, stretch = item if isinstance(item, tuple) else (item, 0)
+        line.addWidget(widget, stretch)
+    if trailing_stretch:
+        line.addStretch()
+    return row
+
+
+def scroll_area(widget: QWidget) -> QScrollArea:
+    scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.NoFrame)
+    scroll.setWidget(widget)
+    return scroll
+
+
 class Window(QDialog):
     """A dialog with our own title bar: same colour as the window, and only a close button."""
 
@@ -164,24 +214,24 @@ class Prompt(Window):
         super().__init__(parent)
         self.setWindowTitle("Cotorreando")
         self.setFixedWidth(420)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 8, 24, 20)
-        layout.setSpacing(14)
+        layout = dialog_layout(self)
         layout.addWidget(QLabel(text, wordWrap=True))
         self.field = QLineEdit(echoMode=QLineEdit.Password)
         self.field.setVisible(password)
         layout.addWidget(self.field)
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        if cancel:
-            buttons.addWidget(QPushButton(tr("cancel"), objectName="ghost", clicked=self.reject))
-        buttons.addWidget(QPushButton(ok or tr("cal_finish"), clicked=self.accept, default=True))
-        layout.addLayout(buttons)
+        buttons = [ghost_button(tr("cancel"), clicked=self.reject)] if cancel else []
+        buttons.append(QPushButton(ok or tr("cal_finish"), clicked=self.accept, default=True))
+        layout.addLayout(button_row(*buttons))
 
 
 def ask_password(parent, text) -> str | None:
     prompt = Prompt(parent, text, ok="OK", password=True)
     return prompt.field.text() if prompt.exec() else None
+
+
+def inform(parent, text: str, ok: str | None = None) -> None:
+    """A message with a single button, shown until it is dismissed."""
+    Prompt(parent, text, ok=ok, cancel=False).exec()
 
 
 class Notice(QWidget):
@@ -197,17 +247,11 @@ class Notice(QWidget):
         self.setAttribute(Qt.WA_StyledBackground)
         button = QPushButton(action, clicked=lambda: (self.close(), on_action()))
         button.setFocusPolicy(Qt.NoFocus)
-        later = QPushButton(
-            dismiss or tr("later"), objectName="ghost", clicked=lambda: (self.close(), on_dismiss and on_dismiss())
-        )
+        later = ghost_button(dismiss or tr("later"), clicked=lambda: (self.close(), on_dismiss and on_dismiss()))
         later.setFocusPolicy(Qt.NoFocus)
-        row = QHBoxLayout()
-        row.addStretch()
-        row.addWidget(later)
-        row.addWidget(button)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(text, wordWrap=True))
-        layout.addLayout(row)
+        layout.addLayout(button_row(later, button))
         self.setFixedWidth(320)
         QTimer.singleShot(NOTICE_MS, self.close)
 
