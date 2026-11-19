@@ -309,6 +309,14 @@ def test_languages_closing_keeps_the_interface_language(isolated_data):
     assert settings.languages == ["en"] and dialog.result() == QDialog.Accepted
 
 
+def test_languages_closing_with_an_unlisted_interface_language_still_closes(isolated_data):
+    settings = Settings(ui_language="xx")  # not one of the model's languages
+    dialog = dialogs.LanguagesDialog(settings, detected=["es"])
+    dialog.list.item(0).setCheckState(Qt.Unchecked)
+    dialog.reject()
+    assert settings.languages == ["es"] and dialog.result() == QDialog.Accepted and not dialog.warning.isVisible()
+
+
 def test_languages_space_toggles(isolated_data):
     from PySide6.QtGui import QKeyEvent
 

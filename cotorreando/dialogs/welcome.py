@@ -117,16 +117,16 @@ class LanguagesDialog(Window):
         super().accept()
 
     def reject(self):
-        """At startup, closing it keeps what is ticked, or the interface language: the app must not
+        """At startup, closing it keeps what is ticked, or the interface language (or the first listed): the app must not
         stay shut. Opened from the options, it just cancels."""
         if not self.required:
             super().reject()
             return
         if not self.chosen():
-            for row in range(self.list.count()):
-                item = self.list.item(row)
-                if item.data(Qt.UserRole) == self.s.ui_language:
-                    item.setCheckState(Qt.Checked)
+            items = [self.list.item(row) for row in range(self.list.count())]
+            # the interface language if it is listed, else the first one (the PC's own, when detected)
+            fallback = next((i for i in items if i.data(Qt.UserRole) == self.s.ui_language), items[0])
+            fallback.setCheckState(Qt.Checked)
         self.accept()
 
 
