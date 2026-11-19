@@ -4,8 +4,12 @@ Modes
 -----
 open        Always listening; every utterance (split on pauses) is typed.
 ptt         Push-to-talk; audio is recorded while the hotkey is held.
-activation  Sleeps until woken by voice above the threshold or by the
-            keyword, then dictates until ``session_timeout_s`` of silence.
+activation  Like open, but an utterance also needs enough energy (above
+            ``threshold_db``) to start, so quiet background speech is ignored.
+            The Listener never blocks audio by itself: with the "keyword"
+            activation, app.py discards the recognised text until the keyword
+            is heard, and uses ``awake`` / ``wake()`` to remember that a
+            session is open for ``session_timeout_s`` after the last text.
 
 The hotkey toggles the listener on and off in ``open`` and ``activation``.
 """
@@ -75,10 +79,12 @@ class Listener:
             self._end()
 
     def wake(self) -> None:
+        """Open (or extend) a keyword session. Only app.py reads it; the Listener does not gate on it."""
         self.awake_until = time.monotonic() + self.s.session_timeout_s
 
     @property
     def awake(self) -> bool:
+        """True in open mode, or while a session opened by ``wake`` has not timed out."""
         return self.s.mode == "open" or time.monotonic() < self.awake_until
 
     def feed(self, frame: np.ndarray) -> None:
