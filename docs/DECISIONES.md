@@ -140,6 +140,13 @@ Si la descarga del tokenizer falla, `Parakeet.set_phrases` no vuelve a intentarl
 (o hasta reiniciar): cada intento espera hasta 30 s y se repetiría con cada cambio de frases. Mientras
 tanto no hay refuerzo de frases.
 
+### Instancia única con copias elevadas
+
+`already_running()` cuenta como otra copia abierta tanto `ERROR_ALREADY_EXISTS` (183) como
+`ERROR_ACCESS_DENIED` (5). El segundo aparece cuando la copia abierta corre como administrador y se
+lanza una normal: el mutex existe pero no se puede abrir. Antes se ignoraba y quedaban dos copias
+escribiendo con SendInput a la vez.
+
 ## Pendientes
 
 - [ ] Confirmar con más grabaciones reales que el LoRA mejora. En el barrido mejoró en 2 de 6
