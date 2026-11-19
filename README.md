@@ -9,10 +9,11 @@
   <a href="https://github.com/alfiq/cotorreando/releases"><img alt="Versión" src="https://img.shields.io/github/v/release/alfiq/cotorreando?label=versi%C3%B3n&color=cb4426"></a>
 </p>
 
-# Cotorreando
+# Cotorreando: dictado por voz para Windows
 
 Hablas y el texto aparece donde tengas el cursor: en el navegador, en el editor, en el chat, donde
-sea. Así de fácil.
+sea. Así de fácil. Cotorreando es dictado por voz gratis y de código abierto: convierte tu voz a
+texto en casi cualquier programa de Windows.
 
 Todo pasa en tu computadora. Sin nube, sin cuentas y sin telemetría. Solo se conecta a internet
 para bajar los modelos y, una vez al día, para ver si hay versión nueva. Si decides entrenar tu voz,
@@ -62,6 +63,29 @@ hablas y lo pone 12 dB arriba.
 
 El audio pasa por el procesador de WebRTC, que quita ruido, cancela el eco de tus bocinas y ajusta
 el volumen solo. Así no se pone a escribir lo que dice el video que tienes abierto.
+
+## Preguntas frecuentes
+
+**¿Funciona sin internet?** Sí. El reconocimiento de voz es offline: corre en tu computadora.
+Necesitas conexión la primera vez, para bajar los modelos (y el *tokenizer* cuando usas por primera
+vez el impulso de tus palabras) y, si quieres, para entrenar tu voz; fuera de eso solo se conecta, como
+mucho una vez al día, para ver si hay versión nueva.
+
+**¿En qué se diferencia del dictado de Windows (`Win+H`)?** Según tu versión de Windows y tu
+configuración, el dictado de Windows puede usar los servicios en línea de Microsoft. Cotorreando
+reconoce la voz en tu equipo, se puede entrenar con tu voz y te deja elegir cómo escucha: micrófono
+abierto, pulsar para hablar o activación (por voz o con palabra clave).
+
+**¿Cuesta algo?** No. Es gratis y de código abierto, con licencia MIT.
+
+**¿Sirve para transcribir voz en cualquier programa?** En casi todos. Escribe donde esté el cursor:
+Word, el navegador, el correo, el chat o el editor de código. La excepción son las ventanas abiertas
+como administrador: Windows no deja que un programa normal teclee en ellas, por seguridad. Si
+necesitas dictar ahí, cierra Cotorreando y vuelve a abrirlo como administrador: si ya hay una copia
+abierta, la nueva se cierra sola. Si tienes activado «Iniciar con Windows», al iniciar sesión otra
+vez se abre de nuevo sin permisos de administrador.
+
+**¿Qué idiomas entiende?** Español, inglés y otros 23 idiomas europeos, con puntuación y mayúsculas.
 
 ## Instalar y ejecutar
 

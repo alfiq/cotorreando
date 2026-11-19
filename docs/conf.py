@@ -114,6 +114,29 @@ html_static_path = [str(_static)]
 html_css_files = ["cotorra.css"]
 
 
+# Lo que ven los buscadores: la descripción de la portada (meta y Open Graph) y los datos
+# estructurados que la marcan como un programa gratuito para Windows.
+DESCRIPCION = (
+    "Cotorreando es dictado por voz para Windows, gratis y de código abierto: convierte tu voz a "
+    "texto en casi cualquier ventana y reconoce la voz sin internet, sin nube y sin cuentas."
+)
+FRENTE = f"""---
+myst:
+  html_meta:
+    description: "{DESCRIPCION}"
+og:description: "{DESCRIPCION}"
+---
+"""
+DATOS = f"""
+<script type="application/ld+json">
+{{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Cotorreando",
+"description": "{DESCRIPCION}", "url": "{SITIO}", "applicationCategory": "UtilitiesApplication",
+"operatingSystem": "Windows 10, Windows 11", "inLanguage": ["es", "en"], "license": "https://opensource.org/licenses/MIT",
+"downloadUrl": "https://github.com/alfiq/cotorreando/releases/latest/download/Cotorreando-setup.exe",
+"offers": {{"@type": "Offer", "price": "0", "priceCurrency": "USD"}}}}
+</script>
+"""
+
 DESCARGA = """
 <div class="descarga">
 <p>¿Vienes por la descarga? Aquí está, cotorro.</p>
@@ -165,7 +188,9 @@ def _portada():
     )
     indice = "\n".join(p.stem for p in sorted(DOCS.glob("*.md")) if p.stem != "index")
     return (
-        "![Cotorreando](assets/banner.png)\n"
+        FRENTE
+        + DATOS
+        + "![Cotorreando](assets/banner.png)\n"
         + DESCARGA
         + VIDEO
         + "\n"
