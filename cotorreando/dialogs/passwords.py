@@ -141,6 +141,8 @@ class SetupDialog(_Form):
 class UnlockDialog(_Form):
     """Accepted means the vault is unlocked; whoever opened it locks it again."""
 
+    # On the class, not the instance, on purpose: the count must survive closing and reopening the
+    # dialog, or the lockout after MAX_FAILURES could be skipped by simply closing it.
     failures = 0
 
     def __init__(self, learner, parent=None):
