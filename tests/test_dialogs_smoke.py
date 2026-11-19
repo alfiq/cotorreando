@@ -113,7 +113,7 @@ def settings_dialog(isolated_data, monkeypatch, unlocked_vault):
     learner = learning.Learner(Settings())
     learner.vault = unlocked_vault
     settings = Settings()
-    return settings, dialogs.SettingsDialog(settings, FakeListener(), learner)
+    return settings, dialogs.SettingsDialog(settings, FakeListener(), learner=learner)
 
 
 def test_settings_dialog_builds_and_keeps_values(settings_dialog):

@@ -14,7 +14,7 @@ from .settings_pages import SettingsPages, page
 
 
 class SettingsDialog(SettingsPages, Window):
-    def __init__(self, settings, listener=None, learner=None, parent=None):
+    def __init__(self, settings, listener=None, *, learner, parent=None):
         super().__init__(parent)
         self.s, self.listener, self.learner = settings, listener, learner
         self.actions = PrivacyActions(self, learner, settings, self._show_password_state)
