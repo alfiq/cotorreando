@@ -12,20 +12,17 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPlainTextEdit,
     QPushButton,
-    QScrollArea,
     QStackedWidget,
     QTabBar,
     QVBoxLayout,
     QWidget,
 )
 
-from .. import (
-    keyboard,
-)
+from .. import keyboard
 from ..audio import RATE, Player
 from ..i18n import tr
 from ..learning import phrase_alpha
-from .base import Prompt, Window
+from .base import Prompt, Window, footer_bar, ghost_button, scroll_area
 
 log = logging.getLogger(__name__)
 
@@ -52,10 +49,50 @@ class DataDialog(Window):
         self.guard = QTimer(self, interval=2000, timeout=self._check_away)
         self.guard.start()
 
-        inner = QWidget(objectName="content")
-        self.rows = QVBoxLayout(inner)
-        self.rows.setContentsMargins(28, 16, 28, 24)
-        self.rows.setSpacing(10)
+        pages = QStackedWidget()
+        pages.addWidget(scroll_area(self._dictations_page()))
+        pages.addWidget(scroll_area(self._words_page()))
+        tabs = QTabBar(drawBase=False, expanding=False)
+        tabs.addTab(tr("data_tab_dictations"))
+        tabs.addTab(tr("data_tab_words"))
+        self.delete_all = ghost_button(tr("data_delete_all"), clicked=self._delete_all)
+        self.delete_all.setEnabled(bool(self.cards))
+        tabs.currentChanged.connect(pages.setCurrentIndex)
+        tabs.currentChanged.connect(lambda i: self.delete_all.setVisible(i == 0))
+
+        footer, bottom = footer_bar()
+        bottom.addWidget(self.delete_all)
+        bottom.addStretch()
+        bottom.addWidget(QPushButton(tr("cal_finish"), clicked=self.accept, default=True))
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self._header(tabs))
+        layout.addWidget(pages, 1)
+        layout.addWidget(footer)
+
+    @staticmethod
+    def _header(tabs: QTabBar) -> QWidget:
+        header = QWidget(objectName="content")
+        top = QVBoxLayout(header)
+        top.setContentsMargins(28, 24, 28, 0)
+        top.setSpacing(8)
+        top.addWidget(QLabel(tr("data_title"), objectName="pageTitle"))
+        top.addWidget(tabs)
+        return header
+
+    @staticmethod
+    def _column() -> tuple[QWidget, QVBoxLayout]:
+        """A page of this dialog: a column of rows, inside a widget."""
+        page = QWidget(objectName="content")
+        rows = QVBoxLayout(page)
+        rows.setContentsMargins(28, 16, 28, 24)
+        rows.setSpacing(10)
+        return page, rows
+
+    def _dictations_page(self) -> QWidget:
+        """One card per saved dictation, the latest first."""
+        page, self.rows = self._column()
         for rid in reversed(self.vault.record_ids()):
             meta, samples = self.vault.read_record(rid)
             self.rows.addWidget(self._card(rid, meta, samples.size / RATE))
@@ -63,52 +100,44 @@ class DataDialog(Window):
         self.empty.setVisible(not self.cards)
         self.rows.addWidget(self.empty)
         self.rows.addStretch()
-
-        pages = QStackedWidget()
-        pages.addWidget(self._scroll(inner))
-        pages.addWidget(self._scroll(self._words_page()))
-        tabs = QTabBar(drawBase=False, expanding=False)
-        tabs.addTab(tr("data_tab_dictations"))
-        tabs.addTab(tr("data_tab_words"))
-        header = QWidget(objectName="content")
-        top = QVBoxLayout(header)
-        top.setContentsMargins(28, 24, 28, 0)
-        top.setSpacing(8)
-        top.addWidget(QLabel(tr("data_title"), objectName="pageTitle"))
-        top.addWidget(tabs)
-
-        self.delete_all = QPushButton(tr("data_delete_all"), objectName="ghost", clicked=self._delete_all)
-        self.delete_all.setEnabled(bool(self.cards))
-        tabs.currentChanged.connect(pages.setCurrentIndex)
-        tabs.currentChanged.connect(lambda i: self.delete_all.setVisible(i == 0))
-        close = QPushButton(tr("cal_finish"), clicked=self.accept, default=True)
-        footer = QFrame(objectName="footer")
-        bottom = QHBoxLayout(footer)
-        bottom.setContentsMargins(24, 12, 24, 12)
-        bottom.addWidget(self.delete_all)
-        bottom.addStretch()
-        bottom.addWidget(close)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(header)
-        layout.addWidget(pages, 1)
-        layout.addWidget(footer)
-
-    @staticmethod
-    def _scroll(widget: QWidget) -> QScrollArea:
-        scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.NoFrame)
-        scroll.setWidget(widget)
-        return scroll
+        return page
 
     def _words_page(self) -> QWidget:
         """What has been learnt word by word: replacements, corrections on their way, hard words."""
-        page = QWidget(objectName="content")
-        rows = QVBoxLayout(page)
-        rows.setContentsMargins(28, 16, 28, 24)
-        rows.setSpacing(10)
-        pairs = self.learner.corrections()
+        page, rows = self._column()
+        self._custom_words_section(rows)
         drop = self.learner.drop_correction
+        self._learnt_section(
+            rows,
+            tr("words_boost"),
+            tr("words_boost_note"),
+            [
+                (
+                    f"{old}  →  {new}",
+                    tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
+                    lambda o=old, w=new: drop(o, w),
+                )
+                for old, new, n in self.learner.corrections()
+            ],
+        )
+        self._learnt_section(
+            rows,
+            tr("words_hard"),
+            tr("words_hard_note"),
+            [
+                (
+                    e["word"],
+                    tr("words_hard_times", n=e["count"], read=e["read"]),
+                    lambda w=e["word"]: self.learner.drop_hard_word(w),
+                )
+                for e in self.learner.hard_words()
+            ],
+        )
+        rows.addStretch()
+        return page
+
+    def _custom_words_section(self, rows: QVBoxLayout) -> None:
+        """The words the user adds by hand: an entry to type one, then the ones already added."""
         rows.addWidget(QLabel(tr("words_custom"), objectName="groupTitle"))
         rows.addWidget(self._text(tr("words_custom_note"), "note"))
         entry = QLineEdit(placeholderText=tr("words_custom_hint"))
@@ -141,42 +170,16 @@ class DataDialog(Window):
         add.clicked.connect(submit)
         for word in self.learner.custom:
             show(word)
-        sections = (
-            (
-                tr("words_boost"),
-                tr("words_boost_note"),
-                [
-                    (
-                        f"{old}  →  {new}",
-                        tr("words_boost_detail", n=n, alpha=phrase_alpha(n)),
-                        lambda o=old, w=new: drop(o, w),
-                    )
-                    for old, new, n in pairs
-                ],
-            ),
-            (
-                tr("words_hard"),
-                tr("words_hard_note"),
-                [
-                    (
-                        e["word"],
-                        tr("words_hard_times", n=e["count"], read=e["read"]),
-                        lambda w=e["word"]: self.learner.drop_hard_word(w),
-                    )
-                    for e in self.learner.hard_words()
-                ],
-            ),
-        )
-        for title, note, items in sections:
-            rows.addSpacing(6)
-            rows.addWidget(QLabel(title, objectName="groupTitle"))
-            rows.addWidget(self._text(note, "note"))
-            if not items:
-                rows.addWidget(self._text(tr("words_none"), "note"))
-            for text, detail, forget in items:
-                rows.addWidget(self._word_row(text, detail, forget))
-        rows.addStretch()
-        return page
+
+    def _learnt_section(self, rows: QVBoxLayout, title: str, note: str, items) -> None:
+        """A titled list of ``(text, detail, forget)``, or a line saying there is nothing yet."""
+        rows.addSpacing(6)
+        rows.addWidget(QLabel(title, objectName="groupTitle"))
+        rows.addWidget(self._text(note, "note"))
+        if not items:
+            rows.addWidget(self._text(tr("words_none"), "note"))
+        for text, detail, forget in items:
+            rows.addWidget(self._word_row(text, detail, forget))
 
     def _word_row(self, text: str, detail: str, forget) -> QFrame:
         row = QFrame(objectName="card")
@@ -190,7 +193,7 @@ class DataDialog(Window):
             forget()
             row.deleteLater()
 
-        line.addWidget(QPushButton(tr("data_delete"), objectName="ghost", clicked=delete))
+        line.addWidget(ghost_button(tr("data_delete"), clicked=delete))
         return row
 
     def _card(self, rid: str, meta: dict, seconds: float) -> QFrame:
@@ -208,10 +211,16 @@ class DataDialog(Window):
         if meta.get("old"):
             column.addWidget(self._text(tr("data_old", text=meta["old"]), "note"))
         play = QPushButton(tr("data_play"), clicked=lambda: self._toggle(rid))
-        edit = QPushButton(tr("data_edit"), objectName="ghost")
-        delete = QPushButton(tr("data_delete"), objectName="ghost", clicked=lambda: self._delete(rid))
+        column.addLayout(self._card_buttons(rid, play, label, editor))
+        self.cards[rid] = (card, play)
+        return card
+
+    def _card_buttons(self, rid: str, play: QPushButton, label: QLabel, editor: QPlainTextEdit) -> QHBoxLayout:
+        """Play, edit and delete; while editing, those give way to save and cancel."""
+        edit = ghost_button(tr("data_edit"))
+        delete = ghost_button(tr("data_delete"), clicked=lambda: self._delete(rid))
         save = QPushButton(tr("save"), visible=False)
-        cancel = QPushButton(tr("cancel"), objectName="ghost", visible=False)
+        cancel = ghost_button(tr("cancel"), visible=False)
 
         def editing(on: bool) -> None:
             for widget in (editor, save, cancel):
@@ -238,9 +247,7 @@ class DataDialog(Window):
         for widget in (play, edit, delete, save, cancel):
             line.addWidget(widget)
         line.addStretch()
-        column.addLayout(line)
-        self.cards[rid] = (card, play)
-        return card
+        return line
 
     def _save_text(self, rid: str, text: str) -> None:
         # Your own word counts as verified: training must not throw it away. Untrained again, so it gets learnt.
