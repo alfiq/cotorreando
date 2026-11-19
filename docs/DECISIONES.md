@@ -131,7 +131,14 @@ de commit de Common Voice solo junto con una forma de descartarlas. Los paneles 
 calibraba en un idioma que sigue eligiendo (o en "ambos", con español e inglés), se respeta; un
 idioma que dejó de elegir cuenta como "todos". Cerrar la ventana de idiomas equivale a aceptar lo
 marcado, o el idioma de la interfaz si no hay nada: así quien actualiza nunca se queda sin poder
-abrir la app.
+abrir la app. Si el idioma de la interfaz tampoco está en la lista, se marca el primero (el del PC, si se
+detectó), para que cerrar siempre termine con un estado válido.
+
+### Tokenizer sin red
+
+Si la descarga del tokenizer falla, `Parakeet.set_phrases` no vuelve a intentarla durante 10 minutos
+(o hasta reiniciar): cada intento espera hasta 30 s y se repetiría con cada cambio de frases. Mientras
+tanto no hay refuerzo de frases.
 
 ## Pendientes
 
