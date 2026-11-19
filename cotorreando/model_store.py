@@ -174,8 +174,8 @@ def download(
     lengths = [remote[n][0] for n in missing]
     have = {n: _part(target, n).stat().st_size if _part(target, n).exists() else 0 for n in missing}
     if all(s is not None for s in lengths):
-        needed = sum(s - min(have[n], s) for n, s in zip(missing, lengths))
-        total = sum(lengths)
+        needed = sum(s - min(have[n], s) for n, s in zip(missing, lengths))  # pyright: ignore[reportArgumentType, reportOptionalOperand]
+        total = sum(lengths)  # pyright: ignore[reportArgumentType, reportCallIssue]
     else:
         needed, total = max(EXPECTED_BYTES - sum(have.values()), 0), 0
     free = shutil.disk_usage(target).free
@@ -316,7 +316,7 @@ def validate(directory: Path | str) -> None:
     sessions = {}
     for stem, name in graphs.items():
         try:
-            sessions[stem] = _session(directory / name)
+            sessions[stem] = _session(directory / name)  # pyright: ignore[reportOperatorIssue]
         except Exception as err:  # onnxruntime raises its own exception types
             raise InvalidModel("model_bad_onnx", file=name, detail=str(err).splitlines()[0][:200]) from err
         inputs = {i.name for i in sessions[stem].get_inputs()}

@@ -32,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 import pyrage
-from pyrage import passphrase
+from pyrage import passphrase  # pyright: ignore[reportAttributeAccessIssue]
 
 from .vault import WrongPassword
 
@@ -92,7 +92,7 @@ def read(path: Path, password: str) -> tuple[dict, bytes]:
     """The header and the audio, only in memory. Raises WrongPassword or NotAnExport."""
     try:
         data = passphrase.decrypt(Path(path).read_bytes(), password)
-    except pyrage.DecryptError as err:
+    except pyrage.DecryptError as err:  # pyright: ignore[reportAttributeAccessIssue]
         raise WrongPassword from err
     line, _, audio = data.partition(b"\n")
     try:

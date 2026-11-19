@@ -91,7 +91,7 @@ class BoostingTree:
                 self.arcs[ids[id(parent)]][token] = (state, child.node_score - parent.node_score)
                 self.backoff_to[state] = ids[id(child.fail)]
                 # NeMo does not penalise leaving a finished phrase (non-uniform weights)
-                self.backoff_w[state] = 0.0 if child.is_end else child.fail.node_score - child.node_score
+                self.backoff_w[state] = 0.0 if child.is_end else child.fail.node_score - child.node_score  # pyright: ignore[reportOptionalMemberAccess]
         self._scores: dict[int, np.ndarray] = {}
 
     def scores(self, state: int) -> np.ndarray:

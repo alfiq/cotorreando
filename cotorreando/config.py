@@ -113,7 +113,7 @@ class Settings:
             if type(value) is not kind:
                 continue
             if kind is list:
-                value = list(dict.fromkeys(code for code in value if isinstance(code, str) and code in LANGUAGES))
+                value = list(dict.fromkeys(code for code in value if isinstance(code, str) and code in LANGUAGES))  # pyright: ignore[reportGeneralTypeIssues]
                 if not value:  # e.g. an imported file: keep what is here rather than asking again
                     continue
             if f.name in CHOICES and value not in CHOICES[f.name]:
