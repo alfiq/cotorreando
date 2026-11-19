@@ -1,12 +1,14 @@
-"""Settings and About dialogs, plus the shared look of menus and windows."""
+"""Every dialog of the app and the shared look of its windows and menus; app.py uses them from here."""
 
 from .. import keyboard
 from ..i18n import tr
 from .base import Notice, Prompt, Window, apply_theme, ask_password, privacy_link, styled_menu
 from .data import DataDialog
+from .hotkey import HotkeyEdit
 from .model import DownloadDialog, ModelErrorDialog, choose_model_folder, model_error_text
 from .passwords import NewPassword, RecoverDialog, SetupDialog, UnlockDialog, show_recovery_code
-from .settings import HotkeyEdit, SettingsDialog, adapters
+from .settings import SettingsDialog
+from .settings_pages import adapters
 from .welcome import AboutDialog, LanguagesDialog, WelcomeDialog
 
 __all__ = [

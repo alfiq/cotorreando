@@ -24,7 +24,7 @@ bocinas ────────┘ (loopback, referencia para el eco)
 | `asr.py` | Parakeet TDT: preprocesador, codificador, decodificador TDT voraz y `Stream` (streaming por bloques). |
 | `keyboard.py` | Hook de teclado de bajo nivel (atajo y detección de tecleo) y escritura Unicode. |
 | `blob.py` | La ventana flotante y su animación. |
-| `dialogs/` | Diálogos, por grupos: `base` (estilos, ventana sin marco, avisos), `passwords`, `model` (descarga y errores del modelo), `settings` (Opciones y campo del atajo), `data` (lo aprendido) y `welcome` (bienvenida, idiomas y Acerca de). |
+| `dialogs/` | Diálogos, por grupos: `base` (estilos, ventana sin marco, avisos y los helpers de botones, columnas y notas que comparten), `passwords`, `model` (descarga y errores del modelo), `settings` (Opciones: marco, pie y guardado), `settings_pages` (las páginas de Opciones y la lectura de sus controles), `privacy_actions` (contraseña, ver, exportar e importar desde Privacidad), `hotkey` (el campo que graba el atajo), `data` (lo aprendido) y `welcome` (bienvenida, idiomas y Acerca de). |
 | `credits.py` | Lista única de créditos y licencias. |
 | `i18n.py` | Textos en español e inglés. |
 | `languages.py` | Los 25 idiomas del modelo, los que usa Windows y la búsqueda; el diálogo que los pregunta al primer arranque está en `dialogs/welcome.py`. |

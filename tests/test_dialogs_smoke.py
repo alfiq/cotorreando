@@ -106,8 +106,8 @@ class FakeListener:
 def settings_dialog(isolated_data, monkeypatch, unlocked_vault):
     from cotorreando import learning
 
-    monkeypatch.setattr(dialogs.settings, "list_microphones", lambda: ["Test Mic"])
-    monkeypatch.setattr(dialogs.settings, "MODELS_DIR", isolated_data / "models")
+    monkeypatch.setattr(dialogs.settings_pages, "list_microphones", lambda: ["Test Mic"])
+    monkeypatch.setattr(dialogs.settings_pages, "MODELS_DIR", isolated_data / "models")
     monkeypatch.setattr(learning, "FieldReader", lambda: None)
     monkeypatch.setattr(learning.Learner, "_watch", lambda self: None)
     learner = learning.Learner(Settings())
