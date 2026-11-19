@@ -12,6 +12,7 @@ import copy
 import gc
 import hashlib
 import logging
+import time
 import urllib.request
 from pathlib import Path
 
@@ -99,6 +100,9 @@ def phrase_tokenizer(directory: Path | None = None, fetch: bool = True) -> Phras
     return PhraseTokenizer(path)
 
 
+TOKENIZER_RETRY_SECONDS = 600  # after a failed fetch, do not try again (30 s timeout each) for this long
+
+
 class Parakeet:
     """Greedy TDT decoder over the three ONNX graphs."""
 
@@ -143,6 +147,7 @@ class Parakeet:
         self.boost_alpha = BOOST_ALPHA
         self._boost_key = None
         self._tokenizer: PhraseTokenizer | None = None
+        self._tokenizer_failed = None  # time.monotonic() of the last failed fetch
         self.blank = max(vocab)  # last entry is the blank symbol
         shape = self.decoder.get_inputs()[3].shape
         self.state_shape = (shape[0], 1, shape[2])
@@ -182,11 +187,16 @@ class Parakeet:
         self._boost_key, self.boost = key, None
         if not key:
             return
-        self._tokenizer = self._tokenizer or phrase_tokenizer(
-            self.tokenizer_dir, self.fetch_tokenizer
-        )  # the base model's, also under an adapter
         if self._tokenizer is None:
-            return
+            failed = self._tokenizer_failed
+            if failed is not None and time.monotonic() - failed < TOKENIZER_RETRY_SECONDS:
+                return  # the last fetch failed a moment ago: no boosting, and no new wait on the network
+            self._tokenizer = phrase_tokenizer(
+                self.tokenizer_dir, self.fetch_tokenizer
+            )  # the base model's, also under an adapter
+            if self._tokenizer is None:
+                self._tokenizer_failed = time.monotonic()
+                return
         items = [(self._tokenizer(phrase), alpha) for phrase, alpha in key]
         items = [(ids, alpha) for ids, alpha in items if ids]
         self.boost = BoostingTree([i for i, _ in items], [a for _, a in items], self.blank)

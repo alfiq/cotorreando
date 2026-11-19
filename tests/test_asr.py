@@ -67,6 +67,7 @@ def make_model():
     m.preprocessor, m.encoder, m.decoder = FakePreprocessor(), FakeEncoder(), FakeDecoder()
     m.vocab, m.blank, m.state_shape, m.on_gpu = dict(VOCAB), BLANK, (2, 1, 4), False
     m.boost, m.boost_alpha, m._boost_key, m._tokenizer = None, 1.0, None, None
+    m._tokenizer_failed = None
     m.tokenizer_dir, m.fetch_tokenizer, m.closed = Path("unused"), False, False
     return m
 
@@ -370,3 +371,21 @@ def test_real_model_transcribes_a_wav_end_to_end(tmp_path):
     finally:
         model.close()
     assert isinstance(text, str) and isinstance(silence, str)
+
+
+def test_a_failed_tokenizer_fetch_is_not_retried_until_the_wait_passes(model, monkeypatch):
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(asr.time, "monotonic", lambda: now[0])
+
+    def tokenizer(directory=None, fetch=True):
+        calls.append(fetch)
+        return None if len(calls) == 1 else (lambda phrase: [0, 1] if phrase else [])
+
+    monkeypatch.setattr(asr, "phrase_tokenizer", tokenizer)
+    model.set_phrases({"hola": 1.0})
+    model.set_phrases({"que tal": 1.0})  # different phrases, but the fetch just failed
+    assert model.boost is None and len(calls) == 1
+    now[0] += asr.TOKENIZER_RETRY_SECONDS + 1
+    model.set_phrases({"adios": 1.0})
+    assert isinstance(model.boost, BoostingTree) and len(calls) == 2
