@@ -43,8 +43,16 @@ class FakeRange:
         return FakeRange(self.doc, self.start, self.end)
 
     def MoveEndpointByRange(self, endpoint, other, other_endpoint):
-        assert endpoint == ENDPOINT_END and other_endpoint == ENDPOINT_START
-        self.end = other.start
+        assert other_endpoint == ENDPOINT_START
+        if endpoint == ENDPOINT_END:
+            self.end = other.start
+        else:
+            self.start = other.start
+
+    def MoveEndpointByUnit(self, endpoint, unit, count):  # character units only; stops at the document start
+        assert endpoint == ENDPOINT_START and unit == 0
+        self.start = max(0, self.start + count)
+        return count
 
 
 class FakeSelection:
@@ -240,11 +248,6 @@ def test_without_ui_automation_every_question_gets_no_answer(monkeypatch):
     assert not hasattr(r, "automation")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Snapshot.before comes from GetText, which returns the first characters of the range, so with "
-    "the caret past 20000 characters the 'text before the caret' is the start of the document",
-)
 def test_before_the_caret_is_the_text_next_to_it_in_long_documents(reader, automation):
     rng = random.Random(3)
     text = "".join(rng.choice(string.ascii_lowercase) for _ in range(25000))

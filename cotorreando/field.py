@@ -18,6 +18,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 MAX_CHARS = 20000
 ENDPOINT_START, ENDPOINT_END = 0, 1
+UNIT_CHARACTER = 0  # TextUnit_Character
 
 
 @dataclass
@@ -107,7 +108,12 @@ class FieldReader:
             selection = text_pattern.GetSelection()
             if selection and selection.Length:
                 head = document.Clone()
-                head.MoveEndpointByRange(ENDPOINT_END, selection.GetElement(0), ENDPOINT_START)
+                caret = selection.GetElement(0)
+                head.MoveEndpointByRange(ENDPOINT_END, caret, ENDPOINT_START)
+                # GetText returns the first characters of a range, so bring the start up to the
+                # last MAX_CHARS before the caret (it stops at the start of the document)
+                head.MoveEndpointByRange(ENDPOINT_START, caret, ENDPOINT_START)
+                head.MoveEndpointByUnit(ENDPOINT_START, UNIT_CHARACTER, -MAX_CHARS)
                 before = head.GetText(MAX_CHARS)
             return Snapshot(element, text=text, before=before)
         pattern = element.GetCurrentPattern(uia.UIA_ValuePatternId)
