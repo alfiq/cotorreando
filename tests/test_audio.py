@@ -61,11 +61,6 @@ def test_ten_millisecond_blocks_give_the_same_samples_as_one_pass(rate):
     np.testing.assert_allclose(chunked, whole, atol=1e-6)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Resampler.__call__ clamps a negative phase to the first sample of the chunk, so one sample "
-    "per 10 ms block is interpolated wrongly at rates such as 22050 Hz",
-)
 def test_ten_millisecond_blocks_at_22050_match_one_pass():
     x = sine(440, 22050, 1.0, 0.8)
     whole = Resampler(22050, 1)(x.tobytes())
