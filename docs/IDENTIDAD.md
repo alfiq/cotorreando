@@ -61,7 +61,7 @@ no forman parte de la paleta.
 
 ### Interfaz
 
-Definida en `STYLE` y `apply_theme()` de `cotorreando/dialogs.py`.
+Definida en `STYLE` y `apply_theme()` de `cotorreando/dialogs/base.py`.
 
 | Papel | Hex | Contraste |
 |---|---|---|
@@ -147,7 +147,7 @@ azulejado del logo. La esfera azul y magenta anterior queda retirada.
 
 ## Tipografía
 
-Segoe UI, la fuente del sistema de Windows, en toda la interfaz (`dialogs.py`, línea 41: 10 pt) y en
+Segoe UI, la fuente del sistema de Windows, en toda la interfaz (`dialogs/base.py`, línea 36: 10 pt) y en
 el material generado. Pesos: normal para texto, 600 (Semibold) para títulos, botones y grupos.
 Tamaños de referencia: título de página 16 pt, título de diálogo 18 pt, cuerpo 11 pt, notas 9 pt. En
 las imágenes, los valores hex van en Consolas.
@@ -187,7 +187,7 @@ importa en vez de escribir un hex. Fuera de ese archivo no debe haber colores es
 | Archivo | Qué toma de `palette.py` |
 |---|---|
 | `cotorreando/assets/parrot.png` | Nada: es el dibujo del que sale la paleta |
-| `cotorreando/dialogs.py` (`STYLE`, `apply_theme`) | Toda la interfaz, con `%(NOMBRE)s` en la hoja de estilo |
+| `cotorreando/dialogs/base.py` (`STYLE`, `apply_theme`) | Toda la interfaz, con `%(NOMBRE)s` en la hoja de estilo |
 | `cotorreando/blob.py` | `PLUMAGE`, `ORB`, `OFF` |
 | `cotorreando/app.py` (`_tray_icon`) | `ACCENT`, `OFF` |
 | `cotorreando/lora/screen.py`, `cotorreando/lora/ui.py` | `DEEP`, `TITLE`, `LINK`, `MUTED` |
