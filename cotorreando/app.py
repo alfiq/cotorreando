@@ -731,7 +731,9 @@ def set_autostart(on: bool) -> None:
 def already_running() -> bool:
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     already_running.mutex = kernel32.CreateMutexW(None, False, "Local\\Cotorreando")
-    return ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+    # 183 = ERROR_ALREADY_EXISTS. 5 = ERROR_ACCESS_DENIED: the mutex exists but belongs to a copy
+    # running as administrator, so this one cannot open it; that is another copy too.
+    return ctypes.get_last_error() in (183, 5)
 
 
 def main() -> int:
